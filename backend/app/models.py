@@ -244,7 +244,7 @@ class CheckinIn(BaseModel):
 class RequestAnswer(BaseModel):
     option_index: int | None = None
     text: str | None = PField(default=None, max_length=1000)
-    value: float | None = None  # measurement
+    value: float | dict[str, float] | None = None  # measurement
     photo_asset: str | None = None  # demo photo name (day3)
     photo_base64: str | None = None
 

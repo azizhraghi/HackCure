@@ -1,0 +1,110 @@
+"""Demo controls: reset, scenarios, run any scheduled job now, move the demo clock."""
+
+import time
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from .. import audit, clock, requests_service, sweep
+from .. import models as m
+from ..agents import checkin, digest, medication
+from ..config import settings
+from ..db import Repo, get_repo
+
+router = APIRouter(prefix="/demo", tags=["demo"])
+DEMO_MEASUREMENTS = {"hr": 90, "spo2": 96, "temp": 37.9, "bp": {"systolic": 126, "diastolic": 80}}
+
+
+@router.post("/reset")
+def reset(repo: Repo = Depends(get_repo)):
+    from seed.demo_seed import load
+    clock.clear_offset()
+    return {"ok": True, **load(repo)}
+
+
+@router.post("/scenario/{name}")
+def scenario(name: str, with_checkin: bool = True, patient_id: str = "sarah", repo: Repo = Depends(get_repo)):
+    """normal | infection_pattern | urgent_breathless | bad_signal | no_data.
+    infection_pattern submits Sarah's check-in first (fatigue 7/10) unless with_checkin=false."""
+    from seed import simulator
+    if name not in simulator.SCENARIOS:
+        raise HTTPException(404, f"unknown scenario; choose one of {simulator.SCENARIOS}")
+    out = simulator.inject(repo, name, patient_id, with_checkin=with_checkin)
+    repo.s.expire_all()
+    return {**out, "open_alerts": [a.model_dump() for a in repo.open_alerts(patient_id)],
+            "pending_requests": repo.pending_requests(patient_id)}
+
+
+@router.post("/run/{job}")
+def run_job(job: str, patient_id: str = "sarah", repo: Repo = Depends(get_repo)):
+    """Trigger a scheduled job immediately: checkin | medication | digest | sweep."""
+    if job == "checkin":
+        n = checkin.send_reminder(repo, patient_id)
+        return {"reminder": n}
+    if job == "medication":
+        sent = medication.send_due_reminders(repo, patient_id)
+        return {"reminders": sent, "missed_flag": medication.check_missed(repo, patient_id)}
+    if job == "digest":
+        return {"digests": [digest.generate(repo, patient_id, cg.id) for cg in repo.members(patient_id, "caregiver")]}
+    if job == "sweep":
+        return sweep.run(repo)
+    raise HTTPException(404, "unknown job; choose checkin | medication | digest | sweep")
+
+
+@router.post("/answer_pending")
+def answer_pending(patient_id: str = "sarah", option_index: int = 1, repo: Repo = Depends(get_repo)):
+    """Presenter shortcut (no phone): answer every pending request like Sarah would
+    (day-3 wound photo, multiple-choice option `option_index`)."""
+    answered = []
+    for _ in range(6):
+        repo.s.expire_all()
+        reqs = repo.pending_requests(patient_id)
+        if not reqs:
+            break
+        r = reqs[0]
+        if r.kind == "photo":
+            body = m.RequestAnswer(photo_asset="day3")
+        elif r.kind == "measurement":
+            body = m.RequestAnswer(value=DEMO_MEASUREMENTS.get(r.metric))
+        else:
+            body = m.RequestAnswer(option_index=min(option_index, len(r.options) - 1))
+        res = requests_service.answer(repo, r.id, body)
+        answered.append({"request_id": r.id, "kind": r.kind, "prompt": r.prompt, "status": res["status"]})
+        if r.investigation_id:
+            _wait_for_agent(repo, r.investigation_id)
+    return {"answered": answered}
+
+
+def _wait_for_agent(repo: Repo, inv_id: str, max_s: float = 60) -> None:
+    """Agents run in a worker thread: give the investigation time to ask its next question or finish."""
+    deadline = time.monotonic() + max_s
+    while time.monotonic() < deadline:
+        repo.s.expire_all()
+        inv = repo.get(m.Investigation, inv_id)
+        if inv is None or inv.status != "running":
+            return
+        time.sleep(0.25)
+
+
+@router.post("/clock/advance")
+def advance(seconds: float, repo: Repo = Depends(get_repo)):
+    now = clock.advance(seconds)
+    audit.log(repo, "sarah", "demo", "clock.advanced", {"seconds": seconds, "now": now})
+    return {"now": now.isoformat(), "sweep": sweep.run(repo)}
+
+
+@router.get("/status")
+def status(patient_id: str = "sarah", repo: Repo = Depends(get_repo)):
+    inv = repo.first(m.Investigation, m.Investigation.patient_id == patient_id, order=m.Investigation.started_at.desc())
+    return {"now": clock.now().isoformat(), "llm_mode": settings.llm_mode,
+            "open_alerts": [a.model_dump() for a in repo.open_alerts(patient_id)],
+            "pending_requests": repo.pending_requests(patient_id),
+            "latest_investigation": inv.model_dump(exclude={"state"}) if inv else None}
+
+
+@router.post("/llm_mode/{mode}")
+def set_llm_mode(mode: str):
+    """Switch live | stub | off at runtime (e.g. show the urgent path with the LLM 'down')."""
+    if mode not in ("live", "stub", "off"):
+        raise HTTPException(422, "live | stub | off")
+    settings.llm_mode = mode
+    return {"llm_mode": mode}

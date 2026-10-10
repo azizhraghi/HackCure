@@ -1,5 +1,6 @@
 """SurgiGuard AI backend: FastAPI app, routers and scheduler."""
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,34 +8,37 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from . import db
-from .config import settings
+from . import db, scheduler
 from .agents import digest, investigation  # noqa: F401  (registers the runner jobs)
-from .routers import alerts, caregiver, chat, checkin, investigations, medications, observations, patients
+from .config import settings
+from .routers import (alerts, caregiver, chat, checkin, demo, investigations, medications, observations,
+                      patients)
 
-SEED_DIR = Path(__file__).resolve().parent.parent / "seed"
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     db.engine()
     with db.session_scope() as repo:
         if repo.patient("sarah") is None:
             from seed.demo_seed import load
             load(repo)
+    scheduler.start()
     yield
+    scheduler.stop()
 
 
-app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan,
+              description="Agentic post-operative surveillance prototype (FICTIONAL data, not a medical device).")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.mount("/static/photos", StaticFiles(directory=SEED_DIR / "photos"), name="photos")
-UPLOADS = Path(__file__).resolve().parent.parent / "uploads"
-UPLOADS.mkdir(exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
+app.mount("/static/photos", StaticFiles(directory=BACKEND_DIR / "seed" / "photos"), name="photos")
+(BACKEND_DIR / "uploads").mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=BACKEND_DIR / "uploads"), name="uploads")
 
-for r in (chat.router, patients.router, observations.router, alerts.router, medications.router,
-          investigations.router, checkin.router, caregiver.router):
-    app.include_router(r)
+for r in (chat, patients, observations, checkin, investigations, alerts, medications, caregiver, demo):
+    app.include_router(r.router)
 
 
 @app.get("/health")

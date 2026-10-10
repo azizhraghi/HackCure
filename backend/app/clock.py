@@ -27,6 +27,12 @@ def freeze(at: datetime | None = None) -> None:
     _offset = timedelta(0)
 
 
+def clear_offset() -> None:
+    """Demo reset: back to 'now' (a frozen test clock stays frozen)."""
+    global _offset
+    _offset = timedelta(0)
+
+
 def reset() -> None:
     global _frozen, _offset
     _frozen = None
