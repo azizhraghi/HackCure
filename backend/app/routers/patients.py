@@ -60,7 +60,6 @@ def today(patient_id: str, repo: Repo = Depends(get_repo)):
         "patient": {"id": p.id, "name": p.name, "first_name": p.first_name, "age": p.age, "surgery": p.surgery,
                     "day": day_number(p, now), "allergies": p.allergies},
         "now": now.isoformat(),
-        "plan_approved_by": "dr_ruiz",
         "tasks": tasks,
         "appointments": appointments,
         "pending_requests": [r.model_dump() for r in repo.pending_requests(patient_id)],

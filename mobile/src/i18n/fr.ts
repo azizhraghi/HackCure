@@ -37,7 +37,6 @@ const fr: Dict = {
     rehT: 'Exercices de rééducation', rehC: '3 exercices · 2 fois par jour', rehTag: "Dès aujourd'hui",
     folT: 'Visites de suivi', folC: 'Prochaine visite le 18 juin', folTag: '2 visites',
     warning: "Signes d'alerte", warningSub: 'Fièvre > 38°C, rougeur qui s’étend, écoulement',
-    approved: 'Vérifié et approuvé par Dr Elena Ruiz',
     modules: 'Modules de suivi activés', chips: 'Caméra plaie|Capteur pansement|Suivi douleur|Rééduc. angle genou',
     confirm: 'Confirmer et créer le jumeau',
   },
@@ -88,7 +87,7 @@ const fr: Dict = {
     push: 'Presque fini, continuez\ncomme ça 💪', reps: 'Encore 8 répétitions', live: 'DIRECT', targetSmall: 'cible 110°',
     maxAngle: 'ANGLE MAX', plus: "+6° aujourd'hui", repsK: 'RÉPÉT.', form: 'Bonne posture', painAfter: 'DOULEUR APRÈS', within: 'Dans la norme',
     exercises: 'Exercices du jour', ex1: 'Flexions du genou', ex1s: '2 × 10 · matin et soir', ex2: 'Élévations jambe tendue', ex2s: '2 × 10',
-    ex3: 'Pompes de cheville', ex3s: '3 × 15', approved: 'Approuvé par votre kiné', permission: "Autorisez la caméra pour suivre l'angle du genou",
+    ex3: 'Pompes de cheville', ex3s: '3 × 15', permission: "Autorisez la caméra pour suivre l'angle du genou",
   },
   escalation: {
     top: 'Alerte clinique', shared: 'ALERTE PARTAGÉE', sent: "Envoyée aujourd'hui à 10:18",
@@ -144,7 +143,7 @@ const fr: Dict = {
     rehab: 'Rééducation genou', rehabSub: '12 répétitions sur 20', scan: 'Scan de la plaie', scanSub: 'Dernière photo 9:42',
   },
   meds: {
-    top: 'Médicaments', kicker: "AUJOURD'HUI · 4 MÉDICAMENTS", title: 'Votre planning\nde médicaments', verified: 'Validé par la clinicienne',
+    top: 'Médicaments', kicker: "AUJOURD'HUI · 4 MÉDICAMENTS", title: 'Votre planning\nde médicaments',
     adherence: 'OBSERVANCE', adherenceSub: 'Cette semaine · 1 prise manquée', next: 'PROCHAINE PRISE', in: 'dans 1 h 20',
     morning: 'Matin', afternoon: 'Après-midi', evening: 'Soir',
     take: 'Prendre', taken: 'Pris', skip: 'Sauter', skipped: 'Sauté',
@@ -157,7 +156,7 @@ const fr: Dict = {
     m3: 'Pantoprazole 20 mg', m3p: "Protège l'estomac", m4: 'Énoxaparine 40 mg', m4p: 'Prévient les caillots · injection',
   },
   ai: {
-    top: 'Assistant de récupération', kicker: 'IA · BASÉ SUR VOTRE PLAN APPROUVÉ',
+    top: 'Assistant de récupération', kicker: 'IA · BASÉ SUR VOTRE PLAN DE SOINS',
     hello: 'Bonjour Sarah 👋 Je peux vous expliquer vos consignes de sortie, vos médicaments et vos exercices. Que voulez-vous savoir ?',
     disclaimer: "SurgiGuard ne pose pas de diagnostic. En cas d'urgence, appelez les secours.",
     suggestions: 'Puis-je me doucher avec mon pansement ?|Quand pourrai-je reconduire ?|À quoi sert l’énoxaparine ?|Ma douleur au genou est-elle normale ?',
@@ -179,7 +178,7 @@ const fr: Dict = {
     top: 'Rejoindre un patient', title: 'Se connecter à la\nrécupération de Sarah', sub: "Scannez le QR code d'invitation de Sarah ou saisissez le code sécurisé.",
     scan: 'Scanner le QR code', scanSub: "Pointez la caméra vers l'invitation de Sarah", scanning: 'Recherche d’un QR code…',
     or: 'ou saisissez le code à 6 chiffres', connected: 'CONNEXION SÉCURISÉE', following: 'Vous suivez maintenant la récupération de Sarah',
-    followingSub: 'Vous voyez son état, les mises à jour partagées, les alertes et les données approuvées.',
+    followingSub: 'Vous voyez son état, les mises à jour partagées, les alertes et les données de récupération.',
     go: 'Voir la récupération de Sarah', invalid: 'Code non reconnu. Essayez 482916.', permission: 'Autoriser la caméra',
   },
   fam: {

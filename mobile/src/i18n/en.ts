@@ -35,7 +35,6 @@ const en = {
     rehT: 'Rehabilitation exercises', rehC: '3 exercises · twice daily', rehTag: 'Start today',
     folT: 'Follow-up visits', folC: 'Next visit on June 18', folTag: '2 visits',
     warning: 'Warning signs', warningSub: 'Fever over 38°C, spreading redness, drainage',
-    approved: 'Reviewed & approved by Dr. Elena Ruiz',
     modules: 'Monitoring modules activated', chips: 'Wound camera|Dressing sensor|Pain tracking|Knee-angle rehab',
     confirm: 'Confirm & create Twin',
   },
@@ -86,7 +85,7 @@ const en = {
     push: 'Almost done, keep pushing\nstrong today 💪', reps: '8 reps left', live: 'LIVE', targetSmall: 'target 110°',
     maxAngle: 'MAX ANGLE', plus: '+6° today', repsK: 'REPS', form: 'Great form', painAfter: 'PAIN AFTER', within: 'Within range',
     exercises: "Today's exercises", ex1: 'Knee bends', ex1s: '2 × 10 · morning & evening', ex2: 'Straight-leg raises', ex2s: '2 × 10',
-    ex3: 'Ankle pumps', ex3s: '3 × 15', approved: 'Approved by your physio', permission: 'Allow the camera to track your knee angle',
+    ex3: 'Ankle pumps', ex3s: '3 × 15', permission: 'Allow the camera to track your knee angle',
   },
   escalation: {
     top: 'Clinical alert', shared: 'ALERT SHARED', sent: 'Sent today at 10:18 AM',
@@ -142,7 +141,7 @@ const en = {
     rehab: 'Knee rehab', rehabSub: '12 of 20 reps done', scan: 'Wound scan', scanSub: 'Last photo 9:42 AM',
   },
   meds: {
-    top: 'Medications', kicker: 'TODAY · 4 MEDICINES', title: 'Your medication\nschedule', verified: 'Clinician verified',
+    top: 'Medications', kicker: 'TODAY · 4 MEDICINES', title: 'Your medication\nschedule',
     adherence: 'ADHERENCE', adherenceSub: 'This week · 1 missed dose', next: 'NEXT DOSE', in: 'in 1 h 20 min',
     morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening',
     take: 'Take', taken: 'Taken', skip: 'Skip', skipped: 'Skipped',
@@ -155,7 +154,7 @@ const en = {
     m3: 'Pantoprazole 20 mg', m3p: 'Protects the stomach', m4: 'Enoxaparin 40 mg', m4p: 'Prevents blood clots · injection',
   },
   ai: {
-    top: 'Recovery assistant', kicker: 'AI · BASED ON YOUR APPROVED PLAN',
+    top: 'Recovery assistant', kicker: 'AI · BASED ON YOUR CARE PLAN',
     hello: "Hi Sarah 👋 I can explain your discharge instructions, medications and exercises. What would you like to know?",
     disclaimer: "SurgiGuard doesn't diagnose. For urgent symptoms, call emergency services.",
     suggestions: 'Can I shower with my dressing?|When can I drive again?|What does Enoxaparin do?|Is my knee pain normal?',
@@ -177,7 +176,7 @@ const en = {
     top: 'Join a patient', title: "Connect to Sarah's\nrecovery", sub: "Scan Sarah's invite QR code or enter the secure code.",
     scan: 'Scan QR code', scanSub: "Point your camera at Sarah's invite", scanning: 'Looking for a QR code…',
     or: 'or type the 6-digit code', connected: 'CONNECTED SECURELY', following: "You're now following Sarah's recovery",
-    followingSub: 'You can see her status, shared updates, alerts, and approved recovery data.',
+    followingSub: 'You can see her status, shared updates, alerts, and recovery data.',
     go: "Go to Sarah's recovery", invalid: 'Code not recognised. Try 482916.', permission: 'Allow camera to scan',
   },
   fam: {

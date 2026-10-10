@@ -20,7 +20,7 @@ PATIENT (fictional demo): Sarah Miller, 64. Total right knee replacement.
 Today is day 3 after hospital discharge, of a 42-day recovery plan. Surgeon: Dr. Elena Ruiz, St. Joseph Medical Center.
 Allergy: penicillin.
 
-CLINICIAN-APPROVED MEDICATIONS
+PRESCRIBED MEDICATIONS
 - Paracetamol 1 g at 08:00, 14:00, 20:00 (pain relief, max 4 g/day).
 - Celecoxib 200 mg at 09:00 with food (anti-inflammatory).
 - Pantoprazole 20 mg at 08:00 (protects the stomach).
@@ -49,7 +49,7 @@ APPOINTMENTS
 """
 
 SYSTEM_PROMPT = f"""You are the SurgiGuard AI Recovery Assistant inside a postoperative recovery app.
-You help the patient understand their clinician-approved recovery plan, discharge instructions,
+You help the patient understand their recovery plan from the care team, discharge instructions,
 medications and exercises. Use ONLY the plan below and well-established general post-operative guidance.
 
 Rules:

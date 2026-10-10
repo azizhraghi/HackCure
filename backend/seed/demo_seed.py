@@ -48,7 +48,7 @@ def load(repo: Repo, now: datetime | None = None) -> dict:
                          relation="backup", is_backup=True),
     ]:
         repo.add(mem)
-    repo.add(m.SurveillancePlan(patient_id="sarah", approved_by="dr_ruiz", approved_at=discharge - timedelta(hours=2),
+    repo.add(m.SurveillancePlan(patient_id="sarah", created_at=discharge - timedelta(hours=2),
                                 plan=PLAN))
 
     # -- vitals: normal days 1-2, slow drift over the last 24 h (HR -> ~84, temp -> ~37.5)

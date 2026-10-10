@@ -17,7 +17,7 @@ DIAGNOSIS = re.compile(r"\b(you have|she has|he has|patient has|this is|diagnos(
 SPECULATION = re.compile(r"\b(possible|potential|suspected|likely|probable|signs? of|assess(ing)? for|rule out|"
                          r"consistent with|suggestive of|indicative of|concern for)\b[^.!?]{0,25}\b" + CONDITIONS,
                          re.I)
-# Patient messages may not ask for tests: requests go through the request tools (max 2, plan-approved).
+# Patient messages may not ask for tests: requests go through the request tools (max 2, listed in the care plan).
 ACTION_REQUEST = re.compile(r"\b(take|measure|check|record|send|upload)\b[^.!?]{0,30}\b"
                             r"(temperature|oxygen|spo2|blood pressure|heart rate|pulse|photo|picture)", re.I)
 

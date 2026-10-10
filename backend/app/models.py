@@ -57,8 +57,7 @@ class CareTeamMember(SQLModel, table=True):
 class SurveillancePlan(SQLModel, table=True):
     id: str = Field(default_factory=lambda: new_id("plan"), primary_key=True)
     patient_id: str = Field(index=True)
-    approved_by: str
-    approved_at: NaiveDatetime
+    created_at: NaiveDatetime = Field(default_factory=clock.now)  # the plan comes from the care team
     plan: dict = _json(dict)
 
 

@@ -34,7 +34,6 @@ export function MedicationsScreen({ navigation }: RootScreen<'Medications'>) {
       <TopBar title={t('meds.top')} />
       <T size={9} w={800} spacing={1.5} color={c.primary} style={{ marginTop: 6 }}>{t('meds.kicker')}</T>
       <PageTitle style={{ marginTop: 6 }}>{t('meds.title')}</PageTitle>
-      <Chip tone="green" style={{ marginBottom: 12 }}><Icon name="shield" size={12} /><T size={9} w={800}>{t('meds.verified')}</T></Chip>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card bg={c.sky} radius={19} style={{ flex: 1.1, padding: 12, height: 128 }}>

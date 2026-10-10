@@ -73,7 +73,7 @@ TOOLS = [
         ["metric", "hours"]),
     _fn("get_symptom_checkins", "Check-in answers (1-5 scale, higher is worse) of the last N days.",
         {"days": {"type": "integer", "minimum": 1, "maximum": 7}}, ["days"]),
-    _fn("get_medication_context", "Approved medications and dose log of the last 48 h.", {}, []),
+    _fn("get_medication_context", "Prescribed medications and dose log of the last 48 h.", {}, []),
     _fn("get_wound_photos", "Most recent N wound photos (ids, dates).",
         {"n": {"type": "integer", "minimum": 1, "maximum": 5}}, ["n"]),
     _fn("compare_wound_photos", "Compare two wound photos (older first).",
@@ -199,7 +199,7 @@ def _can_request(ctx: Ctx, test: str) -> str | None:
     if ctx.inv.patient_requests >= settings.max_patient_requests:
         return f"limit reached: max {settings.max_patient_requests} patient requests per investigation"
     if test not in ctx.repo.plan(ctx.pid).get("allowed_tests", []):
-        return f"'{test}' is not an allowed test in the approved plan"
+        return f"'{test}' is not an allowed test in the care plan"
     return None
 
 

@@ -1,6 +1,6 @@
 """S1 urgent rules. Pure functions, no I/O, no LLM. Highest priority in the system.
 
-Thresholds come from the patient's approved plan (demo values, NOT clinical advice).
+Thresholds come from the patient's care plan (demo values, NOT clinical advice).
 Text matching is deliberately conservative: a red-flag phrase anywhere fires, even if
 negated ("no chest pain"). A false alarm is preferable to a missed emergency.
 """

@@ -1,6 +1,6 @@
 """B2 Medication Agent: rules only, no LLM.
 
-- Reminders come from the approved plan schedule.
+- Reminders come from the care plan schedule.
 - Dose answers: taken | not_taken | postponed | unknown.
 - No answer after the grace period means "unknown", never "taken".
 - 2+ missed (not_taken) doses in 48 h -> CaregiverTask + attention flag for the clinician.
@@ -104,7 +104,7 @@ def record_dose(repo: Repo, patient_id: str, med_id: str, scheduled_for: datetim
     plan = repo.plan(patient_id)
     med = plan_med(plan, med_id)
     if med is None:
-        raise ValueError(f"{med_id} is not in the approved plan")
+        raise ValueError(f"{med_id} is not in the care plan")
     if scheduled_for.strftime("%H:%M") not in med["times"]:
         raise ValueError(f"{med['name']} is not scheduled at {scheduled_for:%H:%M}")
     member = repo.member(actor)
@@ -116,7 +116,7 @@ def record_dose(repo: Repo, patient_id: str, med_id: str, scheduled_for: datetim
               {"med_id": med_id, "scheduled_for": scheduled_for, "status": status, "by": actor}, "observation", obs.id)
     result = {"observation_id": obs.id, "status": status, "flag": None}
     if status == "not_taken":
-        # Text from the approved plan only. Never a catch-up dose suggestion.
+        # Text from the care plan only. Never a catch-up dose suggestion.
         result["missed_dose_text"] = med.get("missed_dose_text", "Please tell your care team that a dose was missed.")
         result["flag"] = check_missed(repo, patient_id)
     return result

@@ -39,7 +39,7 @@ Rules you must follow:
 - Call one tool at a time. You have at most 8 tool calls before finishing. Before finishing you MUST have called:
   get_vitals_trend for hr, get_vitals_trend for temp, get_symptom_checkins and get_medication_context.
 - Only list data as missing if a tool actually showed it missing (status "unknown" / no readings).
-- The approved plan asks for a daily wound photo: check get_wound_photos and, if none is from today, use
+- The care plan asks for a daily wound photo: check get_wound_photos and, if none is from today, use
   request_wound_photo, then compare it with the oldest photo. Use your other request for one short follow-up
   question only if the answer would help the clinician.
 - messages.patient: one or two short, calm sentences saying the care team will review. Do NOT ask the patient to do

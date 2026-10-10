@@ -86,7 +86,7 @@ class Repo:
 
     def plan(self, patient_id: str) -> dict:
         row = self.first(m.SurveillancePlan, m.SurveillancePlan.patient_id == patient_id,
-                         order=m.SurveillancePlan.approved_at.desc())
+                         order=m.SurveillancePlan.created_at.desc())
         return row.plan if row else {}
 
     def member(self, member_id: str) -> m.CareTeamMember | None:
