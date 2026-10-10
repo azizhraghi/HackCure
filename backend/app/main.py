@@ -43,5 +43,7 @@ for r in (chat, patients, observations, checkin, investigations, alerts, medicat
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "llm": "mistral", "llm_mode": settings.llm_mode, "model": settings.mistral_model,
-            "configured": bool(settings.mistral_api_key)}
+    groq = settings.llm_provider == "groq"
+    return {"status": "ok", "llm": settings.llm_provider, "llm_mode": settings.llm_mode,
+            "model": settings.groq_model if groq else settings.mistral_model,
+            "configured": bool(settings.groq_api_key if groq else settings.mistral_api_key)}

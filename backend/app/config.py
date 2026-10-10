@@ -20,8 +20,13 @@ def _bool(name: str, default: bool) -> bool:
 class Settings:
     mistral_api_key: str = field(default_factory=lambda: os.getenv("MISTRAL_API_KEY", ""))
     mistral_model: str = field(default_factory=lambda: os.getenv("MISTRAL_MODEL", "mistral-medium-latest"))
-    # stub = canned outputs, no network | live = Mistral | off = every LLM call fails (demo "LLM down")
-    llm_mode: str = field(default_factory=lambda: os.getenv("LLM_MODE", "live" if os.getenv("MISTRAL_API_KEY") else "stub"))
+    # mistral | groq (OpenAI-compatible endpoint)
+    llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "mistral").strip().lower())
+    groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
+    groq_model: str = field(default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"))
+    # stub = canned outputs, no network | live = the provider | off = every LLM call fails (demo "LLM down")
+    llm_mode: str = field(default_factory=lambda: os.getenv(
+        "LLM_MODE", "live" if (os.getenv("MISTRAL_API_KEY") or os.getenv("GROQ_API_KEY")) else "stub"))
     llm_timeout_s: float = field(default_factory=lambda: float(os.getenv("LLM_TIMEOUT_S", "25")))
     # Minimum gap between Mistral calls (the free tier allows about 1 request/second).
     llm_min_interval_s: float = field(default_factory=lambda: float(os.getenv("LLM_MIN_INTERVAL_S", "1.1")))

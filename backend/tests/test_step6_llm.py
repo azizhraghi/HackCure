@@ -92,3 +92,30 @@ def test_permanent_errors_not_retried_rate_limits_are(monkeypatch):
     with pytest.raises(llm.LLMUnavailable):
         llm.chat_tools("investigation", [], [])
     assert calls["n"] == 3
+
+
+def test_groq_provider_maps_openai_response(monkeypatch):
+    import httpx
+    sent = {}
+
+    class Resp:
+        status_code = 200
+        text = ""
+
+        @staticmethod
+        def json():
+            return {"choices": [{"message": {"content": None, "tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "get_vitals_trend", "arguments": "{\"metric\": \"hr\", \"hours\": 24}"}}]}}]}
+
+    def fake_post(url, json, timeout, headers):
+        sent.update(url=url, body=json)
+        return Resp()
+    monkeypatch.setattr(settings, "llm_mode", "live")
+    monkeypatch.setattr(settings, "llm_provider", "groq")
+    monkeypatch.setattr(settings, "groq_api_key", "gsk_test")
+    monkeypatch.setattr(httpx, "post", fake_post)
+    r = llm.chat_tools("investigation", [{"role": "user", "content": "go"}], [{"type": "function"}],
+                       tool_choice="any")
+    assert "groq.com" in sent["url"] and sent["body"]["tool_choice"] == "required"
+    assert r.tool_calls[0].name == "get_vitals_trend" and r.tool_calls[0].arguments == {"metric": "hr", "hours": 24}

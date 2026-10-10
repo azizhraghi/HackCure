@@ -169,21 +169,51 @@ def _retryable(e: Exception) -> bool:
     return status is None or status == 429 or status >= 500  # network/timeout, rate limit, server error
 
 
+class ProviderError(Exception):
+    def __init__(self, status_code: int, body: str):
+        super().__init__(f"HTTP {status_code}: {body[:300]}")
+        self.status_code = status_code
+
+
+def _groq_complete(**kwargs):
+    """Groq's OpenAI-compatible endpoint, returned in the same shape as the Mistral SDK response."""
+    import httpx
+    from types import SimpleNamespace as NS
+    if not settings.groq_api_key:
+        raise LLMUnavailable("GROQ_API_KEY is not set")
+    body = {"model": settings.groq_model, "temperature": 0.2, "max_tokens": 1500, **kwargs}
+    if body.get("tool_choice") == "any":  # Mistral's "must call a tool" == OpenAI's "required"
+        body["tool_choice"] = "required"
+    r = httpx.post("https://api.groq.com/openai/v1/chat/completions", json=body, timeout=settings.llm_timeout_s,
+                   headers={"Authorization": f"Bearer {settings.groq_api_key}"})
+    if r.status_code != 200:
+        raise ProviderError(r.status_code, r.text)
+    msg = r.json()["choices"][0]["message"]
+    calls = [NS(id=tc.get("id"), function=NS(name=tc["function"]["name"], arguments=tc["function"]["arguments"]))
+             for tc in msg.get("tool_calls") or []]
+    return NS(choices=[NS(message=NS(content=msg.get("content"), tool_calls=calls))])
+
+
 def _complete(**kwargs):
-    client = _mistral()
+    groq = settings.llm_provider == "groq"
+    client = None if groq else _mistral()
     last: Exception | None = None
     for attempt in range(3):
         _pace()
         try:
+            if groq:
+                return _groq_complete(**kwargs)
             return client.chat.complete(model=settings.mistral_model, temperature=0.2, max_tokens=1500,
                                         timeout_ms=int(settings.llm_timeout_s * 1000), **kwargs)
+        except LLMUnavailable:
+            raise
         except Exception as e:
             last = e
-            log.warning("Mistral call failed (attempt %d): %s", attempt + 1, e)
+            log.warning("%s call failed (attempt %d): %s", settings.llm_provider, attempt + 1, e)
             if not _retryable(e):  # 400/401/403/422: retrying cannot help (bad key, model not in tier, ...)
                 break
             time.sleep(1.5 * (attempt + 1))
-    raise LLMUnavailable(f"Mistral unavailable: {last}")
+    raise LLMUnavailable(f"{settings.llm_provider} unavailable: {last}")
 
 
 def _text(content) -> str:

@@ -22,6 +22,7 @@ copy .env.example .env      # put MISTRAL_API_KEY in .env (optional: stub mode n
 | Variable | Default | Meaning |
 |---|---|---|
 | `MISTRAL_API_KEY` | – | Needed for `LLM_MODE=live` and for `/chat` |
+| `LLM_PROVIDER` | `mistral` | `mistral` or `groq` (OpenAI-compatible; set `GROQ_API_KEY`, optional `GROQ_MODEL`, default `llama-3.3-70b-versatile`). `/chat` always uses Mistral |
 | `MISTRAL_MODEL` | `mistral-medium-latest` | Model used by every agent |
 | `LLM_MODE` | `live` if a key is set, else `stub` | `live` = Mistral, `stub` = canned deterministic agent output, `off` = the LLM is "down" (agents fall back to rules and templates) |
 | `ACK_TIMEOUT_S` | `60` | An alert not acknowledged within this time escalates to the backup contact |
