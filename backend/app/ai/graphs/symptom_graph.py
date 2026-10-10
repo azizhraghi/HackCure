@@ -8,9 +8,7 @@ import os
 from dotenv import load_dotenv
 import re
 
-load_dotenv()
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
-MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+from app.config import settings, get_chat_llm, get_active_provider
 
 WARNING_KEYWORDS_FR = [
     "fièvre", "rougeur", "gonflement", "écoulement", "odeur",
@@ -31,7 +29,7 @@ class SymptomState(TypedDict):
     extracted_data: Optional[SymptomExtractionResult]
     errors: List[str]
 
-llm = ChatMistralAI(model=MISTRAL_MODEL, mistral_api_key=MISTRAL_API_KEY, temperature=0.0)
+llm = get_chat_llm(temperature=0.0)
 parser = PydanticOutputParser(pydantic_object=SymptomExtractionResult)
 
 prompt = ChatPromptTemplate.from_messages([
@@ -64,9 +62,8 @@ def check_deterministic_warnings(state: SymptomState):
     return {"deterministic_warning": is_warning, "deterministic_emergency": is_emergency}
 
 def extract_symptoms(state: SymptomState):
-    if state.get("deterministic_emergency"):
-        # Fast path to D3, maybe still extract but note emergency
-        pass
+    if get_active_provider() == "offline":
+        return {"extracted_data": None}
 
     try:
         result = extraction_chain.invoke({
