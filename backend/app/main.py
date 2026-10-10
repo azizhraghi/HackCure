@@ -10,10 +10,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db, scheduler
-from .agents import digest, investigation  # noqa: F401  (registers the runner jobs)
+from .agents import digest, investigation, protocol  # noqa: F401  (registers the runner jobs)
 from .config import settings
-from .routers import (alerts, caregiver, chat, checkin, demo, investigations, medications, observations,
-                      patients)
+from .routers import (alerts, caregiver, chat, checkin, demo, documents, investigations, medications,
+                      observations, patients, wounds)
 from d3_demo import router as d3_demo_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -55,7 +55,8 @@ def d3_demo_page():
 def root():
     return RedirectResponse("/app/")
 
-for r in (chat, patients, observations, checkin, investigations, alerts, medications, caregiver, demo):
+for r in (chat, patients, documents, wounds, observations, checkin, investigations, alerts, medications, caregiver,
+          demo):
     app.include_router(r.router)
 
 
@@ -66,4 +67,4 @@ def health():
     return {"status": "ok", "llm": prov, "llm_mode": settings.llm_mode,
             "model": getattr(settings, f"{prov}_model", settings.mistral_model),
             "configured": bool(getattr(settings, f"{prov}_api_key", "")),
-            "routes": {a: "/".join(route(a)) for a in ("investigation", "checkin_clarify", "digest", "chat")}}
+            "routes": {a: "/".join(route(a)) for a in ("investigation", "checkin_clarify", "digest", "chat", "protocol")}}

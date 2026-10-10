@@ -123,7 +123,7 @@ def chat_text(agent: str, messages: list[dict], context: dict | None = None) -> 
     return text
 
 
-def chat_json(agent: str, messages: list[dict], context: dict | None = None) -> dict:
+def chat_json(agent: str, messages: list[dict], context: dict | None = None, max_tokens: int | None = None) -> dict:
     """Structured output: returns a parsed JSON object (validate it with Pydantic in the caller)."""
     m = mode()
     if m == "off":
@@ -132,7 +132,8 @@ def chat_json(agent: str, messages: list[dict], context: dict | None = None) -> 
         return _stub(agent, messages, context)
     last_err = None
     for _ in range(2):
-        res = _complete(agent, messages=messages, response_format={"type": "json_object"})
+        extra = {"max_tokens": max_tokens} if max_tokens else {}
+        res = _complete(agent, messages=messages, response_format={"type": "json_object"}, **extra)
         raw = _text(res.choices[0].message.content)
         try:
             data = json.loads(raw)
@@ -266,8 +267,8 @@ def _complete(agent: str, **kwargs):
         try:
             if compat:
                 return _openai_complete(provider, model, **kwargs)
-            return client.chat.complete(model=model, temperature=0.2, max_tokens=1500,
-                                        timeout_ms=int(settings.llm_timeout_s * 1000), **kwargs)
+            return client.chat.complete(model=model, temperature=0.2, timeout_ms=int(settings.llm_timeout_s * 1000),
+                                        **{"max_tokens": 1500, **kwargs})
         except LLMUnavailable:
             raise
         except Exception as e:

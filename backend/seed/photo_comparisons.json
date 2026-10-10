@@ -1,6 +1,0 @@
-{
-  "_note": "Pre-computed, FICTIONAL comparisons for the demo photos (stands in for an image model).",
-  "day1|day2": {"redness_area_change_pct": 4, "edge_swelling": "unchanged", "drainage_visible": false, "confidence": "medium"},
-  "day1|day3": {"redness_area_change_pct": 22, "edge_swelling": "slightly increased", "drainage_visible": false, "confidence": "medium"},
-  "day2|day3": {"redness_area_change_pct": 17, "edge_swelling": "slightly increased", "drainage_visible": false, "confidence": "medium"}
-}

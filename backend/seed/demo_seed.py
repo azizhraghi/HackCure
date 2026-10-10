@@ -6,17 +6,19 @@ demo clock so the story works whenever the demo is run.
 
 import json
 import random
+from functools import lru_cache
 from datetime import datetime, time, timedelta
 from pathlib import Path
 
 from app import clock
 from app import models as m
+from app import wound_image, wounds
 from app.agents.checkin import to_scale5
 from app.db import Repo, drop_all
 
 SEED_DIR = Path(__file__).parent
 PLAN = json.loads((SEED_DIR / "plan_sarah.json").read_text(encoding="utf-8"))
-PHOTO_COMPARISONS = json.loads((SEED_DIR / "photo_comparisons.json").read_text(encoding="utf-8"))
+
 
 BASELINES = {"hr": 72, "spo2": 97, "temp": 36.8, "bp": {"systolic": 120, "diastolic": 78}}
 UNITS = {"hr": "bpm", "spo2": "%", "temp": "C", "bp": "mmHg"}
@@ -93,16 +95,33 @@ def load(repo: Repo, now: datetime | None = None) -> dict:
                                           value={"med_id": med["id"], "scheduled_for": ts.isoformat(), "status": status}))
             day += timedelta(days=1)
 
-    # -- wound photos (day 1, day 2); the day-3 photo is taken live when the agent asks for it
-    for asset, ts in (("day1", discharge + timedelta(hours=2)), ("day2", at(today - timedelta(days=1), "10:00"))):
+    # -- wound photos (day 1, day 2): real, openly licensed photos (seed/photos/CREDITS.md), measured by code.
+    #    The day-3 photo is taken live (camera / upload) when the agent asks for it.
+    day1, day2 = demo_analysis("day1"), demo_analysis("day2")
+    for asset, ts, analysis, comparison in (
+            ("day1", discharge + timedelta(hours=2), day1, {"available": False, "reason": "first photo: it becomes the reference"}),
+            ("day2", at(today - timedelta(days=1), "10:00"), day2, wound_image.compare(day1, day2))):
         objs.append(m.Observation(id=f"obs_photo_{asset}", patient_id="sarah", type="photo", source="patient",
-                                  measured_at=ts, received_at=ts,
-                                  value={"asset": asset, "url": f"/static/photos/{asset}.svg", "label": asset}))
+                                  measured_at=ts, received_at=ts, simulated=True,
+                                  value={"asset": asset, "url": f"/static/photos/{asset}.jpg", "label": asset,
+                                         "analysis": analysis, "comparison": comparison,
+                                         "reference_id": None if asset == "day1" else "obs_photo_day1",
+                                         "reference_url": None if asset == "day1" else "/static/photos/day1.jpg"}))
 
     for o in objs:
         repo.s.add(o)
     repo.s.commit()
     return {"patient_id": "sarah", "observations": len(objs), "discharge": discharge.isoformat()}
+
+
+@lru_cache(maxsize=None)
+def _demo_analysis_cached(asset: str) -> str:
+    return json.dumps(wound_image.analyze(wounds.demo_bytes(asset)))
+
+
+def demo_analysis(asset: str) -> dict:
+    """Measured once per process (the demo photos never change)."""
+    return json.loads(_demo_analysis_cached(asset))
 
 
 def _dev(type_: str, value: dict, ts: datetime) -> m.Observation:

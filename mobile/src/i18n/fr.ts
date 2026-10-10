@@ -87,10 +87,13 @@ const fr: Dict = {
   },
   scan: {
     top: 'Scan de la plaie', align: 'Placez la plaie dans le cadre', auto: 'Auto', flashOff: 'Flash désactivé', flashOn: 'Flash activé',
-    ai: 'COMPARAISON IA', progress: 'Progrès de cicatrisation', good: 'Ça a l’air bien', day1: 'JOUR 1', today: "AUJOURD'HUI",
-    redness: 'Rougeur', swelling: 'Gonflement', stable: '→ stable', area: 'Surface', discharge: 'Écoulement', none: 'aucun',
-    save: 'Enregistrer le scan', saved: 'Scan enregistré ✓', permission: "L'accès à la caméra est nécessaire pour scanner la plaie",
-    allow: 'Autoriser la caméra', captured: 'Photo prise · analyse en cours', noDevice: 'Aucune caméra disponible (aperçu)',
+    measuredBy: 'MESURÉ SUR VOS PHOTOS', progress: 'Progrès de cicatrisation', day1: 'JOUR 1', today: "AUJOURD'HUI",
+    redness: 'Zone rouge', swelling: 'Gonflement', discharge: 'Écoulement', notMeasured: 'non mesurés sur une photo',
+    trendUp: 'Plus de rougeur', trendDown: 'Moins de rougeur', trendStable: 'Pas de changement net', notCompared: 'Non comparé : qualité de photo ou pas de référence',
+    saved: 'Terminé ✓', permission: "L'accès à la caméra est nécessaire pour scanner la plaie", allow: 'Autoriser la caméra',
+    noCamera: 'Aucune caméra trouvée ({{n}} détectée)', retry: 'Réessayer', captured: 'Photo prise · mesure…', measured: 'Photo mesurée',
+    retake: 'Reprendre', retakeHint: 'reprenez la photo', failed: "La photo n'a pas pu être envoyée",
+    disclaimer: 'Mesuré par le code (rougeur comparée à la peau autour). Le cadrage et la lumière changent les chiffres. Pas un diagnostic.',
   },
   sensing: {
     morning: 'Bonjour', activity: 'Activité de récupération', chip: 'CAPTEUR DU PANSEMENT',

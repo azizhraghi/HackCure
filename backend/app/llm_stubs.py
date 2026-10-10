@@ -177,3 +177,45 @@ def _findings(res, ctx, new_photo_id):
                          "Suggest review today.",
         },
     }
+
+
+# ------------------------------------------------------------------ protocol compiler
+
+@stub("protocol")
+def _protocol(messages, ctx):
+    """Canned extraction of the FICTIONAL sample discharge summary (seed/documents)."""
+    if "Cefuroxime" not in ctx.get("text", ""):
+        return {"medications": []}
+    q = "Weight bearing as tolerated with two crutches for 14 days."
+    return {
+        "surgery": "Total knee replacement", "side": "right", "surgery_date": "2026-10-06",
+        "discharge_date": "2026-10-08", "surgeon": "Dr. Elena Ruiz", "allergies": ["Penicillin (rash)"],
+        "medications": [
+            {"name": "Paracetamol", "dose": "1 g", "route": "by mouth", "times": ["08:00", "14:00", "20:00"],
+             "purpose": "pain", "source_quote": "Paracetamol 1 g by mouth at 08:00, 14:00 and 20:00 for pain"},
+            {"name": "Celecoxib", "dose": "200 mg", "route": "by mouth", "times": ["09:00"],
+             "purpose": "anti-inflammatory", "source_quote": "Celecoxib 200 mg by mouth once daily at 09:00 with food"},
+            {"name": "Pantoprazole", "dose": "20 mg", "route": "by mouth", "times": ["08:00"],
+             "purpose": "stomach protection", "source_quote": "Pantoprazole 20 mg by mouth once daily at 08:00"},
+            {"name": "Enoxaparin", "dose": "40 mg", "route": "subcutaneous injection", "times": ["20:00"],
+             "purpose": "prevention of blood clots", "duration_days": 14,
+             "source_quote": "Enoxaparin 40 mg subcutaneous injection once daily at 20:00 for 14 days"},
+            {"name": "Cefuroxime", "dose": "500 mg", "route": "by mouth", "times": ["08:00", "14:00", "20:00"],
+             "purpose": "antibiotic", "duration_days": 7,
+             "source_quote": "Cefuroxime 500 mg by mouth three times daily at 08:00, 14:00 and 20:00 for 7 days"},
+        ],
+        "missed_dose_instruction": "If a dose is missed: do not take two doses together; inform the care team.",
+        "activity_restrictions": [{"text": q, "source_quote": q},
+                                  {"text": "No driving for at least 4 weeks.", "source_quote": "No driving for at least 4 weeks."}],
+        "rehab": [{"text": "Knee bends 2 x 10", "times": ["09:30", "18:00"]},
+                  {"text": "Straight-leg raises 2 x 10", "times": ["09:30", "18:00"]},
+                  {"text": "Ankle pumps 3 x 15", "times": ["09:30", "13:00", "18:00"]}],
+        "wound_care": ["Showering allowed with the waterproof dressing on; no bath or swimming until staples are removed."],
+        "appointments": [{"title": "Physiotherapy", "date": "2026-10-14", "time": "15:00"},
+                         {"title": "Staple removal", "date": "2026-10-16", "time": "09:00"},
+                         {"title": "Follow-up with Dr. Ruiz", "date": "2026-10-20", "time": "10:30"}],
+        "warning_signs": ["Fever over 38 C", "spreading redness", "increasing warmth or swelling",
+                          "drainage or bad smell from the wound", "pain that keeps increasing"],
+        "emergency_signs": ["sudden shortness of breath or chest pain", "calf pain or swelling", "fainting",
+                            "heavy bleeding"],
+    }

@@ -114,11 +114,29 @@
     <div class="role"><div class="avatar" style="background:var(--pink)">SM</div>
       <div><div class="kicker">Patient app</div><h2 id="p-name">Sarah</h2></div></div>
 
+    <div class="card" style="background:var(--sky)">
+      <div class="kicker">Medical records → care plan</div>
+      <div class="small muted" style="margin-top:2px">Upload discharge documents; the AI drafts the plan, Sarah reviews and confirms it.</div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <label class="btn">📄 Upload PDF<input type="file" id="doc-file" accept=".pdf,.txt,image/*" multiple hidden></label>
+        <button class="btn" id="doc-sample">Use sample discharge summary</button>
+        <button class="btn primary" id="doc-analyze">Analyze with AI</button>
+      </div>
+      <div id="doc-list"></div>
+      <div id="doc-draft"></div>
+    </div>
+
     <div id="p-urgent"></div>
     <div id="p-next"></div>
     <div id="p-requests"></div>
 
     <div class="tiles" id="p-vitals" style="margin-top:10px"></div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><span class="kicker">Wound scan · measured by code</span>
+        <label class="btn" style="padding:3px 10px;font-size:12px">📷 New photo<input type="file" accept="image/*" capture="environment" data-wound-upload hidden></label></div>
+      <div id="p-wound"></div>
+    </div>
 
     <div class="card">
       <div class="kicker">Daily check-in</div>
@@ -272,7 +290,10 @@ function renderPatient(today, twin) {
       <div style="font-weight:800;margin-top:4px">${esc(r.prompt)}</div>
       ${r.reason ? `<div class="small muted">${esc(r.reason)}</div>` : ''}
       ${r.kind === 'question' ? r.options.map((o, i) => `<button class="opt" data-answer="${r.id}" data-opt="${i}">${esc(o)}</button>`).join('') : ''}
-      ${r.kind === 'photo' ? `<label style="display:block;margin-top:8px"><input type="checkbox" id="photo-confirm-${r.id}"> I am changing my dressing now, as permitted by my care plan.</label><button class="btn primary" style="margin-top:8px" data-answer="${r.id}" data-photo="1">📷 Send synthetic demo photo</button>` : ''}
+      ${r.kind === 'photo' ? `<label style="display:block;margin-top:8px"><input type="checkbox" id="photo-confirm-${r.id}"> I am changing my dressing now, as permitted by my care plan.</label>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <label class="btn primary">📷 Take / upload photo<input type="file" accept="image/*" capture="environment" data-wound-upload="${r.id}" hidden></label>
+          <button class="btn" data-answer="${r.id}" data-photo="1">Use demo photo (day 3)</button></div>` : ''}
       ${r.kind === 'measurement' ? `<div class="row" style="margin-top:8px"><input type="text" id="m-${r.id}" placeholder="${esc(r.metric)}" style="flex:1"><button class="btn primary" data-answer="${r.id}" data-measure="1">Send</button></div>` : ''}
     </div>`).join(''));
   const v = twin.vitals || {};
@@ -283,6 +304,53 @@ function renderPatient(today, twin) {
       <div class="v">${val ?? '—'}<span class="small">${unit}</span></div><div class="small muted">${esc(status)}</div></div>`;
   };
   render('#p-vitals', v, () => tile('hr', 'Heart', ' bpm', 'var(--pink)') + tile('temp', 'Temp', '°C', 'var(--yellow)') + tile('spo2', 'SpO₂', '%', 'var(--green)'));
+}
+
+// wound photos (camera on phones, file picker on computers)
+document.addEventListener('change', async e => {
+  const input = e.target.closest('[data-wound-upload]');
+  if (!input || !input.files.length) return;
+  const box = input.dataset.woundUpload && $(`#photo-confirm-${input.dataset.woundUpload}`);
+  const confirmed = box ? box.checked : window.confirm('Is this photo taken during a dressing change permitted by your care plan?');
+  if (!confirmed) { input.value = ''; toast('Confirm this is a permitted dressing change first.'); return; }
+  const fd = new FormData(); fd.append('file', input.files[0]); fd.append('dressing_change_confirmed', 'true'); input.value = '';
+  toast('Measuring the photo…');
+  try {
+    const res = await fetch('/patients/sarah/wound-photos', { method: 'POST', body: fd });
+    const r = await res.json();
+    if (!res.ok) throw new Error(r.detail || res.status);
+    const probs = r.analysis?.problems || [];
+    toast(probs.length ? `Photo saved, but: ${probs.join('; ')}. Please retake.`
+      : `${r.comparison?.summary || 'Photo saved (reference photo)'}${r.answered_request_id ? ' · sent to the care-team assistant' : ''}`);
+  } catch (err) { toast('Photo failed: ' + err.message); }
+  poll();
+});
+
+function renderWound(w) {
+  const latest = w.photos[0], ref = w.reference;
+  if (!latest || !ref) return '<div class="empty">No wound photo yet.</div>';
+  const img = (p, label) => `<figure style="margin:0;flex:1;min-width:0">
+      <div style="aspect-ratio:4/3;border:1.2px solid var(--ink);border-radius:12px;overflow:hidden;background:#222">
+        <img src="${esc(p.url)}" alt="${esc(label)} wound photo" style="width:100%;height:100%;object-fit:cover"></div>
+      <figcaption class="small muted" style="margin-top:3px">${esc(label)} · ${new Date(p.at).toLocaleDateString()}${p.simulated ? ' · demo photo' : ''}</figcaption></figure>`;
+  const c = latest.comparison || {}, a = latest.analysis || {};
+  const chip = (txt, bg) => `<span class="badge" style="background:${bg};margin:6px 6px 0 0">${txt}</span>`;
+  let chips = '';
+  if (latest.observation_id === ref.observation_id) chips = chip('Reference photo (day 1)', 'var(--sky)');
+  else if (c.available) {
+    const pct = c.redness_area_change_pct;
+    chips = chip(`Redness area ${c.redness_area_ref_pct}% → ${c.redness_area_now_pct}%${pct != null ? ` (${pct > 0 ? '+' : ''}${pct}%)` : ''}`,
+                 c.trend === 'up' ? 'var(--review)' : c.trend === 'down' ? 'var(--green)' : 'var(--readonly)')
+          + chip(esc(c.summary), 'var(--surface)');
+  } else chips = chip(`Not compared: ${esc(c.reason || 'unknown')}`, 'var(--peach)');
+  chips += chip('Swelling, drainage: not measured from a photo', 'var(--readonly)');
+  const probs = (a.problems || []).length ? `<div class="small" style="color:var(--reviewText);margin-top:6px">⚠ ${a.problems.map(esc).join(' · ')}: retake the photo</div>` : '';
+  return `<div class="row" style="gap:8px;margin-top:8px;align-items:flex-start">${img(ref, 'Reference')}${latest.observation_id === ref.observation_id ? '' : img(latest, 'Latest')}</div>
+    <div>${chips}</div>${probs}
+    <div class="small muted" style="margin-top:6px">Measured by code (redness vs. surrounding skin); framing and light change the numbers. Not a diagnosis.
+    Demo photos: real, openly licensed photos of different patients (<a href="https://commons.wikimedia.org/wiki/File:Surgical_staples2.JPG" target="_blank" rel="noopener">Llywrch, CC BY-SA 2.5</a>,
+    <a href="https://commons.wikimedia.org/wiki/File:Hip_replacement,_surgical_staples_01.JPG" target="_blank" rel="noopener">K.-H. Wellmann, CC BY 3.0</a>,
+    <a href="https://commons.wikimedia.org/wiki/File:Knee_Replacement.jpg" target="_blank" rel="noopener">Ravedave, CC BY-SA 3.0</a>).</div>`;
 }
 
 // chat
@@ -302,6 +370,85 @@ $('#chat-form').addEventListener('submit', async e => {
     if (r.escalate) poll();
   } catch (err) { chat.push({ role: 'assistant', content: 'Assistant unavailable: ' + err.message }); }
   finally { $('#chat-send').disabled = false; drawChat(); }
+});
+
+// ---------------------------------------------------------------- medical records -> care plan
+async function loadDocs() {
+  const docs = await api('/patients/sarah/documents');
+  $('#doc-list').innerHTML = docs.length ? docs.map(d => `<div class="row small" style="border-top:1px solid var(--line);padding:6px 0;margin-top:4px">
+      <span style="flex:1">📄 <b>${esc(d.filename)}</b> · ${(d.size / 1024).toFixed(0)} KB</span>
+      ${d.status === 'ready' ? `<span class="badge" style="background:var(--green)">read · ${d.chars} chars</span>`
+                             : `<span class="badge lvl-attention" title="${esc(d.error)}">not readable</span>`}</div>
+      ${d.error ? `<div class="small" style="color:var(--reviewText)">${esc(d.error)}</div>` : ''}`).join('')
+    : '<div class="small muted" style="margin-top:6px">No documents yet.</div>';
+}
+$('#doc-file').addEventListener('change', async e => {
+  const fd = new FormData();
+  for (const f of e.target.files) fd.append('files', f);
+  e.target.value = '';
+  try {
+    const res = await fetch('/patients/sarah/documents', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    toast('Uploaded'); loadDocs();
+  } catch (err) { toast('Upload failed: ' + err.message); }
+});
+$('#doc-sample').addEventListener('click', async () => {
+  try { await api('/patients/sarah/documents/sample', {}); toast('Sample discharge summary added'); loadDocs(); }
+  catch (err) { toast(err.message); }
+});
+$('#doc-analyze').addEventListener('click', async () => {
+  const btn = $('#doc-analyze'); btn.disabled = true; btn.textContent = 'Analyzing…';
+  try {
+    let d = await api('/patients/sarah/plan-drafts', { document_ids: [] });
+    $('#doc-draft').innerHTML = '<div class="small muted" style="margin-top:8px">The AI is reading the documents…</div>';
+    for (let i = 0; i < 90 && d.status === 'analyzing'; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      d = await api(`/plan-drafts/${d.id}`);
+    }
+    renderDraft(d);
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Analyze with AI'; }
+});
+
+function renderDraft(d) {
+  if (d.status === 'failed') { $('#doc-draft').innerHTML = `<div class="card" style="background:var(--peach)">AI could not draft the plan: ${esc(d.error)}</div>`; return; }
+  if (d.status === 'analyzing') { $('#doc-draft').innerHTML = '<div class="small muted">Still analyzing…</div>'; return; }
+  const p = d.plan, info = p.document_info || {};
+  const flagged = item => d.warnings.filter(w => w.item.startsWith(item));
+  const flag = item => flagged(item).map(w => `<div class="small" style="color:${w.level === 'high' ? 'var(--urgentText)' : 'var(--reviewText)'}">⚠ ${esc(w.message)}</div>`).join('');
+  const highs = d.warnings.filter(w => w.level === 'high').length;
+  $('#doc-draft').innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between"><span class="kicker">Review your plan</span>
+      <span class="badge ${highs ? 'lvl-urgent' : d.warnings.length ? 'lvl-attention' : ''}" style="${d.warnings.length ? '' : 'background:var(--green)'}">${d.warnings.length ? `${d.warnings.length} to check` : 'all found in documents'}</span></div>
+    <div style="font-weight:800;margin-top:4px">${esc(info.surgery || '')} ${esc(info.side || '')}</div>
+    <div class="small muted">Surgery ${esc(info.surgery_date || '?')} · discharge ${esc(info.discharge_date || '?')} · ${esc(info.surgeon || '')} · allergies: ${esc((info.allergies || []).join(', ') || 'none')}</div>
+    <div class="kicker" style="margin-top:10px">Medications</div>
+    ${p.medications.map(x => `<div style="border-top:1px solid var(--line);padding:5px 0">
+      <b>${esc(x.name)} ${esc(x.dose)}</b> <span class="small muted">${esc(x.route || '')}</span>
+      <div class="small">${x.times.length ? '🕒 ' + x.times.map(esc).join(' · ') : 'no fixed times'}${x.duration_days ? ` · ${x.duration_days} days` : ''}${x.purpose ? ' · ' + esc(x.purpose) : ''}</div>
+      ${flag(`${x.name} ${x.dose}`.trim())}</div>`).join('') || '<div class="small muted">none found</div>'}
+    <div class="kicker" style="margin-top:10px">Exercises</div>
+    <div class="small">${p.rehab.map(r => `${esc(r.name)}${r.times.length ? ' (' + r.times.map(esc).join(', ') + ')' : ''}`).join('<br>') || 'none found'}</div>
+    <div class="kicker" style="margin-top:10px">Appointments</div>
+    <div class="small">${p.appointments.map(a => `${esc(a.title)}: ${esc(a.date || '')} ${esc(a.time || '')}`).join('<br>')}</div>
+    <div class="kicker" style="margin-top:10px">Warning signs</div>
+    <div class="small">${(info.warning_signs || []).map(esc).join(' · ') || 'none found'}</div>
+    <div class="kicker" style="margin-top:10px">Emergency (112)</div>
+    <div class="small">${(info.emergency_signs || []).map(esc).join(' · ') || 'none found'}</div>
+    ${d.warnings.filter(w => !p.medications.some(x => w.item.startsWith(`${x.name} ${x.dose}`.trim()))).map(w => `<div class="small" style="margin-top:6px;color:var(--reviewText)">⚠ ${esc(w.item)}: ${esc(w.message)}</div>`).join('')}
+    <div class="small muted" style="margin-top:10px">Safety rules (red flags, alert thresholds, who is notified) are not changed by documents.</div>
+    ${d.status === 'confirmed' ? '<div class="badge" style="background:var(--green);margin-top:8px">✓ Active plan</div>'
+      : `<button class="btn primary" style="margin-top:10px;width:100%" id="doc-confirm" data-draft="${d.id}">Confirm my plan</button>`}
+  </div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('#doc-confirm');
+  if (!b) return;
+  try {
+    await api(`/plan-drafts/${b.dataset.draft}/confirm`, { actor: 'sarah' });
+    renderDraft(await api(`/plan-drafts/${b.dataset.draft}`));
+    toast('Care plan confirmed: reminders, check-ins and the assistant now use it'); poll();
+  } catch (err) { toast(err.message); }
 });
 
 // ---------------------------------------------------------------- caregiver
@@ -456,6 +603,7 @@ document.addEventListener('click', async e => {
     } else if (d.dataset.demo === 'reset') {
       await api('/demo/reset', {}); chat.length = 0; drawChat(); $('#ci-result').innerHTML = ''; $('#p-urgent').innerHTML = ''; selected = null;
       for (const k in cache) delete cache[k]; toast('Demo reset: Sarah, day 3'); loadDigest(false);
+      $('#doc-draft').innerHTML = ''; loadDocs();
     } else if (d.dataset.demo === 'answer') {
       toast('Answering as Sarah… (waits for the AI between answers)');
       const r = await api('/demo/answer_pending', {});
@@ -483,19 +631,21 @@ let polling = false;
 async function poll() {
   if (polling) return; polling = true;
   try {
-    const [today, twin, famAlerts, tasks, famTwin, clinAlerts] = await Promise.all([
+    const [today, twin, famAlerts, tasks, famTwin, clinAlerts, wound] = await Promise.all([
       api('/patients/sarah/today'), api('/patients/sarah/twin'),
       api('/alerts?role=caregiver&member_id=ahmed&open_only=true'), api('/caregiver/ahmed/tasks'),
       api('/patients/sarah/twin?role=caregiver&member_id=ahmed'), api('/alerts?role=clinician&open_only=true'),
+      api('/patients/sarah/wound-photos'),
     ]);
     renderPatient(today, twin);
+    render('#p-wound', wound, renderWound);
     renderFamily(famAlerts, tasks, famTwin);
     renderClinic(clinAlerts);
     await renderDetail();
   } catch (err) { $('#health').textContent = 'Backend unreachable: ' + err.message; }
   finally { polling = false; }
 }
-drawChips(); drawChat(); health(); poll(); loadDigest(false);
+drawChips(); drawChat(); health(); poll(); loadDigest(false); loadDocs();
 setInterval(poll, 3000);
 </script>
 </body>

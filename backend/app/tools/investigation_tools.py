@@ -11,7 +11,7 @@ from datetime import timedelta
 from pathlib import Path
 from statistics import median
 
-from .. import audit, clock, wound_photos
+from .. import audit, clock, wound_image, wound_photos
 from .. import models as m
 from ..agents import medication
 from ..config import settings
@@ -19,8 +19,6 @@ from ..db import Repo
 from ..notifications import notify
 from ..safety import output_guard, quality
 
-PHOTO_COMPARISONS = json.loads(
-    (Path(__file__).resolve().parents[2] / "seed" / "photo_comparisons.json").read_text(encoding="utf-8"))
 
 PATIENT_FACING = {"request_measurement", "ask_followup_question", "request_wound_photo"}
 METRICS = ["hr", "spo2", "temp", "bp"]
@@ -184,13 +182,12 @@ def compare_wound_photos(ctx: Ctx, photo_id_a: str, photo_id_b: str) -> dict:
         return {"error": "unknown photo id(s)", "known_photo_ids": known}
     if a.measured_at > b.measured_at:
         a, b = b, a
-    key = f'{a.value.get("asset")}|{b.value.get("asset")}'
-    result = PHOTO_COMPARISONS.get(key)
-    if not result:
+    result = wound_image.compare(a.value.get("analysis"), b.value.get("analysis"))
+    if not result.get("available"):
         return {"available": False, "photo_id_a": a.id, "photo_id_b": b.id,
-                "reason": "no automated comparison for these photos: unknown, needs clinician review"}
+                "reason": result.get("reason", "photos could not be compared: unknown, needs clinician review")}
     return {"available": True, "photo_id_a": a.id, "photo_id_b": b.id, "comparison": result,
-            "method": "pre-computed demo comparison (simulated image analysis, not a diagnosis)"}
+            "method": "measured by code from the two photos (CIELAB redness area), not a diagnosis"}
 
 
 # ------------------------------------------------------------------ patient-facing tools
