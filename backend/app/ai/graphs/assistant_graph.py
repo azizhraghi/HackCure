@@ -234,7 +234,15 @@ CONTEXT:
         response = llm.invoke(messages_payload)
         return {"raw_response": response.content}
     except Exception as exc:
-        return {"raw_response": f"Erreur de génération : {str(exc)}", "escalate": True}
+        err_msg = str(exc)
+        if "429" in err_msg or "rate_limit" in err_msg.lower():
+            safe_fallback = (
+                "Le service d'assistance est temporairement très sollicité. "
+                "Pour votre sécurité, si vous présentez des symptômes inhabituels ou douloureux, "
+                "veuillez contacter directement votre équipe médicale. [ESCALATE]"
+            )
+            return {"raw_response": safe_fallback, "escalate": True}
+        return {"raw_response": f"Service temporairement indisponible : {err_msg}", "escalate": True}
 
 
 def validate_node(state: AssistantState):

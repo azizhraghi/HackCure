@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import time
 from dotenv import load_dotenv
 
 if sys.stdout.encoding != 'utf-8':
@@ -128,6 +129,7 @@ def test_assistant():
         print("\n🤖 Final Response:")
         print(result.get("final_response"))
         print("-" * 40)
+        time.sleep(1)
 
     # Multi-turn Conversational Memory Test
     print("\n" + "=" * 60)
