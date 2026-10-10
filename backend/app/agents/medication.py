@@ -74,4 +74,80 @@ def day_schedule(repo: Repo, patient_id: str, now: datetime | None = None) -> li
 def missed_doses(repo: Repo, patient_id: str, hours: int = 48, now: datetime | None = None) -> list[m.Observation]:
     now = now or clock.now()
     since = now - timedelta(hours=hours)
-    return [o for o in repo.observations(patient_id, "med_dose", since=since) if o.value.get("status") == "not_taken"]
+    latest: dict[tuple, m.Observation] = {}  # the last answer for a slot wins (corrections)
+    for o in repo.observations(patient_id, "med_dose", since=since):
+        latest[(o.value.get("med_id"), o.value.get("scheduled_for"))] = o
+    return [o for o in latest.values() if o.value.get("status") == "not_taken"]
+
+
+# ---------------------------------------------------------------- actions
+
+def send_due_reminders(repo: Repo, patient_id: str, now: datetime | None = None) -> list[m.Notification]:
+    """One reminder per scheduled dose that is due now (within the grace window) and not yet answered."""
+    from ..notifications import notify
+    now = now or clock.now()
+    out = []
+    for dose in day_schedule(repo, patient_id, now):
+        if dose["status"] != "due":
+            continue
+        n = notify(repo, patient_id, patient_id, "reminder", f'Time for {dose["name"]} {dose["dose"]}',
+                   dose["purpose"], "medication", dose["med_id"],
+                   dedupe_key=f'dose:{dose["med_id"]}:{dose["scheduled_for"]}')
+        if n:
+            out.append(n)
+            audit.log(repo, patient_id, AGENT, "medication.reminder", dose, "medication", dose["med_id"])
+    return out
+
+
+def record_dose(repo: Repo, patient_id: str, med_id: str, scheduled_for: datetime, status: str,
+                actor: str = "patient") -> dict:
+    plan = repo.plan(patient_id)
+    med = plan_med(plan, med_id)
+    if med is None:
+        raise ValueError(f"{med_id} is not in the approved plan")
+    if scheduled_for.strftime("%H:%M") not in med["times"]:
+        raise ValueError(f"{med['name']} is not scheduled at {scheduled_for:%H:%M}")
+    member = repo.member(actor)
+    source = "caregiver_on_behalf" if member and member.role == "caregiver" else "patient"
+    obs = repo.add(m.Observation(patient_id=patient_id, type="med_dose", source=source,
+                                 value={"med_id": med_id, "scheduled_for": scheduled_for.isoformat(),
+                                        "status": status, "recorded_by": actor}))
+    audit.log(repo, patient_id, AGENT, "medication.dose_recorded",
+              {"med_id": med_id, "scheduled_for": scheduled_for, "status": status, "by": actor}, "observation", obs.id)
+    result = {"observation_id": obs.id, "status": status, "flag": None}
+    if status == "not_taken":
+        # Text from the approved plan only. Never a catch-up dose suggestion.
+        result["missed_dose_text"] = med.get("missed_dose_text", "Please tell your care team that a dose was missed.")
+        result["flag"] = check_missed(repo, patient_id)
+    return result
+
+
+def check_missed(repo: Repo, patient_id: str, now: datetime | None = None) -> dict | None:
+    """2+ missed doses in the plan's window -> caregiver task + attention flag for the clinician."""
+    from .. import alerts
+    from ..notifications import caregiver_allowed
+    now = now or clock.now()
+    rules = repo.plan(patient_id).get("medication_rules", {})
+    window, needed = rules.get("missed_window_h", 48), rules.get("missed_count_for_flag", 2)
+    missed = missed_doses(repo, patient_id, window, now)
+    if len(missed) < needed:
+        return None
+    plan = repo.plan(patient_id)
+    names = sorted({(plan_med(plan, o.value["med_id"]) or {}).get("name", o.value["med_id"]) for o in missed})
+    reason = f"{len(missed)} missed doses in {window} h ({', '.join(names)})"
+    alert = alerts.create(repo, patient_id, "attention", "Missed medication doses", reason, "medication",
+                          rule="missed_doses", evidence={"observation_ids": [o.id for o in missed]}, actor=AGENT)
+    tasks = []
+    for cg in repo.members(patient_id, "caregiver"):
+        if not caregiver_allowed(plan, cg.id, "medications"):
+            continue
+        key = f"missed:{now.date()}"
+        if repo.first(m.CaregiverTask, m.CaregiverTask.caregiver_id == cg.id, m.CaregiverTask.dedupe_key == key,
+                      m.CaregiverTask.status == "open"):
+            continue
+        t = repo.add(m.CaregiverTask(patient_id=patient_id, caregiver_id=cg.id, category="medications",
+                                     created_by=AGENT, dedupe_key=key,
+                                     text=f"Help with medication reminders today: {', '.join(names)} doses were missed."))
+        tasks.append(t.id)
+        audit.log(repo, patient_id, AGENT, "caregiver_task.created", {"text": t.text}, "task", t.id)
+    return {"alert_id": alert.id, "missed": len(missed), "caregiver_tasks": tasks}
