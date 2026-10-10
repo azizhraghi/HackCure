@@ -9,9 +9,11 @@ class Actor(BaseModel):
 
 class ScopedRetriever:
     def __init__(self):
-        self.db = get_vectorstore()
+        pass
 
     def retrieve(self, query: str, actor: Actor, k: int = 5) -> List[Document]:
+        db = get_vectorstore()
+        
         # Determine scope before retrieval
         if actor.role == "patient":
             allowed_scopes = ["protocol", "medications", "exercises", "warnings", "general_guidance"]
@@ -19,19 +21,25 @@ class ScopedRetriever:
             allowed_scopes = actor.granted_categories + ["general_guidance"]
         else:
             allowed_scopes = ["general_guidance"]
-            
-        # Retrieval with filter
-        # FAISS in langchain supports metadata filtering via callable or dict
+
         def filter_func(metadata):
             return metadata.get("access_scope") in allowed_scopes
 
         try:
-            docs = self.db.similarity_search(query, k=k, filter=filter_func)
+            docs = db.similarity_search(query, k=k*4, filter=filter_func)
         except Exception:
-            # Fallback if filter_func fails with older FAISS versions
-            docs = self.db.similarity_search(query, k=k*3)
-            docs = [d for d in docs if d.metadata.get("access_scope") in allowed_scopes][:k]
-            
-        # Double check no leak
+            docs = db.similarity_search(query, k=k*4)
+            docs = [d for d in docs if d.metadata.get("access_scope") in allowed_scopes]
+
         safe_docs = [d for d in docs if d.metadata.get("access_scope") in allowed_scopes]
-        return safe_docs
+
+        # Hybrid keyword relevance ranking (especially vital when using offline/fake embeddings)
+        query_words = set(w.lower() for w in query.replace("?", " ").replace("!", " ").replace("'", " ").split() if len(w) > 3)
+        if query_words and safe_docs:
+            def score_doc(d: Document) -> int:
+                text_lower = d.page_content.lower()
+                return sum(1 for w in query_words if w in text_lower)
+            
+            safe_docs.sort(key=score_doc, reverse=True)
+
+        return safe_docs[:k]
