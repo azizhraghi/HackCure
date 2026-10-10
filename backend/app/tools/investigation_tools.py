@@ -103,18 +103,22 @@ def get_vitals_trend(ctx: Ctx, metric: str, hours: int = 24) -> dict:
     good = [o for o in rows if o.quality == "good"]
     vals = [o.value.get("value") for o in good if isinstance(o.value.get("value"), (int, float))]
     every = plan.get("vitals_schedule", {}).get(metric, {}).get("expected_every_min", 60)
-    shown = rows[-12:]  # most recent readings in full; older ones summarised
-    return {
+    shown = rows[-6:]  # compact on purpose: free LLM tiers limit tokens per minute
+    st = quality.metric_status(rows, now, plan.get("thresholds", {}).get("stale_after_min", 240))
+    out = {
         "metric": metric, "hours": hours, "baseline": (p.baselines or {}).get(metric) if p else None,
-        "status_now": quality.metric_status(rows, now, plan.get("thresholds", {}).get("stale_after_min", 240)),
-        "summary": ({"count": len(rows), "good": len(good), "min": min(vals), "max": max(vals),
-                     "median": median(vals), "first": vals[0], "last": vals[-1]} if vals else
-                    {"count": len(rows), "good": 0, "note": "no usable readings: unknown"}),
-        "unusable_count": sum(1 for o in rows if o.quality == "unusable"),
-        "gaps": quality.find_gaps(rows, now - timedelta(hours=hours), now, every),
-        "recent_readings": [{"observation_id": o.id, "source": o.source, "value": o.value, "at": o.measured_at.isoformat(),
-                             "quality": o.quality, "simulated": o.simulated} for o in shown],
+        "status_now": st["status"], "source": "device", "simulated": any(o.simulated for o in rows),
+        "summary": ({"count": len(rows), "min": min(vals), "max": max(vals), "median": median(vals),
+                     "first": vals[0], "last": vals[-1]} if vals else
+                    {"count": len(rows), "note": "no usable readings: unknown"}),
+        "recent_readings": [{"observation_id": o.id, "value": o.value, "at": o.measured_at.isoformat(timespec="minutes"),
+                             "quality": o.quality} for o in shown],
     }
+    if unusable := sum(1 for o in rows if o.quality == "unusable"):
+        out["unusable_count"] = unusable
+    if gaps := quality.find_gaps(rows, now - timedelta(hours=hours), now, every):
+        out["gaps"] = gaps
+    return out
 
 
 def get_symptom_checkins(ctx: Ctx, days: int = 3) -> dict:
@@ -147,9 +151,12 @@ def get_medication_context(ctx: Ctx) -> dict:
                       "status": medication.dose_status(plan, ans, ts, now),
                       "observation_id": ans.id if ans else None})
     p = ctx.repo.patient(ctx.pid)
-    return {"medications": [{k: x[k] for k in ("id", "name", "dose", "purpose", "times")} for x in plan["medications"]],
+    counts: dict[str, int] = {}
+    for d in doses:
+        counts[d["status"]] = counts.get(d["status"], 0) + 1
+    return {"medications": [{k: x[k] for k in ("id", "name", "purpose", "times")} for x in plan["medications"]],
             "allergies": p.allergies if p else [],
-            "doses_last_48h": doses,
+            "doses_last_48h_by_status": counts,  # only the exceptions are listed in full
             "not_taken": [d for d in doses if d["status"] == "not_taken"],
             "unknown": [d for d in doses if d["status"] == "unknown"]}
 

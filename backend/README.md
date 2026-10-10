@@ -22,9 +22,10 @@ copy .env.example .env      # put MISTRAL_API_KEY in .env (optional: stub mode n
 | Variable | Default | Meaning |
 |---|---|---|
 | `MISTRAL_API_KEY` | – | Needed for `LLM_MODE=live` and for `/chat` |
-| `LLM_PROVIDER` | `mistral` | `mistral` or `groq` (OpenAI-compatible; set `GROQ_API_KEY`, optional `GROQ_MODEL`, default `llama-3.3-70b-versatile`). `/chat` always uses Mistral |
+| `LLM_PROVIDER` | `mistral` | `mistral` or `groq` (OpenAI-compatible; set `GROQ_API_KEY`, optional `GROQ_MODEL`, default `openai/gpt-oss-120b`). `/chat` always uses Mistral |
 | `MISTRAL_MODEL` | `mistral-medium-latest` | Model used by every agent |
 | `LLM_MODE` | `live` if a key is set, else `stub` | `live` = Mistral, `stub` = canned deterministic agent output, `off` = the LLM is "down" (agents fall back to rules and templates) |
+| `LLM_MIN_INTERVAL_S` / `LLM_RATE_WAIT_MAX_S` | `1.1` / `60` | Minimum gap between LLM calls; how long one call may wait out provider rate limits (Groq's free tier allows 8,000 tokens/min, about 2 investigation steps per minute) |
 | `ACK_TIMEOUT_S` | `60` | An alert not acknowledged within this time escalates to the backup contact |
 | `INVESTIGATION_TIMEOUT_S` | `120` | Past this, the investigation finishes with "evidence incomplete" and goes to the clinician anyway |
 | `REQUEST_TIMEOUT_S` | `90` | An unanswered patient request expires and the agent continues with "unknown" |

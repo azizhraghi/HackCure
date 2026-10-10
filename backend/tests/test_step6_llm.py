@@ -91,7 +91,7 @@ def test_permanent_errors_not_retried_rate_limits_are(monkeypatch):
     monkeypatch.setattr(llm, "_client", make(429))
     with pytest.raises(llm.LLMUnavailable):
         llm.chat_tools("investigation", [], [])
-    assert calls["n"] == 3
+    assert calls["n"] == 5
 
 
 def test_groq_provider_maps_openai_response(monkeypatch):
@@ -119,3 +119,26 @@ def test_groq_provider_maps_openai_response(monkeypatch):
                        tool_choice="any")
     assert "groq.com" in sent["url"] and sent["body"]["tool_choice"] == "required"
     assert r.tool_calls[0].name == "get_vitals_trend" and r.tool_calls[0].arguments == {"metric": "hr", "hours": 24}
+
+
+def test_retry_after_parsed_from_groq_message():
+    body = "Rate limit reached ... Please try again in 6.825s. Need more tokens?"
+    assert llm._retry_after({}, body) == 6.825
+    assert llm._retry_after({}, "Please try again in 1m2.5s.") == 62.5
+    assert llm._retry_after({"retry-after": "3"}, "") == 3.0
+
+
+def test_prefixed_tool_names_are_normalised(monkeypatch):
+    from types import SimpleNamespace as NS
+    msg = NS(content="", tool_calls=[NS(id="x1", function=NS(name="name=functions.finish_investigation",
+                                                             arguments="{}"))])
+
+    class Fake:
+        class chat:
+            @staticmethod
+            def complete(**kw):
+                return NS(choices=[NS(message=msg)])
+    monkeypatch.setattr(settings, "llm_mode", "live")
+    monkeypatch.setattr(settings, "mistral_api_key", "x")
+    monkeypatch.setattr(llm, "_client", Fake)
+    assert llm.chat_tools("investigation", [], []).tool_calls[0].name == "finish_investigation"

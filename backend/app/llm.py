@@ -10,6 +10,7 @@ Callers must treat LLMUnavailable as normal and fall back to rules/templates.
 
 import json
 import logging
+import re
 import threading
 import time
 import uuid
@@ -103,7 +104,9 @@ def chat_tools(agent: str, messages: list[dict], tools: list[dict], context: dic
                 args = json.loads(args or "{}")
             except json.JSONDecodeError:
                 args = {"_unparseable": args}
-        calls.append(ToolCall(id=tc.id or new_call_id(), name=tc.function.name, arguments=args or {}))
+        # Some models prefix the name ("functions.x", "name=functions.x"); keep the bare tool name.
+        name = re.sub(r"^(name=)?(functions\.)?", "", (tc.function.name or "").strip())
+        calls.append(ToolCall(id=tc.id or new_call_id(), name=name, arguments=args or {}))
     return Reply(content=_text(msg.content), tool_calls=calls, mode="live", ms=int((time.perf_counter() - t0) * 1000))
 
 
@@ -166,13 +169,27 @@ def _pace() -> None:
 
 def _retryable(e: Exception) -> bool:
     status = getattr(e, "status_code", None)
+    if status == 400 and "tool_use_failed" in str(e):  # Groq: model produced a malformed tool call; resample
+        return True
     return status is None or status == 429 or status >= 500  # network/timeout, rate limit, server error
 
 
 class ProviderError(Exception):
-    def __init__(self, status_code: int, body: str):
+    def __init__(self, status_code: int, body: str, retry_after: float | None = None):
         super().__init__(f"HTTP {status_code}: {body[:300]}")
         self.status_code = status_code
+        self.retry_after = retry_after
+
+
+def _retry_after(headers, body: str) -> float | None:
+    """Groq says how long to wait: a retry-after header or 'Please try again in 6.8s' / '1m2.5s'."""
+    try:
+        if headers.get("retry-after"):
+            return float(headers["retry-after"])
+    except ValueError:
+        pass
+    m_ = re.search(r"try again in (?:(\d+)m)?([\d.]+)s", body)
+    return (int(m_.group(1) or 0) * 60 + float(m_.group(2))) if m_ else None
 
 
 def _groq_complete(**kwargs):
@@ -181,13 +198,16 @@ def _groq_complete(**kwargs):
     from types import SimpleNamespace as NS
     if not settings.groq_api_key:
         raise LLMUnavailable("GROQ_API_KEY is not set")
-    body = {"model": settings.groq_model, "temperature": 0.2, "max_tokens": 1500, **kwargs}
+    # Groq counts max_tokens against the per-minute token limit up front, so keep it modest.
+    body = {"model": settings.groq_model, "temperature": 0.2, "max_tokens": 1000, **kwargs}
     if body.get("tool_choice") == "any":  # Mistral's "must call a tool" == OpenAI's "required"
         body["tool_choice"] = "required"
+    if settings.groq_model.startswith("openai/gpt-oss"):
+        body["reasoning_effort"] = "low"  # hidden reasoning tokens count against the per-minute token limit
     r = httpx.post("https://api.groq.com/openai/v1/chat/completions", json=body, timeout=settings.llm_timeout_s,
                    headers={"Authorization": f"Bearer {settings.groq_api_key}"})
     if r.status_code != 200:
-        raise ProviderError(r.status_code, r.text)
+        raise ProviderError(r.status_code, r.text, _retry_after(r.headers, r.text))
     msg = r.json()["choices"][0]["message"]
     calls = [NS(id=tc.get("id"), function=NS(name=tc["function"]["name"], arguments=tc["function"]["arguments"]))
              for tc in msg.get("tool_calls") or []]
@@ -198,7 +218,9 @@ def _complete(**kwargs):
     groq = settings.llm_provider == "groq"
     client = None if groq else _mistral()
     last: Exception | None = None
-    for attempt in range(3):
+    attempt, rate_waited = 0, 0.0
+    while True:
+        attempt += 1
         _pace()
         try:
             if groq:
@@ -209,10 +231,20 @@ def _complete(**kwargs):
             raise
         except Exception as e:
             last = e
-            log.warning("%s call failed (attempt %d): %s", settings.llm_provider, attempt + 1, e)
-            if not _retryable(e):  # 400/401/403/422: retrying cannot help (bad key, model not in tier, ...)
+            log.warning("%s call failed (attempt %d): %s", settings.llm_provider, attempt, e)
+            if not _retryable(e):  # 400/401/403/422: retrying cannot help
                 break
-            time.sleep(1.5 * (attempt + 1))
+            hint = getattr(e, "retry_after", None)
+            if hint is not None:  # the provider said how long to wait: follow it within a total budget
+                wait = hint + 0.5
+                if rate_waited + wait > settings.llm_rate_wait_max_s:
+                    break
+                rate_waited += wait
+            else:
+                if attempt >= 5:
+                    break
+                wait = 1.5 * attempt
+            time.sleep(wait)
     raise LLMUnavailable(f"{settings.llm_provider} unavailable: {last}")
 
 
