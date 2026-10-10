@@ -45,6 +45,13 @@ ALLERGY_RULES: dict[str, list[str]] = {
     "ains":                ["ains", "cox-2", "cox2", "salicyle"],
     "sulfamide":           ["sulfamide", "sulfone"],
     "latex":               [],
+    # English names (documents in English, e.g. the Sarah Miller demo)
+    "penicillin":          ["beta-lactamine", "penicilline", "aminopenicilline", "carbapenem"],
+    "aspirin":             ["ains", "salicyle", "acetylsalicylique"],
+    "nsaid":               ["ains", "cox-2", "cox2", "salicyle"],
+    "nsaids":              ["ains", "cox-2", "cox2", "salicyle"],
+    "sulfa":               ["sulfamide", "sulfone"],
+    "sulfonamide":         ["sulfamide", "sulfone"],
 }
 
 # Médicaments connus appartenant aux familles à risque
@@ -68,6 +75,24 @@ DRUG_FAMILY_MAP: dict[str, str] = {
     "naproxène":               "ains",
     "célécoxib":               "ains",
     "aspirine":                "ains",
+    # English names
+    "amoxicillin":             "beta-lactamine",
+    "amoxicillin/clavulanate": "beta-lactamine",
+    "co-amoxiclav":            "beta-lactamine",
+    "ampicillin":              "beta-lactamine",
+    "flucloxacillin":          "beta-lactamine",
+    "piperacillin":            "beta-lactamine",
+    "cefazolin":               "cephalosporine",
+    "cefuroxime":              "cephalosporine",
+    "cefotaxime":              "cephalosporine",
+    "imipenem":                "carbapenem",
+    "meropenem":               "carbapenem",
+    "ibuprofen":               "ains",
+    "ketoprofen":              "ains",
+    "diclofenac":              "ains",
+    "naproxen":                "ains",
+    "celecoxib":               "ains",
+    "aspirin":                 "ains",
 }
 
 # Interactions médicamenteuses critiques (paires qui ne doivent pas être co-prescrites sans surveillance)
@@ -104,6 +129,19 @@ DRUG_CLASS_MAP: dict[str, list[str]] = {
     "pantoprazole":    ["ipp", "inh. pompe à protons"],
     "oméprazole":      ["ipp", "inh. pompe à protons"],
     "ésoméprazole":    ["ipp", "inh. pompe à protons"],
+    # English names
+    "enoxaparin":      ["hbpm", "anticoagulant"],
+    "heparin":         ["hbpm", "anticoagulant"],
+    "warfarin":        ["anticoagulant", "avk"],
+    "celecoxib":       ["ains", "cox2"],
+    "ibuprofen":       ["ains"],
+    "ketoprofen":      ["ains"],
+    "diclofenac":      ["ains"],
+    "naproxen":        ["ains"],
+    "aspirin":         ["ains", "antiagregant"],
+    "pantoprazole":    ["ipp", "inh. pompe à protons"],
+    "omeprazole":      ["ipp", "inh. pompe à protons"],
+    "esomeprazole":    ["ipp", "inh. pompe à protons"],
 }
 
 
@@ -173,7 +211,9 @@ def deterministic_check_node(state: SafetyState) -> dict:
             if i >= j:
                 continue
             for rule_a, rule_b, severity, message in CRITICAL_INTERACTIONS:
-                if any(rule_a in c for c in classes_a) and any(rule_b in c for c in classes_b):
+                # a rule pair matches in either order of the prescription list
+                if (any(rule_a in c for c in classes_a) and any(rule_b in c for c in classes_b)) or \
+                        (any(rule_b in c for c in classes_a) and any(rule_a in c for c in classes_b)):
                     alerts.append(SafetyAlert(
                         severity=severity,
                         rule_type="drug_interaction",

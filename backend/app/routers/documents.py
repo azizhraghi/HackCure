@@ -48,10 +48,15 @@ def list_documents(patient_id: str, repo: Repo = Depends(get_repo)):
 
 @router.post("/patients/{patient_id}/plan-drafts")
 def create_draft(patient_id: str, body: m.PlanDraftIn, repo: Repo = Depends(get_repo)):
-    """'Analyze with AI': the protocol agent drafts a care plan from the documents (poll GET /plan-drafts/{id})."""
+    """'Analyze with AI': drafts a care plan from the documents (poll GET /plan-drafts/{id}).
+    engine "agent" = D3 protocol agent, "d2" = Developer 2 compiler; both are grounded by code and confirmed by the patient."""
     _patient(repo, patient_id)
     try:
-        draft = protocol.start_draft(repo, patient_id, body.document_ids)
+        if body.engine == "d2":
+            from ..integrations import d2_bridge
+            draft = d2_bridge.start_draft(repo, patient_id, body.document_ids)
+        else:
+            draft = protocol.start_draft(repo, patient_id, body.document_ids)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     repo.s.expire_all()

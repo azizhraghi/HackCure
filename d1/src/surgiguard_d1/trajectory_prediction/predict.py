@@ -329,7 +329,7 @@ def predict_normal_trajectory(
 
     cached = Path(cache_dir) / f"{key[:32]}.json" if cache_dir else None
     if cached and cached.exists():
-        return RecoveryTrajectory.model_validate_json(cached.read_text())
+        return RecoveryTrajectory.model_validate_json(cached.read_text(encoding="utf-8"))
 
     data = f"Patient data:\n{json.dumps(patient, ensure_ascii=False)}"
     tail = f"Language: {language}."
@@ -368,7 +368,7 @@ def predict_normal_trajectory(
     )
     if cached:
         cached.parent.mkdir(parents=True, exist_ok=True)
-        cached.write_text(trajectory.model_dump_json(indent=2))
+        cached.write_text(trajectory.model_dump_json(indent=2), encoding="utf-8")
     return trajectory
 
 

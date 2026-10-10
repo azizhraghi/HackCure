@@ -18,7 +18,7 @@ import os
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 if (ROOT / ".env").exists():
-    for line in (ROOT / ".env").read_text().splitlines():
+    for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"\''))
@@ -33,7 +33,7 @@ parser.add_argument("--json", action="store_true")
 args = parser.parse_args()
 
 t = predict_normal_trajectory(
-    json.loads(Path(args.d2_json).read_text()), args.days, args.language,
+    json.loads(Path(args.d2_json).read_text(encoding="utf-8")), args.days, args.language,
     progress=lambda step: print(f"  estimating {step} ...", file=sys.stderr, flush=True))
 if args.json:
     print(t.model_dump_json(indent=2))

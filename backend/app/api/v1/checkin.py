@@ -41,6 +41,7 @@ class CheckInResponse(BaseModel):
     recovery_score: int  # 0-100
     alerts: List[CheckInAlert] = []
     recommendations: List[str] = []
+    recorded: Optional[dict] = None  # shared backend: result of the D3 check-in pipeline when the patient exists
 
 
 # ── Règles déterministes médicales ────────────────────────────────────
@@ -147,4 +148,21 @@ async def checkin_endpoint(req: CheckInRequest):
         recovery_score=score,
         alerts=alerts,
         recommendations=recommendations,
+        recorded=_record(req),
     )
+
+
+def _record(req: CheckInRequest) -> Optional[dict]:
+    """Store the check-in through the D3 pipeline (urgent rules -> monitor -> clarification) so the safety
+    lane, the investigation agent and the clinic dashboard see it. None when the patient is unknown here."""
+    import json
+    from app import db
+    from app.agents import checkin as d3_checkin
+    from app.models import CheckinIn
+    with db.session_scope() as repo:
+        if repo.patient(req.patient_id) is None:
+            return None
+        out = d3_checkin.submit(repo, CheckinIn(patient_id=req.patient_id, pain=req.pain, fatigue=req.fatigue,
+                                                mobility=req.mobility,
+                                                chips=list(dict.fromkeys(req.wound_symptoms + req.other_symptoms))))
+        return json.loads(json.dumps(out, default=lambda o: o.model_dump() if hasattr(o, "model_dump") else str(o)))

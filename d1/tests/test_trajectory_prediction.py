@@ -8,7 +8,7 @@ import pytest
 from surgiguard_d1.trajectory_prediction import RecoveryTrajectory, deidentify, predict_normal_trajectory
 from surgiguard_d1.trajectory_prediction.predict import checkpoint_days, default_llm
 
-SAMPLE = json.loads((Path(__file__).resolve().parents[1] / "examples" / "d2_sample.json").read_text())
+SAMPLE = json.loads((Path(__file__).resolve().parents[1] / "examples" / "d2_sample.json").read_text(encoding="utf-8"))
 
 def checkpoint(n, pain=(3, 6), hr=(70, 92)):
     return {"day": n, "heart_rate": list(hr), "spo2": [94, 99], "systolic_bp": [110, 140],

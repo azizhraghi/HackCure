@@ -225,13 +225,13 @@ class TrajectoryModel:
         manifest = self.manifest() | {
             "model_file_sha256": hashlib.sha256((directory / "model.joblib").read_bytes()).hexdigest()
         }
-        (directory / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True))
+        (directory / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     @staticmethod
     def load(directory: str | Path) -> "TrajectoryModel":
         """Load a model we saved ourselves; refuses a file that does not match its manifest."""
         directory = Path(directory)
-        manifest = json.loads((directory / "manifest.json").read_text())
+        manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
         blob = (directory / "model.joblib").read_bytes()
         if hashlib.sha256(blob).hexdigest() != manifest["model_file_sha256"]:
             raise ValueError("model file does not match its manifest")

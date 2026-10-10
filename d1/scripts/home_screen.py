@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 if (ROOT / ".env").exists():
-    for line in (ROOT / ".env").read_text().splitlines():
+    for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"\''))
@@ -32,7 +32,7 @@ parser.add_argument("--days", type=int, default=42)
 args = parser.parse_args()
 
 plan = predict_normal_trajectory(
-    json.loads(Path(args.d2_json).read_text()), args.days, cache_dir=ROOT / ".cache" / "recovery",
+    json.loads(Path(args.d2_json).read_text(encoding="utf-8")), args.days, cache_dir=ROOT / ".cache" / "recovery",
     progress=lambda step: print(f"  estimating {step} ...", file=sys.stderr, flush=True))
 card = plan.home_screen(args.surgery_date, args.today)
 print(json.dumps(card, ensure_ascii=False, indent=2) if card else "null  (today is outside the plan)")

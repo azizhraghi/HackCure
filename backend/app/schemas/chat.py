@@ -10,6 +10,7 @@ class ChatRequest(BaseModel):
     actor_role: str = Field(default="patient", description="'patient' or 'caregiver'")
     granted_categories: List[str] = Field(default_factory=list, description="For caregivers, what scopes they can access")
     lang: str = "en"
+    patient_id: Optional[str] = Field(default=None, description="Scope retrieval to this patient's active plan")
 
 class ChatResponse(BaseModel):
     reply: str

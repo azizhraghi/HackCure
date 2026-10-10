@@ -386,3 +386,5 @@ class ProtocolExtraction(BaseModel):
 
 class PlanDraftIn(BaseModel):
     document_ids: list[str] = []  # empty = all documents of the patient
+    # agent = D3 protocol agent (app/agents/protocol.py) | d2 = Developer 2 compiler (OCR fields + safety graph)
+    engine: Literal["agent", "d2"] = "agent"

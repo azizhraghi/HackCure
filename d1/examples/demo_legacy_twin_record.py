@@ -145,7 +145,7 @@ def show(s):
 
 store = TwinStore()
 # The patient's medical dossier, as Developer 2 will send it (placeholder shape for now).
-dossier = json.loads((Path(__file__).parent / "dossier_demo.json").read_text())
+dossier = json.loads((Path(__file__).parent / "dossier_demo.json").read_text(encoding="utf-8"))
 # The model predicts this patient's normal recovery curve from the whole dossier.
 expected = predict_expected(model, dossier, ["hr", "spo2", "sbp", "dbp", "temperature"],
                             [d / 2 for d in range(0, 61)])

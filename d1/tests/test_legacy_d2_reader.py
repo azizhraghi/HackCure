@@ -10,7 +10,7 @@ from surgiguard_d1.legacy.twin_record import Episode, TwinInputs, build_snapshot
 
 from .conftest import T0
 
-SAMPLE = json.loads((Path(__file__).resolve().parents[1] / "examples" / "d2_sample.json").read_text())
+SAMPLE = json.loads((Path(__file__).resolve().parents[1] / "examples" / "d2_sample.json").read_text(encoding="utf-8"))
 
 
 def test_developer_2_sample_becomes_a_dossier():

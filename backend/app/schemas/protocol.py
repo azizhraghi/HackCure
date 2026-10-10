@@ -318,7 +318,7 @@ class ExtractedProtocol(BaseModel):
         """True si le patient présente ≥2 facteurs de risque majeurs."""
         risk_factors = [
             self.smoking_status == "smoker",
-            self.diabetes not in (None, "none"),
+            self.diabetes not in (None, "none", "unknown"),
             self.bmi_kg_m2 is not None and self.bmi_kg_m2 >= 30,
             self.cardiac_history is True,
             self.asa_score is not None and self.asa_score >= 3,
