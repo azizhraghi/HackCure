@@ -55,4 +55,4 @@ SurgiGuard is a hackathon prototype concept. It must not independently diagnose 
 
 ## Current status
 
-This repository currently contains project documentation. The application and hardware integration have not been implemented here yet.
+This repository now includes a React Native patient/caregiver demo in [mobile](mobile/README.md) and a FastAPI prototype in [backend](backend/README.md). The backend includes a synthetic Developer 3 safety/investigation/follow-up slice. Hardware integration, clinician approval, real notifications, authentication, and clinical validation remain future work.

@@ -6,7 +6,9 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Icon, type IconName } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, SectionRow, TopBar } from '../../components/ui';
+import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
+import { createDemoSafetyEvent } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 function ScaleCard({ label, value, onChange, bg, icon, none, worst }: { label: string; value: number; onChange: (v: number) => void; bg: string; icon: IconName; none: string; worst: string }) {
@@ -41,6 +43,7 @@ function ChipToggle({ label, on, onPress, danger }: { label: string; on: boolean
 export function CheckInScreen() {
   const { c } = useTheme();
   const { t, list } = useT();
+  const { apiUrl } = useAppState();
   const nav = useNavigation();
   const [pain, setPain] = useState(3);
   const [fatigue, setFatigue] = useState(4);
@@ -48,6 +51,22 @@ export function CheckInScreen() {
   const [wound, setWound] = useState<number[]>([]);
   const [other, setOther] = useState<number[]>([]);
   const [sent, setSent] = useState(false);
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState(false);
+
+  const runSafetyDemo = async () => {
+    if (demoBusy) return;
+    setDemoBusy(true);
+    setDemoError(false);
+    try {
+      const event = await createDemoSafetyEvent(apiUrl);
+      nav.navigate('D3Demo', { event });
+    } catch {
+      setDemoError(true);
+    } finally {
+      setDemoBusy(false);
+    }
+  };
 
   const toggle = (arr: number[], set: (v: number[]) => void, i: number) => set(arr.includes(i) ? arr.filter(x => x !== i) : [...arr, i]);
   const woundChips = list('checkin.woundChips');
@@ -66,6 +85,12 @@ export function CheckInScreen() {
           <Muted center>{t('checkin.sentSub')}</Muted>
         </Animated.View>
         {warning && <Card bg={c.peach} radius={16} style={{ padding: 12, borderColor: c.review }}><T size={9} w={700} lh={1.45}>{t('checkin.warning')}</T></Card>}
+        <Card bg={c.ice} radius={16} style={{ padding: 12, marginTop: 16 }}>
+          <T size={8} w={800}>{t('d3Demo.entryTitle')}</T>
+          <T size={7.5} color={c.muted} style={{ marginTop: 4, marginBottom: 9 }}>{t('d3Demo.entrySub')}</T>
+          <Button secondary onPress={runSafetyDemo}>{demoBusy ? t('d3Demo.loading') : t('d3Demo.run')}</Button>
+          {demoError && <T size={7.5} color={c.urgentText} style={{ marginTop: 7 }}>{t('d3Demo.error')}</T>}
+        </Card>
         <Button secondary style={{ marginTop: 20 }} onPress={() => setSent(false)}>{t('common.edit')}</Button>
       </Screen>
     );
@@ -122,6 +147,12 @@ export function CheckInScreen() {
       )}
 
       <Button style={{ marginTop: 16 }} onPress={() => { haptic('notificationSuccess'); setSent(true); }}>{t('checkin.submit')}</Button>
+      <Card bg={c.ice} radius={16} style={{ padding: 12, marginTop: 14 }}>
+        <T size={8} w={800}>{t('d3Demo.entryTitle')}</T>
+        <T size={7.5} color={c.muted} style={{ marginTop: 4, marginBottom: 9 }}>{t('d3Demo.entrySub')}</T>
+        <Button secondary onPress={runSafetyDemo}>{demoBusy ? t('d3Demo.loading') : t('d3Demo.run')}</Button>
+        {demoError && <T size={7.5} color={c.urgentText} style={{ marginTop: 7 }}>{t('d3Demo.error')}</T>}
+      </Card>
     </Screen>
   );
 }

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#e8edf5" />
+    <title>SurgiGuard · Patient app preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body, #root { margin: 0; width: 100%; height: 100%; }
+      body { background: radial-gradient(ellipse at 50% 35%, #f8fbff 0, #e8edf5 70%); color: #1b2a4a; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      #root { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+      .browser-stage { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 26px; }
+      .device { position: relative; width: min(410px, 100%); height: min(900px, calc(100vh - 52px)); min-height: 580px; overflow: hidden; border: 8px solid #19253a; border-radius: 42px; background: #f8faff; box-shadow: 0 28px 80px #1b2a4a35, inset 0 0 0 1px #fff; }
+      .status-bar { height: 27px; display: flex; align-items: center; justify-content: space-between; padding: 0 13px; background: #f8faff; color: #172640; font: 600 10px/1 system-ui, sans-serif; }
+      .notch { position: absolute; z-index: 10; top: 4px; left: 50%; transform: translateX(-50%); width: 108px; height: 25px; border-radius: 18px; background: #05070b; box-shadow: inset 0 -1px 2px #334; pointer-events: none; }
+      .home-indicator { position: absolute; z-index: 10; left: 50%; bottom: 5px; transform: translateX(-50%); width: 102px; height: 4px; border-radius: 9px; background: #182238; pointer-events: none; }
+      .app-space { height: calc(100% - 27px); position: relative; }
+      .app-space > #root { height: 100%; }
+      @media (max-width: 520px) {
+        body { background: #f8faff; }
+        .browser-stage { display: block; min-height: 100dvh; padding: 0; }
+        .device { width: 100%; height: 100dvh; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        .home-indicator { bottom: max(5px, env(safe-area-inset-bottom)); }
+      }
+      @media (max-height: 650px) and (min-width: 521px) { .device { height: calc(100vh - 20px); min-height: 0; } .browser-stage { padding: 10px; } }
+    </style>
+  </head>
+  <body>
+    <main class="browser-stage">
+      <section class="device" aria-label="SurgiGuard app preview">
+        <div class="status-bar"><span>12:41</span><span aria-hidden="true">▮▮ ▰</span></div>
+        <div class="notch" aria-hidden="true"></div>
+        <div class="app-space"><div id="root"></div></div>
+        <div class="home-indicator" aria-hidden="true"></div>
+      </section>
+    </main>
+    <script>
+      window.addEventListener('error', function (event) { var box = document.getElementById('boot-error'); if (box) { box.hidden = false; box.textContent = 'Browser preview error: ' + (event.message || 'Failed to load app bundle'); } });
+      window.addEventListener('unhandledrejection', function (event) { var box = document.getElementById('boot-error'); if (box) { box.hidden = false; box.textContent = 'Browser preview error: ' + (event.reason && event.reason.message || event.reason || 'Unknown promise rejection'); } });
+      window.addEventListener('load', function () { setTimeout(function () { var root = document.getElementById('root'), child = root && root.firstElementChild, rect = child && child.getBoundingClientRect(), style = child && getComputedStyle(child), box = document.getElementById('boot-error'); if (box && (!rect || rect.width === 0 || rect.height === 0)) { box.hidden = false; box.textContent = 'Preview layout check: ' + JSON.stringify({ rootWidth: root && root.clientWidth, rootHeight: root && root.clientHeight, child: child && child.tagName, childWidth: rect && rect.width, childHeight: rect && rect.height, display: style && style.display, color: style && style.color }); } }, 800); });
+    </script>
+    <pre id="boot-error" hidden style="position:absolute;z-index:20;inset:38px 12px auto;margin:0;padding:12px;background:#fff0f0;border:1px solid #e3a2a2;border-radius:10px;color:#8f1d1d;white-space:pre-wrap;font:12px/1.45 ui-monospace,monospace;"></pre>
+    <script src="/app/app.js"></script>
+  </body>
+</html>

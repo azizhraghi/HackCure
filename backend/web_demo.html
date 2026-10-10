@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>SurgiGuard | Developer 3 demo</title>
+  <style>
+    :root { color-scheme: light; --ink:#142a42; --muted:#61748a; --line:#dce5ef; --blue:#1768c4; --blue2:#eaf3ff; --green:#147a62; --paper:#fff; --bg:#f4f7fb; --amber:#a66313; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif }
+    button, input, select { font:inherit }
+    button { cursor:pointer }
+    .shell { max-width:1180px; margin:auto; padding:28px 22px 48px }
+    header { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:22px }
+    .brand { display:flex; align-items:center; gap:12px }
+    .logo { width:42px; height:42px; border-radius:14px; background:var(--blue); color:white; display:grid; place-items:center; font-weight:800; font-size:20px }
+    h1,h2,h3,p { margin-top:0 } h1 { font-size:22px; margin-bottom:1px; letter-spacing:-.3px } h2 { font-size:17px; margin-bottom:4px } h3 { font-size:14px; margin:0 0 9px }
+    .subtitle,.muted { color:var(--muted) } .subtitle { margin:0; font-size:13px }
+    .badge { border:1px solid #f0d49a; color:#81500d; background:#fff8e8; border-radius:999px; padding:7px 11px; font-size:11px; letter-spacing:.07em; font-weight:800; white-space:nowrap }
+    .notice { display:flex; gap:12px; border:1px solid #c9def3; background:#eef6ff; border-radius:14px; padding:13px 16px; margin-bottom:20px; color:#34516f; font-size:13px }
+    .notice strong { color:#173d63 }
+    .grid { display:grid; grid-template-columns:minmax(280px,.82fr) minmax(0,1.5fr); gap:18px; align-items:start }
+    .card { background:var(--paper); border:1px solid var(--line); border-radius:16px; box-shadow:0 5px 20px #1d3c5a08; padding:19px }
+    .card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px }
+    label { display:block; color:#405a74; font-size:12px; font-weight:700; margin:13px 0 6px }
+    input,select { width:100%; border:1px solid #ccd8e5; border-radius:9px; padding:10px 11px; color:var(--ink); background:#fff; outline:none }
+    input:focus,select:focus { border-color:#438bd4; box-shadow:0 0 0 3px #438bd41c }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:11px }
+    .button { border:0; border-radius:9px; background:var(--blue); color:white; padding:10px 13px; font-weight:750; transition:filter .15s,transform .15s }
+    .button:hover:not(:disabled) { filter:brightness(.94); transform:translateY(-1px) }
+    .button:disabled { opacity:.45; cursor:not-allowed }
+    .button.secondary { background:var(--blue2); color:#18599b; border:1px solid #cfe1f6 }
+    .button.ghost { background:#f3f6f9; color:#435a70; border:1px solid var(--line) }
+    .button.green { background:var(--green) }
+    .full { width:100%; margin-top:17px }
+    .steps { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 16px }
+    .step { font-size:11px; color:#56708a; border:1px solid var(--line); border-radius:999px; padding:5px 9px; background:#f8fafc }
+    .step.active { background:#e8f5f0; border-color:#b9e2d5; color:#146c56; font-weight:700 }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:17px }
+    .actions .button { font-size:12px; padding:8px 10px }
+    .outputs { display:grid; grid-template-columns:1fr; gap:12px }
+    .output { border:1px solid var(--line); border-radius:12px; padding:13px; min-width:0; background:#fcfdff }
+    .output.wide { grid-column:auto }
+    .output-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px }
+    .pill { font-size:10px; font-weight:800; color:#146c56; background:#e6f5ef; padding:3px 7px; border-radius:999px }
+    pre { margin:0; max-height:270px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; color:#405670 }
+    .empty { color:#8192a5; font-size:12px; min-height:43px; display:flex; align-items:center }
+    .result-body { color:#263f58; font-size:13px }
+    .result-hero { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; border-radius:11px; padding:13px 14px; background:#eef5ff; border:1px solid #d7e7fb; margin-bottom:12px }
+    .result-hero strong { display:block; color:#173d63; font-size:15px }
+    .result-hero span { color:#59728b; font-size:11px }
+    .result-hero.review { background:#fff8e9; border-color:#f2e0b9 }
+    .result-hero.review strong { color:#80500f }
+    .result-hero.neutral { background:#f4f6f8; border-color:#e3e8ed }
+    .instruction { border-left:3px solid #77a9df; padding:8px 11px; background:#f7faff; border-radius:0 8px 8px 0; margin:10px 0; color:#34516f }
+    .field-label { color:#71849a; text-transform:uppercase; letter-spacing:.06em; font-size:10px; font-weight:800; margin-bottom:4px }
+    .token-row { display:flex; flex-wrap:wrap; gap:6px; margin:7px 0 }
+    .token { background:#f0f4f8; color:#405a74; border-radius:6px; padding:4px 7px; font-size:11px }
+    .list { padding-left:18px; margin:5px 0 0 }
+    .list li { margin:4px 0 }
+    .evidence-row { border-top:1px solid #e8edf3; padding:9px 0 2px; margin-top:8px }
+    .evidence-row strong { color:#25415d }
+    .timeline { list-style:none; margin:8px 0 0; padding:0 }
+    .timeline li { position:relative; padding:2px 0 13px 22px; border-left:1px solid #dce5ef; margin-left:5px }
+    .timeline li:last-child { border-left-color:transparent; padding-bottom:0 }
+    .timeline li:before { content:""; position:absolute; width:9px; height:9px; border-radius:50%; background:#5a9bd8; left:-5px; top:5px; box-shadow:0 0 0 3px #edf5fc }
+    .timeline strong { display:block; text-transform:capitalize }
+    .timeline small { color:#71849a; font-size:11px }
+    .raw { margin-top:10px; padding-top:8px; border-top:1px solid #edf0f4 }
+    .raw summary { font-size:11px }
+    .raw pre { margin-top:8px }
+    .status { min-height:20px; color:var(--muted); font-size:12px; margin:12px 0 0 }
+    .status.error { color:#af3232 }
+    details { margin-top:15px; border-top:1px solid var(--line); padding-top:12px }
+    summary { cursor:pointer; color:var(--muted); font-size:12px; font-weight:700 }
+    a { color:var(--blue); text-decoration:none } a:hover { text-decoration:underline }
+    footer { text-align:center; color:#8192a5; font-size:11px; margin:20px 0 0 }
+    @media(max-width:760px) { .shell { padding:18px 13px 32px } header { align-items:flex-start } .grid { grid-template-columns:1fr } .outputs { grid-template-columns:1fr } .output.wide { grid-column:auto } .badge { white-space:normal; text-align:center; max-width:145px } }
+    @media(max-width:420px) { h1 { font-size:19px } .two { grid-template-columns:1fr } .card { padding:15px } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><div class="logo" aria-hidden="true">S</div><div><h1>SurgiGuard</h1><p class="subtitle">Developer 3 · Safety and follow-up demo</p></div></div>
+      <span class="badge">SYNTHETIC DATA ONLY</span>
+    </header>
+    <div class="notice"><span aria-hidden="true">ⓘ</span><div><strong>Prototype workflow.</strong> This page uses fictional records and synthetic rules. It does not provide medical guidance or send notifications. Do not enter real patient information.</div></div>
+    <div class="grid">
+      <section class="card" aria-labelledby="event-title">
+        <div class="card-head"><div><h2 id="event-title">Create a demo event</h2><div class="muted" style="font-size:12px">Submit a fictional report to the safety route.</div></div></div>
+        <label for="rule">Synthetic rule</label>
+        <select id="rule"><option value="demo_urgent_warning">Urgent warning fixture</option><option value="demo_review_signal">Care team review fixture</option></select>
+        <div class="two">
+          <div><label for="answer">Patient answer</label><select id="answer"><option value="yes">Yes</option><option value="no">No</option><option value="unknown">Unknown</option></select></div>
+          <div><label for="quality">Input quality</label><select id="quality"><option value="unknown">Unknown</option><option value="usable">Usable</option><option value="limited">Limited</option><option value="unusable">Unusable</option></select></div>
+        </div>
+        <button id="submit-event" class="button full">Run synthetic safety check</button>
+        <div id="status" class="status" role="status" aria-live="polite">Waiting for a demo event.</div>
+        <details><summary>Developer note</summary><p class="muted" style="font-size:12px;margin:9px 0 0">The deterministic rule runs before investigation. LangGraph produces an evidence-linked report and marks missing D1/D2 inputs. The follow-up controls simulate workflow events only.</p></details>
+      </section>
+      <section class="card" aria-labelledby="workflow-title">
+        <div class="card-head"><div><h2 id="workflow-title">Demo results</h2><div class="muted" style="font-size:12px">See the decision, investigation findings, and follow-up progress.</div></div><a href="/docs" target="_blank" rel="noreferrer" style="font-size:12px">API docs ↗</a></div>
+        <div id="steps" class="steps"><span class="step">1 · Event</span><span class="step">2 · Investigation</span><span class="step">3 · Follow-up</span><span class="step">4 · Verification</span></div>
+        <div class="actions">
+          <button id="investigate" class="button secondary" disabled>Run LangGraph investigation</button>
+          <button id="ack" class="button secondary" disabled>Acknowledge receipt</button>
+          <button id="decision" class="button secondary" disabled>Record demo decision</button>
+          <button id="verify" class="button green" disabled>Verify and close demo loop</button>
+          <button id="refresh" class="button ghost" disabled>Refresh follow-up</button>
+        </div>
+        <div class="outputs">
+          <div class="output"><div class="output-title"><h3>Safety result</h3><span class="pill">DEMO RULE</span></div><div id="decision-output" class="result-body empty">Run a demo event to see its result.</div><details class="raw"><summary>View raw API response</summary><pre id="decision-raw"></pre></details></div>
+          <div class="output"><div class="output-title"><h3>Investigation findings</h3><span class="pill">LANGGRAPH</span></div><div id="investigation-output" class="result-body empty">Run an investigation to see evidence and missing information.</div><details class="raw"><summary>View raw API response</summary><pre id="investigation-raw"></pre></details></div>
+          <div class="output"><div class="output-title"><h3>Follow-up progress</h3><span id="stage-pill" class="pill" hidden></span></div><div id="followup-output" class="result-body empty">An alert follow-up appears here when a demo rule matches.</div><details class="raw"><summary>View raw API response</summary><pre id="followup-raw"></pre></details></div>
+          <div class="output"><div class="output-title"><h3>Notification status</h3><span class="pill">NOT SENT</span></div><div id="outbox-output" class="result-body empty">No delivery status loaded.</div><details class="raw"><summary>View raw API response</summary><pre id="outbox-raw"></pre></details></div>
+        </div>
+      </section>
+    </div>
+    <footer>Fictional workflow only · No clinician or patient notifications are delivered</footer>
+  </main>
+  <script>
+    const episodeId = 'ep_demo_001';
+    const patientId = 'pt_demo_001';
+    let current = { eventId: null, followupId: null, version: 0, investigation: null };
+    const $ = (id) => document.getElementById(id);
+    const safe = (value) => String(value ?? 'Not provided');
+    function element(tag, className, value) { const node=document.createElement(tag); if(className) node.className=className; if(value!==undefined) node.textContent=safe(value); return node; }
+    function list(items) { const ul=element('ul','list'); (items||[]).forEach(item=>ul.appendChild(element('li','',item))); return ul; }
+    function setResult(id, data, render) {
+      const el=$(id); el.replaceChildren(); el.classList.remove('empty');
+      if(data===null || data===undefined) { el.textContent='No result available yet.'; el.classList.add('empty'); }
+      else render(el,data);
+      const raw=$(id.replace('-output','-raw')); if(raw) raw.textContent=JSON.stringify(data,null,2);
+    }
+    function renderDecision(el, decision) {
+      const outcome=decision.outcome;
+      const title={emergency:'Demo rule matched: urgent alert',clinical_review:'Demo rule matched: care team review',indeterminate:'Not enough input to decide',no_match:'No demo rule matched'}[outcome]||`Demo outcome: ${outcome}`;
+      const tone=outcome==='clinical_review'?'review':(['no_match','indeterminate'].includes(outcome)?'neutral':'');
+      const hero=element('div',`result-hero ${tone}`); const copy=element('div'); copy.appendChild(element('strong','',title)); copy.appendChild(element('span','',`Outcome: ${outcome.replaceAll('_',' ')} · Policy ${decision.policy_version}`)); hero.appendChild(copy); el.appendChild(hero);
+      if(decision.instruction) { const wrap=element('div',''); wrap.appendChild(element('div','field-label','Demo message')); wrap.appendChild(element('div','instruction',decision.instruction)); el.appendChild(wrap); }
+      const rules=element('div',''); rules.appendChild(element('div','field-label','Matched rule')); rules.appendChild(element('div','token-row'));
+      const chips=rules.querySelector('.token-row'); (decision.matched_rule_ids?.length?decision.matched_rule_ids:['No rule code matched']).forEach(item=>chips.appendChild(element('span','token',item))); el.appendChild(rules);
+      if(decision.limitations?.length) { el.appendChild(element('div','field-label','Limits of this result')); el.appendChild(list(decision.limitations)); }
+    }
+    function renderInvestigation(el, report) {
+      const hero=element('div',`result-hero ${report.state==='partial'?'review':''}`); const copy=element('div'); copy.appendChild(element('strong','',report.state==='partial'?'Investigation is partial':'Investigation complete')); copy.appendChild(element('span','',report.uncertainty?.[0]||'Evidence summary generated.')); hero.appendChild(copy); el.appendChild(hero);
+      (report.findings||[]).forEach(finding=>{ const box=element('div','evidence-row'); box.appendChild(element('strong','',finding.statement)); if(finding.limitations?.length) box.appendChild(element('div','muted',finding.limitations.join(' '))); el.appendChild(box); });
+      if(report.missing_data?.length) { el.appendChild(element('div','field-label','Information not connected yet')); el.appendChild(list(report.missing_data)); }
+      if(report.evidence?.length) { el.appendChild(element('div','field-label','Evidence collected')); const chips=element('div','token-row'); report.evidence.forEach(item=>chips.appendChild(element('span','token',`${item.kind} · ${item.source||item.policy_version||'system'}${item.quality?` · ${item.quality}`:''}`))); el.appendChild(chips); }
+    }
+    const stageLabel={open:'Waiting for follow-up',acknowledged:'Receipt acknowledged',action_recorded:'Demo action recorded',closed:'Follow-up verified'};
+    const actionLabel={acknowledged:'Receipt acknowledged',clinical_decision:'Demo decision recorded',verified:'Follow-up verified'};
+    function renderFollowup(el, followup) {
+      const hero=element('div',`result-hero ${followup.stage==='closed'?'':followup.stage==='open'?'review':''}`); const copy=element('div'); copy.appendChild(element('strong','',stageLabel[followup.stage]||followup.stage)); copy.appendChild(element('span','',`Workflow version ${followup.version} · Demo record`)); hero.appendChild(copy); el.appendChild(hero);
+      const details=element('div','token-row'); details.appendChild(element('span','token',`Acknowledged by: ${followup.acknowledged_by||'Not yet acknowledged'}`)); details.appendChild(element('span','token',`Decision ID: ${followup.clinician_decision_id||'Not recorded'}`)); if(followup.verification_evidence_id) details.appendChild(element('span','token',`Verification: ${followup.verification_evidence_id}`)); el.appendChild(details);
+      if(followup.actions?.length) { el.appendChild(element('div','field-label','Action history')); const timeline=element('ol','timeline'); followup.actions.forEach(action=>{ const li=element('li',''); li.appendChild(element('strong','',actionLabel[action.action_type]||action.action_type)); const detail=action.detail?.note||action.detail?.evidence_id; if(detail) li.appendChild(element('span','',detail)); li.appendChild(element('small','',`${action.actor_id} · ${new Date(action.created_at).toLocaleString()}`)); timeline.appendChild(li); }); el.appendChild(timeline); }
+      else el.appendChild(element('p','muted','No follow-up actions have been recorded yet.'));
+    }
+    function renderOutbox(el, data) {
+      el.appendChild(element('p','',data.note||'Queued delivery intentions only; nothing is sent.'));
+      if(!data.delivery_intents?.length) { el.appendChild(element('p','muted','No delivery intents were created for this event.')); return; }
+      const chips=element('div','token-row'); data.delivery_intents.forEach(item=>chips.appendChild(element('span','token',`${item.recipient_role}: ${item.status} · no notification sent`))); el.appendChild(chips);
+    }
+    function setStatus(message, error=false) { $('status').textContent=message; $('status').className=`status${error?' error':''}`; }
+    function paintSteps(stage) {
+      const complete = stage === 'investigated' ? 2 : stage === 'open' ? 2 : stage === 'acknowledged' ? 3 : stage === 'action_recorded' ? 3 : stage === 'closed' ? 4 : stage === 'event' ? 1 : 0;
+      $('steps').querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('active',i<complete));
+    }
+    function updateButtons(followup) {
+      const hasEvent=Boolean(current.eventId), hasFollowup=Boolean(current.followupId);
+      $('investigate').disabled=!hasEvent;
+      $('ack').disabled=!hasFollowup || followup?.stage!=='open';
+      $('decision').disabled=!hasFollowup || !['open','acknowledged'].includes(followup?.stage);
+      $('verify').disabled=!hasFollowup || followup?.stage!=='action_recorded';
+      $('refresh').disabled=!hasFollowup;
+    }
+    async function request(path, options={}) {
+      const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+      const body=await response.json().catch(()=>({detail:response.statusText}));
+      if(!response.ok) throw new Error(typeof body.detail==='string'?body.detail:JSON.stringify(body.detail||body));
+      return body;
+    }
+    async function refreshFollowup() {
+      if(!current.followupId) return;
+      const body=await request(`/v1/demo/followups/${encodeURIComponent(current.followupId)}`);
+      current.version=body.version;
+      setResult('followup-output',body,renderFollowup);
+      const pill=$('stage-pill'); pill.hidden=false; pill.textContent=`STAGE · ${body.stage.toUpperCase()}`;
+      paintSteps(body.stage); updateButtons(body);
+      return body;
+    }
+    $('submit-event').addEventListener('click',async()=>{
+      $('submit-event').disabled=true;
+      try {
+        current={eventId:`web_${crypto.randomUUID()}`,followupId:null,version:0,investigation:null};
+        setResult('investigation-output',null,renderInvestigation); setResult('followup-output',null,renderFollowup); setResult('outbox-output',null,renderOutbox); $('stage-pill').hidden=true;
+        const body=await request(`/v1/demo/episodes/${episodeId}/events`,{method:'POST',body:JSON.stringify({event_id:current.eventId,patient_id:patientId,kind:'structured_warning',code:$('rule').value,answer:$('answer').value,quality:$('quality').value,source:'patient',occurred_at:new Date().toISOString()})});
+        current.followupId=body.followup_id;
+        setResult('decision-output',body.safety_decision,renderDecision);
+        if(body.followup_id) { await refreshFollowup(); setStatus('Demo event recorded. Review the synthetic result below.'); }
+        else { updateButtons(null); paintSteps('event'); setStatus('Demo event recorded. No alert follow-up was created for this answer.'); }
+        const outbox=await request(`/v1/demo/episodes/${episodeId}/outbox`); setResult('outbox-output',outbox,renderOutbox);
+      } catch(error) { setStatus(error.message,true); }
+      finally { $('submit-event').disabled=false; }
+    });
+    $('investigate').addEventListener('click',async()=>{
+      try { const body=await request(`/v1/demo/episodes/${episodeId}/investigations?event_id=${encodeURIComponent(current.eventId)}`,{method:'POST'}); current.investigation=body; setResult('investigation-output',body,renderInvestigation); paintSteps(current.followupId?'open':'investigated'); setStatus(`Investigation saved: ${body.state}.`); }
+      catch(error) { setStatus(error.message,true); }
+    });
+    async function action(suffix, body, success) {
+      try { await request(`/v1/demo/followups/${encodeURIComponent(current.followupId)}/${suffix}`,{method:'POST',body:JSON.stringify({...body,expected_version:current.version})}); await refreshFollowup(); setStatus(success); }
+      catch(error) { setStatus(error.message,true); }
+    }
+    $('ack').addEventListener('click',()=>action('acknowledgements',{actor_id:'patient_demo'},'Demo acknowledgement recorded. Follow-up remains open.'));
+    $('decision').addEventListener('click',()=>action('clinical-decisions',{actor_id:'clinician_demo',note:'Synthetic workflow review recorded for demonstration.'},'Synthetic demo decision recorded.'));
+    $('verify').addEventListener('click',()=>action('verifications',{actor_id:'clinician_demo',evidence_id:`web_verification_${Date.now()}`},'Synthetic follow-up loop closed.'));
+    $('refresh').addEventListener('click',async()=>{try { await refreshFollowup(); setStatus('Follow-up state refreshed.'); } catch(error) { setStatus(error.message,true); }});
+  </script>
+</body>
+</html>

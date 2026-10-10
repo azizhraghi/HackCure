@@ -1,9 +1,4 @@
-"""SurgiGuard AI — minimal backend (FastAPI).
-
-For now it only proxies the patient's Recovery Assistant chat to Mistral,
-so the API key never ships inside the mobile app. The recovery plan below is
-the fictional demo patient (Sarah Miller) used by the app.
-"""
+"""SurgiGuard AI prototype backend: chat proxy and synthetic D3 demo routes."""
 
 import os
 import re
@@ -11,8 +6,12 @@ import re
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from mistralai.client import Mistral
 from pydantic import BaseModel, Field
+
+from d3_demo import router as d3_demo_router
 
 load_dotenv()
 
@@ -68,6 +67,7 @@ Rules:
 
 app = FastAPI(title="SurgiGuard AI backend", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.include_router(d3_demo_router)
 
 client = Mistral(api_key=MISTRAL_API_KEY) if MISTRAL_API_KEY else None
 
@@ -90,6 +90,14 @@ class ChatResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "llm": "mistral", "model": MISTRAL_MODEL, "configured": client is not None}
+
+
+@app.get("/demo", include_in_schema=False)
+def demo_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "web_demo.html"))
+
+
+app.mount("/app", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "mobile", "dist-web"), html=True), name="patient-web-preview")
 
 
 @app.post("/chat", response_model=ChatResponse)
