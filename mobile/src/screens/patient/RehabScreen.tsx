@@ -69,7 +69,7 @@ export function RehabScreen() {
         ))}
       </View>
 
-      <SectionRow title={t('rehab.exercises')} right={<T size={8} color={c.trackText} w={700}>✓ {t('rehab.approved')}</T>} />
+      <SectionRow title={t('rehab.exercises')} />
       <Card radius={17}>
         {exercises.map(([name, sub], i) => (
           <Pressable key={name} onPress={() => { haptic('notificationSuccess'); setDone(d => d.map((x, n) => (n === i ? !x : x))); }}

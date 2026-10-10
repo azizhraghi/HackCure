@@ -1,0 +1,12 @@
+"""Periodic sweep (APScheduler, every few seconds): timeouts and escalations."""
+
+from . import alerts, clock
+from .agents import investigation
+from .db import Repo
+
+
+def run(repo: Repo) -> dict:
+    now = clock.now()
+    inv = investigation.sweep(repo)
+    escalated = alerts.escalate_overdue(repo, now)
+    return {"at": now.isoformat(), **inv, "escalated_alerts": [a.id for a in escalated]}

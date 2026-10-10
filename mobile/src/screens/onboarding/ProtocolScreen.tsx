@@ -57,11 +57,6 @@ export function ProtocolScreen({ navigation }: RootScreen<'Protocol'>) {
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 9 }}>
-        <Icon name="shield" size={14} color={c.trackText} />
-        <T size={8} w={700} color={c.trackText}>{t('protocol.approved')}</T>
-      </View>
-
       <T size={9} w={800} style={{ marginTop: 10, marginBottom: 6 }}>{t('protocol.modules')}</T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
         {list('protocol.chips').map(x => <Chip key={x} tone="blue">{x}</Chip>)}

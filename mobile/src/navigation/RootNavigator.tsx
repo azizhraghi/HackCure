@@ -1,3 +1,4 @@
+import { D3DemoScreen } from '../screens/patient/D3DemoScreen';
 import React from 'react';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,8 +21,8 @@ import { ProfileScreen } from '../screens/patient/ProfileScreen';
 import { TwinDetailScreen } from '../screens/patient/TwinDetailScreen';
 import { WoundScanScreen } from '../screens/patient/WoundScanScreen';
 import { SensingRequestScreen } from '../screens/patient/SensingRequestScreen';
+import { RequestsScreen } from '../screens/patient/RequestsScreen';
 import { EscalationScreen } from '../screens/patient/EscalationScreen';
-import { D3DemoScreen } from '../screens/patient/D3DemoScreen';
 import { RehabScreen } from '../screens/patient/RehabScreen';
 import { MedicationsScreen } from '../screens/patient/MedicationsScreen';
 import { AIAssistantScreen } from '../screens/patient/AIAssistantScreen';
@@ -91,6 +92,7 @@ export function RootNavigator() {
             <Stack.Screen name="TwinDetail" component={TwinDetailScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="WoundScan" component={WoundScanScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="SensingRequest" component={SensingRequestScreen} options={{ presentation: 'transparentModal', animation: 'fade' }} />
+            <Stack.Screen name="Requests" component={RequestsScreen} />
             <Stack.Screen name="Escalation" component={EscalationScreen} />
             <Stack.Screen name="D3Demo" component={D3DemoScreen} />
             <Stack.Screen name="Rehab" component={RehabScreen} />

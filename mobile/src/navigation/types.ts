@@ -1,6 +1,6 @@
+import type { DemoEventResponse } from '../services/api';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { DemoEventResponse } from '../services/api';
 
 export type PatientTabParams = { Home: undefined; CheckIn: undefined; Twin: undefined; Reports: undefined; Profile: undefined };
 export type FamilyTabParams = { FamHome: undefined; Updates: undefined; FamRecovery: undefined; FamProfile: undefined };
@@ -16,6 +16,7 @@ export type RootParams = {
   TwinDetail: undefined;
   WoundScan: undefined;
   SensingRequest: undefined;
+  Requests: undefined;
   Escalation: undefined;
   D3Demo: { event: DemoEventResponse };
   Rehab: undefined;

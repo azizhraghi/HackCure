@@ -4,6 +4,8 @@
 
 ## Run (Windows → Android)
 
+For browser development, run `npm run build:web` here and start the backend, then open `http://localhost:8000/app/`. The same screens now use the teammate's check-in, care-team request, home and family endpoints. Native camera and 3D WebView features use preview fallbacks in the browser. The agent dashboard with clinic controls is available at `http://localhost:8000/agent-demo/`.
+
 Requirements:
 - Node ≥ 22
 - JDK 17 (`JAVA_HOME`)
