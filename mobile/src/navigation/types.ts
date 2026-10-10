@@ -15,6 +15,7 @@ export type RootParams = {
   TwinDetail: undefined;
   WoundScan: undefined;
   SensingRequest: undefined;
+  Requests: undefined;
   Escalation: undefined;
   Rehab: undefined;
   Medications: undefined;

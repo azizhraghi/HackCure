@@ -41,6 +41,7 @@ const fr: Dict = {
     confirm: 'Confirmer et créer le jumeau',
   },
   home: {
+    bodyTemp: 'TEMPÉRATURE', live: 'Dernière mesure', status_unknown: 'Inconnue : pas de données récentes', status_unreliable: 'Signal peu fiable', status_questionable: 'Dernière mesure (incertaine)',
     welcome: 'Bon retour', title: "Votre récupération\nen un coup d'œil",
     task: 'TÂCHE DU JOUR', taskTitle: 'Photographiez la plaie\net faites 10 flexions', about: 'Environ 5 min',
     woundTemp: 'TEMP. PLAIE', normal: 'Plage normale', pain: 'DOULEUR DU JOUR', painDown: '↓ 1 par rapport à hier',
@@ -131,12 +132,18 @@ const fr: Dict = {
     server: 'SERVEUR IA', serverSub: "URL du backend utilisé par l'assistant",
     about: 'SurgiGuard AI · prototype HackCure', disclaimer: 'Données patient fictives. Les mesures simulées sont indiquées.',
   },
+  req: {
+    top: 'Demandes de l’équipe', title: 'Quelques réponses\nrapides', sub: 'L’assistant de votre équipe de soins en a besoin pour suivre votre récupération. Cela ne remplace jamais un appel au 112.',
+    kind_question: 'QUESTION', kind_photo: 'PHOTO DE LA PLAIE', kind_measurement: 'MESURE',
+    sendPhoto: 'Prendre et envoyer la photo du jour', send: 'Envoyer', none: 'Rien à répondre pour le moment.', offline: 'Serveur SurgiGuard injoignable. Vérifiez l’URL du serveur IA dans Réglages.',
+    pending: 'VOTRE ÉQUIPE A BESOIN DE', pendingCta: 'Répondre', nextStep: 'PROCHAINE ÉTAPE DE VOTRE ÉQUIPE',
+  },
   checkin: {
     top: 'Bilan du jour', kicker: "JOUR 6 · AUJOURD'HUI", title: "Comment vous sentez-\nvous aujourd'hui ?",
     sub: 'Environ 1 minute. Votre équipe soignante voit vos réponses.',
     pain: 'Niveau de douleur', fatigue: 'Fatigue', mobility: 'Difficulté à bouger', none: 'Aucune', worst: 'Maximale',
     wound: 'Symptômes de la plaie', woundChips: 'Rougeur|Gonflement|Chaleur|Écoulement|Mauvaise odeur',
-    other: 'Autres symptômes', otherChips: 'Frissons|Fièvre|Nausées|Vertiges|Essoufflement|Douleur au mollet',
+    oneMore: 'UNE DERNIÈRE QUESTION', other: 'Autres symptômes', otherChips: 'Frissons|Fièvre|Nausées|Vertiges|Essoufflement|Douleur au mollet',
     warning: "Certaines réponses correspondent à vos signes d'alerte. SurgiGuard les examinera avec votre équipe soignante.",
     emergency: "L'essoufflement peut être une urgence. S'il est soudain ou sévère, appelez les secours maintenant.",
     submit: 'Envoyer le bilan', sentTitle: 'Bilan envoyé', sentSub: 'Merci Sarah ! Votre équipe a reçu votre mise à jour.',
@@ -182,6 +189,7 @@ const fr: Dict = {
     go: 'Voir la récupération de Sarah', invalid: 'Code non reconnu. Essayez 482916.', permission: 'Autoriser la caméra',
   },
   fam: {
+    stUrgent: 'Besoin d’aide maintenant', stAttention: 'Équipe de soins en revue', digest: 'RÉSUMÉ DU JOUR (IA)', noTasks: 'Aucune tâche pour le moment.',
     banner: 'Vue famille · ', readOnly: 'Lecture seule', switch: 'Changer de patient', hi: 'Bonjour Ahmed',
     following: 'VOUS SUIVEZ', surgery: 'Prothèse totale du genou · Jour 6 sur 42', status: 'ÉTAT ACTUEL',
     noUrgent: 'Aucun changement urgent · il y a 12 min', sharedBy: 'Partagé par Sarah',

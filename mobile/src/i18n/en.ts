@@ -39,6 +39,7 @@ const en = {
     confirm: 'Confirm & create Twin',
   },
   home: {
+    bodyTemp: 'TEMPERATURE', live: 'Latest reading', status_unknown: 'Unknown: no recent data', status_unreliable: 'Unreliable signal', status_questionable: 'Latest reading (questionable)',
     welcome: 'Welcome back', title: "Here's your recovery\nat a glance",
     task: "TODAY'S TASK", taskTitle: 'Take a wound photo\nand do 10 knee bends', about: 'About 5 min',
     woundTemp: 'WOUND TEMP', normal: 'Normal range', pain: 'PAIN TODAY', painDown: '↓ 1 from yesterday',
@@ -129,12 +130,18 @@ const en = {
     server: 'AI SERVER', serverSub: 'Backend URL used by the recovery assistant',
     about: 'SurgiGuard AI · HackCure prototype', disclaimer: 'Fictional patient data. Simulated measurements are labeled.',
   },
+  req: {
+    top: 'Care team requests', title: 'A few quick\nanswers', sub: 'Your care team’s assistant needs this to review your recovery. It never replaces a call to 112.',
+    kind_question: 'QUESTION', kind_photo: 'WOUND PHOTO', kind_measurement: 'MEASUREMENT',
+    sendPhoto: 'Take & send today’s photo', send: 'Send', none: 'Nothing to answer right now.', offline: 'Cannot reach the SurgiGuard server. Check the AI server URL in Settings.',
+    pending: 'YOUR CARE TEAM NEEDS', pendingCta: 'Answer', nextStep: 'NEXT STEP FROM YOUR CARE TEAM',
+  },
   checkin: {
     top: 'Daily check-in', kicker: 'DAY 6 · TODAY', title: 'How are you feeling\ntoday?',
     sub: 'Takes about 1 minute. Your care team sees your answers.',
     pain: 'Pain level', fatigue: 'Fatigue', mobility: 'Mobility difficulty', none: 'None', worst: 'Worst',
     wound: 'Wound symptoms', woundChips: 'Redness|Swelling|Warmth|Drainage|Bad smell',
-    other: 'Other symptoms', otherChips: 'Chills|Fever|Nausea|Dizziness|Shortness of breath|Calf pain',
+    oneMore: 'ONE MORE QUESTION', other: 'Other symptoms', otherChips: 'Chills|Fever|Nausea|Dizziness|Shortness of breath|Calf pain',
     warning: 'Some answers match your warning signs. SurgiGuard will review them with your care team.',
     emergency: 'Shortness of breath can be an emergency. If it is sudden or severe, call emergency services now.',
     submit: 'Submit check-in', sentTitle: 'Check-in sent', sentSub: 'Thanks Sarah! Your care team has your update.',
@@ -180,6 +187,7 @@ const en = {
     go: "Go to Sarah's recovery", invalid: 'Code not recognised. Try 482916.', permission: 'Allow camera to scan',
   },
   fam: {
+    stUrgent: 'Needs help now', stAttention: 'Care team reviewing', digest: 'TODAY’S UPDATE (AI)', noTasks: 'No tasks right now.',
     banner: 'Family view · ', readOnly: 'Read only', switch: 'Switch patient', hi: 'Hi, Ahmed',
     following: "YOU'RE FOLLOWING", surgery: 'Total knee replacement · Day 6 of 42', status: 'CURRENT STATUS',
     noUrgent: 'No urgent changes · Updated 12 min ago', sharedBy: 'Shared by Sarah',

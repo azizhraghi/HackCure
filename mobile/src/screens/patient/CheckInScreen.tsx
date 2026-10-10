@@ -6,7 +6,9 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Icon, type IconName } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, SectionRow, TopBar } from '../../components/ui';
+import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
+import { answerRequest, OTHER_CHIP_KEYS, submitCheckin, WOUND_CHIP_KEYS, type CheckinResult } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 function ScaleCard({ label, value, onChange, bg, icon, none, worst }: { label: string; value: number; onChange: (v: number) => void; bg: string; icon: IconName; none: string; worst: string }) {
@@ -48,13 +50,38 @@ export function CheckInScreen() {
   const [wound, setWound] = useState<number[]>([]);
   const [other, setOther] = useState<number[]>([]);
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<CheckinResult | null>(null);
+  const [clarified, setClarified] = useState<string | null>(null);
+  const { apiUrl } = useAppState();
 
   const toggle = (arr: number[], set: (v: number[]) => void, i: number) => set(arr.includes(i) ? arr.filter(x => x !== i) : [...arr, i]);
   const woundChips = list('checkin.woundChips');
   const otherChips = list('checkin.otherChips');
   // Drainage, warmth, chills, fever → warning signs; shortness of breath / calf pain → emergency
   const warning = wound.includes(2) || wound.includes(3) || other.includes(0) || other.includes(1) || pain >= 7;
-  const emergency = other.includes(4) || other.includes(5);
+  const emergency = other.includes(4) || other.includes(5) || result?.status === 'urgent';
+
+  const submit = async () => {
+    haptic('notificationSuccess');
+    setBusy(true);
+    try {
+      const chips = [...wound.map(i => WOUND_CHIP_KEYS[i]), ...other.map(i => OTHER_CHIP_KEYS[i])].filter(Boolean);
+      setResult(await submitCheckin(apiUrl, { pain, fatigue, mobility, chips }));
+    } catch {
+      setResult(null); // backend unreachable: keep the local (offline) confirmation
+    } finally {
+      setBusy(false);
+      setSent(true);
+    }
+  };
+
+  const clarify = async (index: number, label: string) => {
+    if (result?.status !== 'ok' || !result.clarification) return;
+    haptic('selection');
+    setClarified(label);
+    try { await answerRequest(apiUrl, result.clarification.id, { option_index: index }); } catch { /* shown as answered locally */ }
+  };
 
   if (sent) {
     return (
@@ -65,8 +92,29 @@ export function CheckInScreen() {
           <PageTitle center>{t('checkin.sentTitle')}</PageTitle>
           <Muted center>{t('checkin.sentSub')}</Muted>
         </Animated.View>
+        {result?.status === 'urgent' && (
+          <Pressable onPress={() => Linking.openURL('tel:112')}>
+            <Card bg={c.urgent} radius={16} style={{ padding: 12, marginTop: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <IconBadge icon="phone" bg="#fff" size={32} />
+              <T size={9} w={800} color="#1b2a4a" lh={1.4} style={{ flex: 1 }}>{result.message || t('checkin.emergency')}</T>
+            </Card>
+          </Pressable>
+        )}
+        {result?.status === 'ok' && result.clarification && (
+          <Card bg={c.lavender} radius={16} style={{ padding: 12, marginTop: 12 }}>
+            <T size={7} w={800} spacing={0.8} color={c.muted}>{t('checkin.oneMore')}</T>
+            <T size={10} w={800} lh={1.4} style={{ marginTop: 4 }}>{result.clarification.prompt}</T>
+            {clarified
+              ? <T size={9} w={700} style={{ marginTop: 8 }}>✓ {clarified}</T>
+              : result.clarification.options.map((o, i) => (
+                <Pressable key={o} onPress={() => clarify(i, o)} style={{ marginTop: 7, padding: 10, borderRadius: 12, borderWidth: 1.2, borderColor: c.ink, backgroundColor: c.surface }}>
+                  <T size={9} w={700}>{o}</T>
+                </Pressable>
+              ))}
+          </Card>
+        )}
         {warning && <Card bg={c.peach} radius={16} style={{ padding: 12, borderColor: c.review }}><T size={9} w={700} lh={1.45}>{t('checkin.warning')}</T></Card>}
-        <Button secondary style={{ marginTop: 20 }} onPress={() => setSent(false)}>{t('common.edit')}</Button>
+        <Button secondary style={{ marginTop: 20 }} onPress={() => { setSent(false); setResult(null); setClarified(null); }}>{t('common.edit')}</Button>
       </Screen>
     );
   }
@@ -121,7 +169,7 @@ export function CheckInScreen() {
         </Animated.View>
       )}
 
-      <Button style={{ marginTop: 16 }} onPress={() => { haptic('notificationSuccess'); setSent(true); }}>{t('checkin.submit')}</Button>
+      <Button style={{ marginTop: 16 }} onPress={busy ? undefined : submit}>{busy ? '…' : t('checkin.submit')}</Button>
     </Screen>
   );
 }

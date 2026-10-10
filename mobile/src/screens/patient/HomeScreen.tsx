@@ -7,6 +7,7 @@ import { T } from '../../components/T';
 import { Avatar, Card, haptic, IconBadge, PageTitle, RoundButton, Screen, SectionRow, SimulatedTag } from '../../components/ui';
 import { metrics, patient } from '../../data/mock';
 import { useT } from '../../i18n';
+import { getToday, getTwin, usePoll } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 export function HomeHeader({ greeting, name, avatar, avatarBg }: { greeting: string; name: string; avatar: string; avatarBg?: string }) {
@@ -46,11 +47,38 @@ export function HomeScreen() {
   const nav = useNavigation();
   const [taskDone, setTaskDone] = useState(false);
   const [taskHidden, setTaskHidden] = useState(false);
+  const today = usePoll(getToday, 4000).data;
+  const twin = usePoll(getTwin, 10000).data;
+  const pending = today?.pending_requests ?? [];
+  const temp = twin?.vitals?.temp;
+  const tempValue = temp?.value?.value;
+  const tempLabel = !temp ? t('home.normal') : temp.status === 'ok' ? t('home.live') : t(`home.status_${temp.status}`);
 
   return (
     <Screen>
       <HomeHeader greeting={t('home.welcome')} name={`${patient.first} 👋`} avatar={patient.initials} />
       <PageTitle>{t('home.title')}</PageTitle>
+
+      {pending.length > 0 && (
+        <Pressable onPress={() => nav.navigate('Requests')}>
+          <Card bg={c.peach} radius={16} style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, borderColor: c.review }}>
+            <IconBadge icon={pending[0].kind === 'photo' ? 'camera' : 'message'} bg={c.surface} size={32} radius={10} />
+            <View style={{ flex: 1 }}>
+              <T size={7} w={800} spacing={0.8} upper color={c.muted}>{t('req.pending')} · {pending.length}</T>
+              <T size={9.5} w={800} style={{ marginTop: 2 }} numberOfLines={2}>{pending[0].prompt}</T>
+            </View>
+            <View style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99, backgroundColor: c.primary, borderWidth: 1, borderColor: c.ink }}>
+              <T size={8} w={800} color="#fff">{t('req.pendingCta')}</T>
+            </View>
+          </Card>
+        </Pressable>
+      )}
+      {today?.next_step && (
+        <Card bg={c.mint} radius={16} style={{ padding: 11, marginBottom: 10 }}>
+          <T size={7} w={800} spacing={0.8} color={c.muted}>{t('req.nextStep')}</T>
+          <T size={9.5} w={700} lh={1.45} style={{ marginTop: 3 }}>{today.next_step.body}</T>
+        </Card>
+      )}
 
       {/* Sensor alert → active sensing request */}
       <Pressable onPress={() => nav.navigate('SensingRequest')}>
@@ -88,11 +116,11 @@ export function HomeScreen() {
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
         <Card bg={c.pink} style={{ flex: 1, height: 145, padding: 12, overflow: 'hidden' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <T size={7.5} w={800} spacing={0.7}>{t('home.woundTemp')}</T>
+            <T size={7.5} w={800} spacing={0.7}>{temp ? t('home.bodyTemp') : t('home.woundTemp')}</T>
             <SimulatedTag style={{ paddingVertical: 1 }} />
           </View>
-          <T size={31} w={800} spacing={-1.6} style={{ marginTop: 5 }}>{metrics.woundTemp}<T size={12} w={800}>°C</T></T>
-          <T size={7.5} color={c.muted}>{t('home.normal')}</T>
+          <T size={31} w={800} spacing={-1.6} style={{ marginTop: 5 }}>{temp ? (typeof tempValue === 'number' ? tempValue : '—') : metrics.woundTemp}<T size={12} w={800}>°C</T></T>
+          <T size={7.5} color={c.muted}>{tempLabel}</T>
           <MiniBars />
         </Card>
         <Card bg={c.yellow} style={{ flex: 1, height: 145, padding: 12, overflow: 'hidden' }}>
@@ -121,7 +149,7 @@ export function HomeScreen() {
             </View>
             <View style={{ flexDirection: 'row', gap: 5 }}>
               <T size={13}>◷</T>
-              <View><T size={9} w={800}>{t('common.day')} {patient.day}</T><T size={6} color={c.muted}>{t('home.of42')}</T></View>
+              <View><T size={9} w={800}>{t('common.day')} {today?.patient.day ?? patient.day}</T><T size={6} color={c.muted}>{t('home.of42')}</T></View>
             </View>
           </View>
         </View>
