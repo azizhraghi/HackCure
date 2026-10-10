@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db, scheduler
@@ -36,6 +37,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.mount("/static/photos", StaticFiles(directory=BACKEND_DIR / "seed" / "photos"), name="photos")
 (BACKEND_DIR / "uploads").mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=BACKEND_DIR / "uploads"), name="uploads")
+# Web demo (patient + family + clinic views) on the same origin as the API: http://localhost:8000/app
+app.mount("/app", StaticFiles(directory=BACKEND_DIR / "web", html=True), name="web")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/app/")
 
 for r in (chat, patients, observations, checkin, investigations, alerts, medications, caregiver, demo):
     app.include_router(r.router)

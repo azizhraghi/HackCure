@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurgiGuard Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #edf2fa; --page: #f9fbff; --surface: #ffffff; --ink: #1b2a4a; --text: #1b2a4a; --muted: #64718a;
+    --primary: #1e88e5; --sky: #a9e3fa; --green: #bff3d9; --pink: #f4c7ea; --yellow: #fbe19b; --lavender: #cdbbf6;
+    --mint: #e7f9ef; --peach: #fff0d6; --amber: #fff3cf; --line: #e1e5ed; --urgent: #FF6B6B; --review: #FFB347;
+    --track: #5ED3A0; --trackText: #218d65; --reviewText: #a65f00; --urgentText: #c64e48; --readonly: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1120; --page: #0e1628; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2;
+      --primary: #2f93ea; --sky: #1d4660; --green: #1a4637; --pink: #4a2946; --yellow: #4f431f; --lavender: #372d5e;
+      --mint: #15302a; --peach: #3d2e17; --amber: #3a3218; --line: #26324d; --trackText: #6fe0b0; --reviewText: #ffc070;
+      --urgentText: #ff8a84; --readonly: #1b2741;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1120; --page: #0e1628; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2;
+    --primary: #2f93ea; --sky: #1d4660; --green: #1a4637; --pink: #4a2946; --yellow: #4f431f; --lavender: #372d5e;
+    --mint: #15302a; --peach: #3d2e17; --amber: #3a3218; --line: #26324d; --trackText: #6fe0b0; --reviewText: #ffc070;
+    --urgentText: #ff8a84; --readonly: #1b2741;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Plus Jakarta Sans", system-ui, sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1.5px solid var(--ink); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bar h1 { font-size: 17px; margin-right: 8px; }
+  .bar .sep { width: 1px; height: 24px; background: var(--line); margin: 0 4px; }
+  .grid { display: grid; grid-template-columns: minmax(320px, 400px) minmax(320px, 400px) minmax(380px, 1fr); gap: 16px; padding: 16px; align-items: start; }
+  @media (max-width: 1250px) { .grid { grid-template-columns: 1fr 1fr; } .clinic { grid-column: 1 / -1; } }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; padding: 12px; } }
+  .phone { background: var(--page); border: 1.5px solid var(--ink); border-radius: 28px; padding: 16px; min-height: 600px; }
+  .clinic { background: var(--page); border: 1.5px solid var(--ink); border-radius: 18px; padding: 16px; }
+  .role { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; border: 1.3px solid var(--ink); display: grid; place-items: center; font-weight: 800; background: var(--sky); flex: none; }
+  .kicker { font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .card { background: var(--surface); border: 1.3px solid var(--ink); border-radius: 18px; padding: 12px; margin-top: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { border: 1.3px solid var(--ink); border-radius: 16px; padding: 10px; }
+  .tile .v { font-size: 24px; font-weight: 800; letter-spacing: -0.04em; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .btn { border: 1.3px solid var(--ink); background: var(--surface); border-radius: 99px; padding: 6px 12px; font-weight: 700; cursor: pointer; }
+  .btn:hover { filter: brightness(0.97); }
+  .btn.primary { background: var(--primary); color: #fff; box-shadow: 0 3px 0 var(--ink); }
+  .btn.danger { background: var(--urgent); color: #1b2a4a; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .opt { display: block; width: 100%; text-align: left; margin-top: 7px; padding: 9px 11px; border-radius: 12px; border: 1.2px solid var(--ink); background: var(--surface); font-weight: 600; cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { border: 1.2px solid var(--ink); border-radius: 99px; padding: 5px 10px; font-size: 12.5px; font-weight: 700; background: var(--surface); cursor: pointer; }
+  .chip.on { background: var(--pink); }
+  .chip.on.red { background: var(--urgent); color: #1b2a4a; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 99px; padding: 2px 8px; border: 1px solid var(--ink); }
+  .lvl-urgent { background: var(--urgent); color: #1b2a4a; } .lvl-attention { background: var(--review); color: #1b2a4a; } .lvl-info { background: var(--sky); }
+  .slider { display: grid; grid-template-columns: 90px 1fr 34px; gap: 8px; align-items: center; margin-top: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--primary); }
+  input[type=text], select, textarea { border: 1.2px solid var(--ink); border-radius: 12px; padding: 7px 10px; background: var(--surface); }
+  .alert-item { border: 1.3px solid var(--ink); border-radius: 14px; padding: 10px; margin-top: 8px; background: var(--surface); cursor: pointer; }
+  .alert-item.sel { outline: 3px solid var(--primary); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .sec { border-radius: 14px; padding: 10px; border: 1.2px solid var(--ink); }
+  .sec ul { margin: 6px 0 0; padding-left: 18px; }
+  .sec li { margin: 3px 0; }
+  .oid { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); }
+  .steps { max-height: 340px; overflow: auto; font-size: 12.5px; }
+  .step { border-left: 3px solid var(--line); padding: 3px 0 3px 10px; margin: 4px 0; }
+  .step b { font-weight: 800; }
+  .chat-log { max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .bubble { padding: 8px 10px; border-radius: 14px; border: 1.1px solid var(--ink); max-width: 90%; white-space: pre-wrap; }
+  .bubble.me { align-self: flex-end; background: var(--sky); } .bubble.ai { background: var(--surface); } .bubble.esc { background: var(--peach); }
+  .toast { position: fixed; right: 16px; bottom: 16px; max-width: 420px; background: var(--ink); color: var(--page); padding: 10px 14px; border-radius: 12px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: pre-wrap; }
+  .toast.show { opacity: 1; }
+  .sim { font-size: 10px; font-weight: 800; border: 1px solid var(--ink); border-radius: 6px; padding: 0 5px; background: var(--amber); }
+  .empty { padding: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>SurgiGuard demo</h1>
+  <button class="btn" data-demo="reset">Reset</button>
+  <span class="sep"></span>
+  <span class="kicker">Scenario</span>
+  <button class="btn" data-scn="infection_pattern" title="Sarah's check-in + HR/temp drift: opens an investigation">Infection pattern</button>
+  <button class="btn danger" data-scn="urgent_breathless" title="Breathlessness + SpO2 88%: urgent alert, no AI">Urgent breathless</button>
+  <button class="btn" data-scn="bad_signal">Bad signal</button>
+  <button class="btn" data-scn="no_data">6 h gap</button>
+  <button class="btn" data-scn="normal">Normal</button>
+  <span class="sep"></span>
+  <button class="btn" data-demo="answer">Answer all as Sarah</button>
+  <button class="btn" data-demo="clock" title="Advance demo clock 61 s and run the sweep (escalation)">+61 s</button>
+  <button class="btn" data-demo="meds">Run medication job</button>
+  <span class="sep"></span>
+  <span class="kicker">AI</span>
+  <select id="llm-mode"><option value="live">live</option><option value="stub">stub</option><option value="off">off (AI down)</option></select>
+  <span id="health" class="small muted"></span>
+</div>
+
+<div class="grid">
+  <!-- ======================= PATIENT ======================= -->
+  <section class="phone" aria-label="Patient app">
+    <div class="role"><div class="avatar" style="background:var(--pink)">SM</div>
+      <div><div class="kicker">Patient app</div><h2 id="p-name">Sarah</h2></div></div>
+
+    <div id="p-urgent"></div>
+    <div id="p-next"></div>
+    <div id="p-requests"></div>
+
+    <div class="tiles" id="p-vitals" style="margin-top:10px"></div>
+
+    <div class="card">
+      <div class="kicker">Daily check-in</div>
+      <div class="slider"><span>Pain</span><input type="range" min="0" max="10" value="3" id="ci-pain"><b id="ci-pain-v">3</b></div>
+      <div class="slider"><span>Fatigue</span><input type="range" min="0" max="10" value="4" id="ci-fatigue"><b id="ci-fatigue-v">4</b></div>
+      <div class="slider"><span>Mobility</span><input type="range" min="0" max="10" value="4" id="ci-mobility"><b id="ci-mobility-v">4</b></div>
+      <div class="small muted" style="margin-top:8px">Wound</div>
+      <div class="chips" id="ci-wound"></div>
+      <div class="small muted" style="margin-top:8px">Other</div>
+      <div class="chips" id="ci-other"></div>
+      <button class="btn primary" id="ci-submit" style="margin-top:12px;width:100%">Send check-in</button>
+      <div id="ci-result"></div>
+    </div>
+
+    <div class="card">
+      <div class="kicker">Recovery assistant</div>
+      <div class="chat-log" id="chat-log"></div>
+      <form id="chat-form" class="row" style="margin-top:8px">
+        <input type="text" id="chat-input" placeholder="Ask about your plan…" style="flex:1">
+        <button class="btn primary" id="chat-send">Send</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ======================= CAREGIVER ======================= -->
+  <section class="phone" aria-label="Family app">
+    <div class="role"><div class="avatar">AK</div>
+      <div><div class="kicker">Family app</div><h2>Ahmed</h2></div></div>
+    <div id="f-status"></div>
+    <div class="card" style="background:var(--sky)">
+      <div class="row" style="justify-content:space-between"><span class="kicker">Today's update (AI)</span>
+        <button class="btn" id="f-digest-refresh" style="padding:3px 10px;font-size:12px">Refresh</button></div>
+      <div id="f-digest" style="margin-top:4px" class="muted">Loading…</div>
+    </div>
+    <div class="card">
+      <div class="kicker">How you can help</div>
+      <div id="f-tasks"></div>
+    </div>
+    <div class="card" style="background:var(--readonly)">
+      <div class="kicker">What Ahmed can see</div>
+      <div id="f-shared" class="small" style="margin-top:4px"></div>
+    </div>
+  </section>
+
+  <!-- ======================= CLINIC ======================= -->
+  <section class="clinic" aria-label="Clinic dashboard preview">
+    <div class="role"><div class="avatar" style="background:var(--green)">ER</div>
+      <div><div class="kicker">Clinic dashboard (preview of the API your teammate uses)</div><h2>Dr. Elena Ruiz</h2></div></div>
+    <div class="kicker">Open alerts</div>
+    <div id="c-alerts"></div>
+    <div id="c-detail"></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const time = iso => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+
+async function api(path, body, method) {
+  const res = await fetch(path, {
+    method: method || (body === undefined ? 'GET' : 'POST'),
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* empty */ }
+  if (!res.ok) throw new Error((data && (data.detail?.toString?.() || JSON.stringify(data.detail))) || `HTTP ${res.status}`);
+  return data;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
+}
+
+// Re-render a container only when its data changed (keeps clicks/inputs stable while polling).
+const cache = {};
+function render(id, data, fn) {
+  const key = JSON.stringify(data);
+  if (cache[id] === key) return;
+  cache[id] = key;
+  $(id).innerHTML = fn(data);
+}
+
+// ---------------------------------------------------------------- patient
+const WOUND = [['redness', 'Redness'], ['swelling', 'Swelling'], ['warmth', 'Warmth'], ['drainage', 'Drainage'], ['bad_smell', 'Bad smell']];
+const OTHER = [['chills', 'Chills'], ['fever', 'Fever'], ['nausea', 'Nausea'], ['dizziness', 'Dizziness'], ['shortness_of_breath', 'Shortness of breath', 1], ['calf_pain', 'Calf pain', 1]];
+const chips = new Set();
+function drawChips() {
+  for (const [sel, list] of [['#ci-wound', WOUND], ['#ci-other', OTHER]]) {
+    $(sel).innerHTML = list.map(([k, label, red]) =>
+      `<button class="chip ${chips.has(k) ? 'on' : ''} ${red ? 'red' : ''}" data-chip="${k}">${chips.has(k) ? '✓ ' : ''}${label}</button>`).join('');
+  }
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-chip]');
+  if (c) { const k = c.dataset.chip; chips.has(k) ? chips.delete(k) : chips.add(k); drawChips(); }
+});
+for (const k of ['pain', 'fatigue', 'mobility']) $(`#ci-${k}`).addEventListener('input', e => $(`#ci-${k}-v`).textContent = e.target.value);
+
+function urgentCard(text) {
+  return `<div class="card" style="background:var(--urgent);color:#1b2a4a"><b>🚨 ${esc(text || 'Call emergency services (112) now.')}</b></div>`;
+}
+
+$('#ci-submit').addEventListener('click', async () => {
+  const btn = $('#ci-submit'); btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await api('/checkin', {
+      patient_id: 'sarah', pain: +$('#ci-pain').value, fatigue: +$('#ci-fatigue').value, mobility: +$('#ci-mobility').value, chips: [...chips],
+    });
+    if (r.status === 'urgent') $('#ci-result').innerHTML = urgentCard(r.message);
+    else {
+      const worse = (r.worsened || []).map(w => `${esc(w.item)} ${w.before}/5 → ${w.now}/5`).join(', ');
+      $('#ci-result').innerHTML = `<div class="small" style="margin-top:8px">✓ Check-in sent${worse ? ` · worse: <b>${worse}</b>` : ''}${r.investigation_id ? ' · <b>investigation opened</b>' : ''}</div>
+        ${r.clarification ? '<div class="small muted">One clarification question was added to Sarah\'s requests above.</div>' : ''}`;
+    }
+    poll();
+  } catch (err) { toast('Check-in failed: ' + err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Send check-in'; }
+});
+
+async function answer(id, body) {
+  try {
+    const r = await api(`/requests/${id}/answer`, body);
+    if (r.status === 'urgent') { $('#p-urgent').innerHTML = urgentCard(r.message); toast('Red flag in the answer: urgent alert fired, AI stopped'); }
+    else toast('Answer sent. The AI agent continues…');
+  } catch (err) { toast('Answer failed: ' + err.message); }
+  poll();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-answer]');
+  if (!b) return;
+  const id = b.dataset.answer;
+  if (b.dataset.opt !== undefined) answer(id, { option_index: +b.dataset.opt });
+  else if (b.dataset.photo) answer(id, { photo_asset: 'day3' });
+  else if (b.dataset.measure) { const v = $(`#m-${id}`).value; if (v) answer(id, { value: +v.replace(',', '.') }); }
+});
+
+function renderPatient(today, twin) {
+  $('#p-name').textContent = `${today.patient.first_name} · day ${today.patient.day}`;
+  render('#p-next', today.next_step, n => n ? `<div class="card" style="background:var(--mint)"><div class="kicker">Next step from your care team</div><div style="margin-top:3px;font-weight:600">${esc(n.body)}</div></div>` : '');
+  render('#p-requests', today.pending_requests, reqs => reqs.map(r => `
+    <div class="card" style="background:${r.kind === 'photo' ? 'var(--sky)' : 'var(--lavender)'}">
+      <div class="kicker">${r.investigation_id ? 'AI care assistant' : 'Check-in'} · ${esc(r.kind)} · expires ${time(r.expires_at)}</div>
+      <div style="font-weight:800;margin-top:4px">${esc(r.prompt)}</div>
+      ${r.reason ? `<div class="small muted">${esc(r.reason)}</div>` : ''}
+      ${r.kind === 'question' ? r.options.map((o, i) => `<button class="opt" data-answer="${r.id}" data-opt="${i}">${esc(o)}</button>`).join('') : ''}
+      ${r.kind === 'photo' ? `<button class="btn primary" style="margin-top:8px" data-answer="${r.id}" data-photo="1">📷 Send today's photo (demo)</button>` : ''}
+      ${r.kind === 'measurement' ? `<div class="row" style="margin-top:8px"><input type="text" id="m-${r.id}" placeholder="${esc(r.metric)}" style="flex:1"><button class="btn primary" data-answer="${r.id}" data-measure="1">Send</button></div>` : ''}
+    </div>`).join(''));
+  const v = twin.vitals || {};
+  const tile = (k, label, unit, bg) => {
+    const m = v[k] || {}; const val = m.value?.value;
+    const status = m.status === 'ok' ? `baseline ${m.baseline ?? '–'}` : m.status === 'unknown' ? '⚠ unknown: no recent data' : m.status === 'unreliable' ? '⚠ unreliable signal' : (m.status || '');
+    return `<div class="tile" style="background:${bg}"><div class="row" style="justify-content:space-between"><span class="kicker">${label}</span><span class="sim">SIM</span></div>
+      <div class="v">${val ?? '—'}<span class="small">${unit}</span></div><div class="small muted">${esc(status)}</div></div>`;
+  };
+  render('#p-vitals', v, () => tile('hr', 'Heart', ' bpm', 'var(--pink)') + tile('temp', 'Temp', '°C', 'var(--yellow)') + tile('spo2', 'SpO₂', '%', 'var(--green)'));
+}
+
+// chat
+const chat = [];
+function drawChat() {
+  $('#chat-log').innerHTML = chat.map(m => `<div class="bubble ${m.role === 'user' ? 'me' : m.escalate ? 'ai esc' : 'ai'}">${esc(m.content)}${m.escalate ? '\n⚠ Contact your care team' : ''}</div>`).join('');
+  $('#chat-log').scrollTop = 1e6;
+}
+$('#chat-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#chat-input').value.trim(); if (!q) return;
+  chat.push({ role: 'user', content: q }); $('#chat-input').value = ''; drawChat();
+  $('#chat-send').disabled = true;
+  try {
+    const r = await api('/chat', { messages: chat.map(({ role, content }) => ({ role, content })), lang: 'en' });
+    chat.push({ role: 'assistant', content: r.reply, escalate: r.escalate });
+    if (r.escalate) poll();
+  } catch (err) { chat.push({ role: 'assistant', content: 'Assistant unavailable: ' + err.message }); }
+  finally { $('#chat-send').disabled = false; drawChat(); }
+});
+
+// ---------------------------------------------------------------- caregiver
+function renderFamily(alerts, tasks, twin) {
+  const urgent = alerts.some(a => a.level === 'urgent'), attention = alerts.some(a => a.level === 'attention');
+  render('#f-status', alerts, () => `<div class="card" style="background:${urgent ? 'var(--urgent)' : attention ? 'var(--amber)' : 'var(--green)'};color:${urgent ? '#1b2a4a' : 'inherit'}">
+    <div class="kicker" style="color:inherit">Sarah's status</div>
+    <div style="font-size:22px;font-weight:800">${urgent ? 'Needs help now' : attention ? 'Care team reviewing' : 'On track'}</div>
+    <div class="small">${alerts.length ? alerts.map(a => esc(a.title)).join(' · ') : 'No urgent alerts'}</div></div>`);
+  render('#f-tasks', tasks, ts => ts.length ? ts.map(t => `<div class="row" style="border-top:1px solid var(--line);padding:8px 0">
+      <span style="flex:1">${esc(t.text)}</span><button class="btn primary" data-task="${t.id}">Done</button></div>`).join('') : '<div class="empty">No tasks right now.</div>');
+  render('#f-shared', twin.hidden_categories, h => h && h.length ? `Hidden by Sarah: ${h.map(esc).join(', ')}` : 'Sarah shares all categories with Ahmed.');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-task]');
+  if (!b) return;
+  try { await api(`/caregiver/tasks/${b.dataset.task}/done`, { actor: 'ahmed' }); toast('Task done'); } catch (err) { toast(err.message); }
+  poll();
+});
+async function loadDigest(refresh) {
+  $('#f-digest').textContent = refresh ? 'Writing today\'s update…' : $('#f-digest').textContent;
+  try { const d = await api(`/caregiver/ahmed/digest${refresh ? '?refresh=true' : ''}`); $('#f-digest').textContent = d.digest.text; $('#f-digest').classList.remove('muted'); }
+  catch (err) { $('#f-digest').textContent = 'Unavailable: ' + err.message; }
+}
+$('#f-digest-refresh').addEventListener('click', () => loadDigest(true));
+
+// ---------------------------------------------------------------- clinic
+let selected = null;
+function renderClinic(alerts) {
+  if (selected && !alerts.some(a => a.id === selected)) selected = null;
+  if (!selected && alerts.length) selected = alerts[0].id;
+  render('#c-alerts', { alerts, selected }, () => alerts.length ? alerts.map(a => `
+    <div class="alert-item ${a.id === selected ? 'sel' : ''}" data-alert="${a.id}">
+      <div class="row" style="justify-content:space-between"><span><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span> <b>${esc(a.title)}</b></span>
+        <span class="small muted">${time(a.created_at)}</span></div>
+      <div class="small" style="margin-top:4px">${esc(a.reason)}</div>
+      <div class="small muted" style="margin-top:4px">State: <b>${esc(a.state)}</b> · assigned to ${esc(a.assigned_to || '–')}${a.escalated ? ' · <b style="color:var(--urgentText)">ESCALATED to on-call</b>' : ''}${a.priority === 'urgent_review' ? ' · AI suggests urgent review' : ''}</div>
+    </div>`).join('') : '<div class="empty">No open alerts.</div>');
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-alert]');
+  if (a) { selected = a.dataset.alert; poll(); }
+});
+
+async function renderDetail() {
+  if (!selected) { render('#c-detail', null, () => ''); return; }
+  const a = await api(`/alerts/${selected}`);
+  const inv = a.investigation_id ? await api(`/investigations/${a.investigation_id}`) : null;
+  render('#c-detail', { a, inv }, () => {
+    const s = a.evidence_summary;
+    const acts = `<div class="row" style="flex-wrap:wrap;margin-top:10px">
+      <button class="btn primary" data-act="ack" ${a.ack_at ? 'disabled' : ''}>Acknowledge</button>
+      <button class="btn" data-act="contacted" ${!a.ack_at || a.state === 'resolved' ? 'disabled' : ''}>Patient contacted</button>
+      <button class="btn" data-act="action" ${!a.ack_at || a.state === 'resolved' ? 'disabled' : ''}>Action taken</button>
+      <button class="btn" data-act="resolve">Resolve…</button></div>`;
+    const hist = `<div class="small muted" style="margin-top:8px">${a.history.map(h => `${time(h.at)} ${esc(h.event)} (${esc(h.by)})`).join(' → ')}</div>`;
+    let ev = '';
+    if (s) {
+      const li = (xs, f) => xs.length ? `<ul>${xs.map(f).join('')}</ul>` : '<div class="small muted">none</div>';
+      ev = `<div class="card"><div class="row" style="justify-content:space-between"><span class="kicker">Evidence summary</span>
+        <span class="badge ${s.evidence_status === 'complete' ? '' : 'lvl-attention'}">${esc(s.evidence_status)} · ${esc(s.generated_by)}</span></div>
+        <div style="font-weight:800;margin-top:4px">${esc(s.what_changed)}</div>
+        <div class="cols" style="margin-top:8px">
+          <div class="sec" style="background:var(--lavender)"><div class="kicker">Patient-reported</div>${li(s.patient_reported, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)}</span></li>`)}</div>
+          <div class="sec" style="background:var(--sky)"><div class="kicker">Device-measured <span class="sim">SIM</span></div>${li(s.device_measured, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)} · ${esc(c.quality)}</span></li>`)}</div>
+        </div>
+        <div class="sec" style="background:var(--amber);margin-top:10px"><div class="kicker">AI interpretation</div><div>${esc(s.ai_interpretation)}</div></div>
+        <div class="sec" style="background:var(--readonly);margin-top:10px"><div class="kicker">Missing or conflicting</div>${li(s.missing_or_conflicting, x => `<li>${esc(x)}</li>`)}</div>
+        <div class="sec" style="margin-top:10px"><div class="kicker">Handover</div><div>${esc(s.messages.clinician)}</div>
+          <div class="small muted" style="margin-top:4px">To Sarah: “${esc(s.messages.patient)}” · To Ahmed: “${esc(s.messages.caregiver)}”</div></div></div>`;
+    }
+    let steps = '';
+    if (inv) {
+      steps = `<div class="card"><div class="kicker">AI reasoning steps · ${esc(inv.status)} · ${inv.tool_calls} tool calls · ${inv.patient_requests} patient requests</div><div class="steps">${inv.steps.map(st => {
+        const d = st.data || {};
+        let txt = st.kind;
+        if (st.kind === 'agent.step') txt = (d.tool_calls || []).map(c => `→ <b>${esc(c.name)}</b> ${c.name === 'finish_investigation' ? '' : esc(JSON.stringify(c.arguments))}`).join('') || 'thinking';
+        else if (st.kind === 'tool.call') txt = `<span class="muted">result of ${esc(d.tool)}: ${esc(JSON.stringify(d.result).slice(0, 160))}…</span>`;
+        else if (st.kind === 'evidence.validated') txt = d.ok ? '✓ evidence validated' : `✗ evidence rejected: ${esc((d.errors || []).join('; '))}`;
+        else txt = `<b>${esc(st.kind)}</b> <span class="muted">${esc(JSON.stringify(d).slice(0, 140))}</span>`;
+        return `<div class="step">${time(st.at)} ${txt}</div>`;
+      }).join('')}</div></div>`;
+    }
+    return `<div class="card"><div class="row" style="justify-content:space-between"><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span><span class="small muted">${esc(a.id)}</span></div>
+      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${hist}</div>${ev}${steps}`;
+  });
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || !selected) return;
+  const act = b.dataset.act;
+  let body = { actor: 'dr_ruiz' };
+  if (act === 'resolve') { const reason = prompt('Resolution reason (required):'); if (!reason) return; body.reason = reason; }
+  try { await api(`/alerts/${selected}/${act}`, body); toast(`Alert: ${act}`); } catch (err) { toast(err.message); }
+  poll();
+});
+
+// ---------------------------------------------------------------- demo bar
+document.addEventListener('click', async e => {
+  const s = e.target.closest('[data-scn]'); const d = e.target.closest('[data-demo]');
+  if (!s && !d) return;
+  const btn = s || d; btn.disabled = true;
+  try {
+    if (s) {
+      const t0 = performance.now();
+      const r = await api(`/demo/scenario/${s.dataset.scn}`, {});
+      const urgent = (r.open_alerts || []).filter(a => a.level === 'urgent').length;
+      toast(`Scenario ${s.dataset.scn} applied in ${Math.round(performance.now() - t0)} ms${urgent ? ` · ${urgent} urgent alert(s)` : ''}`);
+    } else if (d.dataset.demo === 'reset') {
+      await api('/demo/reset', {}); chat.length = 0; drawChat(); $('#ci-result').innerHTML = ''; $('#p-urgent').innerHTML = ''; selected = null;
+      for (const k in cache) delete cache[k]; toast('Demo reset: Sarah, day 3'); loadDigest(false);
+    } else if (d.dataset.demo === 'answer') {
+      toast('Answering as Sarah… (waits for the AI between answers)');
+      const r = await api('/demo/answer_pending', {});
+      toast(r.answered.length ? r.answered.map(a => `✓ ${a.kind}: ${a.prompt}`).join('\n') : 'Nothing to answer');
+    } else if (d.dataset.demo === 'clock') {
+      const r = await api('/demo/clock/advance?seconds=61', {});
+      toast(`Clock +61 s · escalated: ${r.sweep.escalated_alerts.length} · expired requests: ${r.sweep.expired_requests.length}`);
+    } else if (d.dataset.demo === 'meds') {
+      const r = await api('/demo/run/medication', {});
+      toast(`Reminders sent: ${r.reminders.length}${r.missed_flag ? ' · missed-dose flag raised' : ''}`);
+    }
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; poll(); }
+});
+$('#llm-mode').addEventListener('change', async e => { await api(`/demo/llm_mode/${e.target.value}`, {}); toast(`AI mode: ${e.target.value}`); health(); });
+
+async function health() {
+  const h = await api('/health');
+  $('#llm-mode').value = h.llm_mode;
+  $('#health').textContent = h.routes ? `investigation: ${h.routes.investigation} · chat: ${h.routes.chat}` : '';
+}
+
+// ---------------------------------------------------------------- polling
+let polling = false;
+async function poll() {
+  if (polling) return; polling = true;
+  try {
+    const [today, twin, famAlerts, tasks, famTwin, clinAlerts] = await Promise.all([
+      api('/patients/sarah/today'), api('/patients/sarah/twin'),
+      api('/alerts?role=caregiver&member_id=ahmed&open_only=true'), api('/caregiver/ahmed/tasks'),
+      api('/patients/sarah/twin?role=caregiver&member_id=ahmed'), api('/alerts?role=clinician&open_only=true'),
+    ]);
+    renderPatient(today, twin);
+    renderFamily(famAlerts, tasks, famTwin);
+    renderClinic(clinAlerts);
+    await renderDetail();
+  } catch (err) { $('#health').textContent = 'Backend unreachable: ' + err.message; }
+  finally { polling = false; }
+}
+drawChips(); drawChat(); health(); poll(); loadDigest(false);
+setInterval(poll, 3000);
+</script>
+</body>
+</html>
