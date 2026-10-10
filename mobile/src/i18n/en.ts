@@ -69,10 +69,13 @@ const en = {
   },
   scan: {
     top: 'Wound scan', align: 'Align the wound inside the frame', auto: 'Auto', flashOff: 'Flash off', flashOn: 'Flash on',
-    ai: 'AI COMPARISON', progress: 'Healing progress', good: 'Looking good', day1: 'DAY 1', today: 'TODAY',
-    redness: 'Redness', swelling: 'Swelling', stable: '→ stable', area: 'Area', discharge: 'Discharge', none: 'none',
-    save: 'Save scan', saved: 'Scan saved ✓', permission: 'Camera access is needed to scan your wound',
-    allow: 'Allow camera', captured: 'Photo captured · analyzing', noDevice: 'No camera available (preview)',
+    measuredBy: 'MEASURED FROM YOUR PHOTOS', progress: 'Healing progress', day1: 'DAY 1', today: 'TODAY',
+    redness: 'Redness area', swelling: 'Swelling', discharge: 'Drainage', notMeasured: 'not measured from a photo',
+    trendUp: 'More redness', trendDown: 'Less redness', trendStable: 'No clear change', notCompared: 'Not compared: photo quality or no reference',
+    saved: 'Done ✓', permission: 'Camera access is needed to scan your wound', allow: 'Allow camera',
+    noCamera: 'No camera found ({{n}} detected)', retry: 'Retry', captured: 'Photo taken · measuring…', measured: 'Photo measured',
+    retake: 'Retake', retakeHint: 'please retake the photo', failed: 'The photo could not be sent',
+    disclaimer: 'Measured by code (redness compared with the skin around it). Framing and light change the numbers. Not a diagnosis.',
   },
   sensing: {
     morning: 'Good morning', activity: 'Recovery activity', chip: 'DRESSING SENSOR',

@@ -130,6 +130,12 @@
     <div class="tiles" id="p-vitals" style="margin-top:10px"></div>
 
     <div class="card">
+      <div class="row" style="justify-content:space-between"><span class="kicker">Wound scan · measured by code</span>
+        <label class="btn" style="padding:3px 10px;font-size:12px">📷 New photo<input type="file" accept="image/*" capture="environment" data-wound-upload hidden></label></div>
+      <div id="p-wound"></div>
+    </div>
+
+    <div class="card">
       <div class="kicker">Daily check-in</div>
       <div class="slider"><span>Pain</span><input type="range" min="0" max="10" value="3" id="ci-pain"><b id="ci-pain-v">3</b></div>
       <div class="slider"><span>Fatigue</span><input type="range" min="0" max="10" value="4" id="ci-fatigue"><b id="ci-fatigue-v">4</b></div>
@@ -278,7 +284,9 @@ function renderPatient(today, twin) {
       <div style="font-weight:800;margin-top:4px">${esc(r.prompt)}</div>
       ${r.reason ? `<div class="small muted">${esc(r.reason)}</div>` : ''}
       ${r.kind === 'question' ? r.options.map((o, i) => `<button class="opt" data-answer="${r.id}" data-opt="${i}">${esc(o)}</button>`).join('') : ''}
-      ${r.kind === 'photo' ? `<button class="btn primary" style="margin-top:8px" data-answer="${r.id}" data-photo="1">📷 Send today's photo (demo)</button>` : ''}
+      ${r.kind === 'photo' ? `<div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <label class="btn primary">📷 Take / upload photo<input type="file" accept="image/*" capture="environment" data-wound-upload hidden></label>
+          <button class="btn" data-answer="${r.id}" data-photo="1">Use demo photo (day 3)</button></div>` : ''}
       ${r.kind === 'measurement' ? `<div class="row" style="margin-top:8px"><input type="text" id="m-${r.id}" placeholder="${esc(r.metric)}" style="flex:1"><button class="btn primary" data-answer="${r.id}" data-measure="1">Send</button></div>` : ''}
     </div>`).join(''));
   const v = twin.vitals || {};
@@ -289,6 +297,50 @@ function renderPatient(today, twin) {
       <div class="v">${val ?? '—'}<span class="small">${unit}</span></div><div class="small muted">${esc(status)}</div></div>`;
   };
   render('#p-vitals', v, () => tile('hr', 'Heart', ' bpm', 'var(--pink)') + tile('temp', 'Temp', '°C', 'var(--yellow)') + tile('spo2', 'SpO₂', '%', 'var(--green)'));
+}
+
+// wound photos (camera on phones, file picker on computers)
+document.addEventListener('change', async e => {
+  const input = e.target.closest('[data-wound-upload]');
+  if (!input || !input.files.length) return;
+  const fd = new FormData(); fd.append('file', input.files[0]); input.value = '';
+  toast('Measuring the photo…');
+  try {
+    const res = await fetch('/patients/sarah/wound-photos', { method: 'POST', body: fd });
+    const r = await res.json();
+    if (!res.ok) throw new Error(r.detail || res.status);
+    const probs = r.analysis?.problems || [];
+    toast(probs.length ? `Photo saved, but: ${probs.join('; ')}. Please retake.`
+      : `${r.comparison?.summary || 'Photo saved (reference photo)'}${r.answered_request_id ? ' · sent to the care-team assistant' : ''}`);
+  } catch (err) { toast('Photo failed: ' + err.message); }
+  poll();
+});
+
+function renderWound(w) {
+  const latest = w.photos[0], ref = w.reference;
+  if (!latest || !ref) return '<div class="empty">No wound photo yet.</div>';
+  const img = (p, label) => `<figure style="margin:0;flex:1;min-width:0">
+      <div style="aspect-ratio:4/3;border:1.2px solid var(--ink);border-radius:12px;overflow:hidden;background:#222">
+        <img src="${esc(p.url)}" alt="${esc(label)} wound photo" style="width:100%;height:100%;object-fit:cover"></div>
+      <figcaption class="small muted" style="margin-top:3px">${esc(label)} · ${new Date(p.at).toLocaleDateString()}${p.simulated ? ' · demo photo' : ''}</figcaption></figure>`;
+  const c = latest.comparison || {}, a = latest.analysis || {};
+  const chip = (txt, bg) => `<span class="badge" style="background:${bg};margin:6px 6px 0 0">${txt}</span>`;
+  let chips = '';
+  if (latest.observation_id === ref.observation_id) chips = chip('Reference photo (day 1)', 'var(--sky)');
+  else if (c.available) {
+    const pct = c.redness_area_change_pct;
+    chips = chip(`Redness area ${c.redness_area_ref_pct}% → ${c.redness_area_now_pct}%${pct != null ? ` (${pct > 0 ? '+' : ''}${pct}%)` : ''}`,
+                 c.trend === 'up' ? 'var(--review)' : c.trend === 'down' ? 'var(--green)' : 'var(--readonly)')
+          + chip(esc(c.summary), 'var(--surface)');
+  } else chips = chip(`Not compared: ${esc(c.reason || 'unknown')}`, 'var(--peach)');
+  chips += chip('Swelling, drainage: not measured from a photo', 'var(--readonly)');
+  const probs = (a.problems || []).length ? `<div class="small" style="color:var(--reviewText);margin-top:6px">⚠ ${a.problems.map(esc).join(' · ')}: retake the photo</div>` : '';
+  return `<div class="row" style="gap:8px;margin-top:8px;align-items:flex-start">${img(ref, 'Reference')}${latest.observation_id === ref.observation_id ? '' : img(latest, 'Latest')}</div>
+    <div>${chips}</div>${probs}
+    <div class="small muted" style="margin-top:6px">Measured by code (redness vs. surrounding skin); framing and light change the numbers. Not a diagnosis.
+    Demo photos: real, openly licensed photos of different patients (<a href="https://commons.wikimedia.org/wiki/File:Surgical_staples2.JPG" target="_blank" rel="noopener">Llywrch, CC BY-SA 2.5</a>,
+    <a href="https://commons.wikimedia.org/wiki/File:Hip_replacement,_surgical_staples_01.JPG" target="_blank" rel="noopener">K.-H. Wellmann, CC BY 3.0</a>,
+    <a href="https://commons.wikimedia.org/wiki/File:Knee_Replacement.jpg" target="_blank" rel="noopener">Ravedave, CC BY-SA 3.0</a>).</div>`;
 }
 
 // chat
@@ -526,12 +578,14 @@ let polling = false;
 async function poll() {
   if (polling) return; polling = true;
   try {
-    const [today, twin, famAlerts, tasks, famTwin, clinAlerts] = await Promise.all([
+    const [today, twin, famAlerts, tasks, famTwin, clinAlerts, wound] = await Promise.all([
       api('/patients/sarah/today'), api('/patients/sarah/twin'),
       api('/alerts?role=caregiver&member_id=ahmed&open_only=true'), api('/caregiver/ahmed/tasks'),
       api('/patients/sarah/twin?role=caregiver&member_id=ahmed'), api('/alerts?role=clinician&open_only=true'),
+      api('/patients/sarah/wound-photos'),
     ]);
     renderPatient(today, twin);
+    render('#p-wound', wound, renderWound);
     renderFamily(famAlerts, tasks, famTwin);
     renderClinic(clinAlerts);
     await renderDetail();

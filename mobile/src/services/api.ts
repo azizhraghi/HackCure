@@ -77,6 +77,38 @@ export type Twin = { vitals?: Record<string, { status: string; value: { value?: 
 
 export const getTwin = (apiUrl: string) => call<Twin>(apiUrl, `/patients/${PATIENT_ID}/twin`);
 
+// ---------------------------------------------------------------- wound photos (measured by code on the server)
+
+export type WoundComparison = {
+  available: boolean; reason?: string; trend?: 'up' | 'down' | 'stable'; summary?: string;
+  redness_area_ref_pct?: number; redness_area_now_pct?: number; redness_area_change_pct?: number | null;
+};
+export type WoundPhoto = {
+  observation_id: string; at: string; url: string; label: string; simulated: boolean; quality: string;
+  analysis?: { quality: string; problems?: string[]; redness_area_pct?: number };
+  comparison?: WoundComparison; reference_url?: string | null; answered_request_id?: string | null;
+};
+
+export const getWoundPhotos = (apiUrl: string) =>
+  call<{ reference: WoundPhoto | null; photos: WoundPhoto[] }>(apiUrl, `/patients/${PATIENT_ID}/wound-photos`);
+
+/** Uploads a photo file taken by the camera (multipart). Answers the care-team agent's photo request if one is pending. */
+export async function uploadWoundPhoto(apiUrl: string, fileUri: string): Promise<WoundPhoto> {
+  const form = new FormData();
+  form.append('file', { uri: fileUri, type: 'image/jpeg', name: 'wound.jpg' } as unknown as Blob);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  try {
+    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/patients/${PATIENT_ID}/wound-photos`, {
+      method: 'POST', body: form, signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return (await res.json()) as WoundPhoto;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------------------------------------------------------------- caregiver
 
 export type CaregiverTask = { id: string; text: string; category: string; status: string };

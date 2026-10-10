@@ -1,31 +1,15 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Defs, Ellipse, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { CameraPreview } from '../../components/CameraPreview';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { Camera, useCameraDevice, useCameraDevices, useCameraPermission, usePhotoOutput } from 'react-native-vision-camera';
 import { Icon } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Button, Chip, haptic, RoundButton, Screen, TopBar } from '../../components/ui';
+import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
 import type { RootScreen } from '../../navigation/types';
+import { getWoundPhotos, uploadWoundPhoto, type WoundPhoto } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
-
-/** .camera-gradient + .wound-shape — design look when the camera is unavailable */
-function MockSkin() {
-  return (
-    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-      <Defs>
-        <RadialGradient id="skin" cx="50%" cy="50%" rx="70%" ry="60%">
-          <Stop offset="0" stopColor="#e4b39d" /><Stop offset="0.45" stopColor="#c58e7e" /><Stop offset="0.78" stopColor="#34475a" /><Stop offset="1" stopColor="#273748" />
-        </RadialGradient>
-        <RadialGradient id="wound" cx="50%" cy="50%" rx="50%" ry="50%">
-          <Stop offset="0.1" stopColor="#a54c48" /><Stop offset="0.25" stopColor="#db746b" /><Stop offset="0.45" stopColor="#e9a08f" /><Stop offset="0.47" stopColor="#e9a08f" stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#skin)" />
-      <Ellipse cx="50%" cy="40%" rx="68" ry="30" fill="url(#wound)" />
-    </Svg>
-  );
-}
 
 function Corners({ color = '#fff', size = 42, width = 270, height = 225 }: { color?: string; size?: number; width?: number; height?: number }) {
   const b = { position: 'absolute' as const, width: size, height: size, borderColor: color };
@@ -40,18 +24,12 @@ function Corners({ color = '#fff', size = 42, width = 270, height = 225 }: { col
 }
 export { Corners };
 
-function WoundHalf({ label, today }: { label: string; today?: boolean }) {
+/** One half of the comparison: a real photo (reference or today), or an empty slot. */
+function PhotoHalf({ uri, label, divider }: { uri?: string; label: string; divider?: boolean }) {
   return (
-    <View style={{ flex: 1, backgroundColor: today ? '#e2b29c' : '#dca892', alignItems: 'center', justifyContent: 'center', borderLeftWidth: today ? 1 : 0, borderLeftColor: '#fff' }}>
-      <Svg width={today ? 60 : 76} height={27} style={{ opacity: today ? 0.76 : 1, transform: [{ rotate: '-6deg' }] }}>
-        <Defs>
-          <RadialGradient id={`wh${today ? 1 : 0}`} cx="50%" cy="50%" rx="50%" ry="50%">
-            <Stop offset="0" stopColor="#a34f49" /><Stop offset="0.35" stopColor="#dc7a6d" /><Stop offset="0.67" stopColor="#dc7a6d" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect width="100%" height="100%" fill={`url(#wh${today ? 1 : 0})`} />
-      </Svg>
-      <T size={6} w={800} color="#fff" style={{ position: 'absolute', top: 6, left: 6, textShadowColor: '#333', textShadowRadius: 2 }}>{label}</T>
+    <View style={{ flex: 1, backgroundColor: '#273748', borderLeftWidth: divider ? 1 : 0, borderLeftColor: '#fff' }}>
+      {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      <T size={6} w={800} color="#fff" style={{ position: 'absolute', top: 6, left: 6, textShadowColor: '#000', textShadowRadius: 3 }}>{label}</T>
     </View>
   );
 }
@@ -59,22 +37,87 @@ function WoundHalf({ label, today }: { label: string; today?: boolean }) {
 export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
   const { c } = useTheme();
   const { t } = useT();
+  const { apiUrl } = useAppState();
+  const focused = useIsFocused();
+  const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
+  const devices = useCameraDevices();
+  const device = useCameraDevice('back') ?? devices[0];
+  const photoOutput = usePhotoOutput({ qualityPrioritization: 'balanced' });
   const [torch, setTorch] = useState(false);
-  const [captured, setCaptured] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [localUri, setLocalUri] = useState<string | null>(null);
+  const [result, setResult] = useState<WoundPhoto | null>(null);
+  const [reference, setReference] = useState<WoundPhoto | null>(null);
+
+  const abs = useCallback((path?: string | null) => (path ? `${apiUrl.replace(/\/$/, '')}${path}` : undefined), [apiUrl]);
+
+  useEffect(() => {
+    if (!hasPermission && canRequestPermission) requestPermission();
+  }, [hasPermission, canRequestPermission, requestPermission]);
+
+  useEffect(() => {
+    getWoundPhotos(apiUrl).then(r => setReference(r.reference)).catch(() => setReference(null));
+  }, [apiUrl]);
+
+  const capture = async () => {
+    if (busy) return;
+    haptic('impactMedium');
+    setBusy(true);
+    setError(null);
+    try {
+      const file = await photoOutput.capturePhotoToFile({ flashMode: torch ? 'on' : 'off' }, {});
+      const uri = file.filePath.startsWith('file://') ? file.filePath : `file://${file.filePath}`;
+      setLocalUri(uri);
+      const res = await uploadWoundPhoto(apiUrl, uri);
+      setResult(res);
+      haptic(res.analysis?.problems?.length ? 'impactMedium' : 'notificationSuccess');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cmp = result?.comparison;
+  const problems = result?.analysis?.problems ?? [];
+  const trendChip = !cmp?.available
+    ? null
+    : cmp.trend === 'up' ? { tone: 'yellow' as const, label: t('scan.trendUp') }
+      : cmp.trend === 'down' ? { tone: 'green' as const, label: t('scan.trendDown') }
+        : { tone: 'blue' as const, label: t('scan.trendStable') };
 
   return (
     <Screen>
       <TopBar title={t('scan.top')} action={<RoundButton icon="close" onPress={() => navigation.goBack()} />} />
-      <View style={{ height: 407, marginHorizontal: -16, backgroundColor: '#273748', overflow: 'hidden', alignItems: 'center' }}>
-        <CameraPreview fallback={<MockSkin />} permissionLabel={t('scan.allow')} torch={torch} />
+      <View style={{ height: 407, marginHorizontal: -16, backgroundColor: '#1b2533', overflow: 'hidden', alignItems: 'center' }}>
+        {hasPermission && device ? (
+          localUri && (busy || result)
+            ? <Image source={{ uri: localUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            : <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused && !result} outputs={[photoOutput]}
+                torchMode={torch ? 'on' : 'off'} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', padding: 30 }]}>
+            <Icon name="camera" size={34} color="#fff" />
+            <T size={10} w={800} color="#fff" center style={{ marginTop: 10 }}>
+              {!hasPermission ? t('scan.permission') : t('scan.noCamera', { n: devices.length })}
+            </T>
+            <Pressable onPress={requestPermission} style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#fff' }}>
+              <T size={9} w={800} color="#fff">{!hasPermission ? t('scan.allow') : t('scan.retry')}</T>
+            </Pressable>
+          </View>
+        )}
         <View style={{ position: 'absolute', top: 50 }}><Corners /></View>
-        <Chip tone="dark" style={{ position: 'absolute', top: 294, alignSelf: 'center' }}>{captured ? t('scan.captured') : t('scan.align')}</Chip>
+        <Chip tone="dark" style={{ position: 'absolute', top: 294, alignSelf: 'center' }}>
+          {busy ? t('scan.captured') : result ? t('scan.measured') : t('scan.align')}
+        </Chip>
         <View style={{ position: 'absolute', left: 31, right: 31, bottom: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <T size={8} color="#fff">{t('scan.auto')}</T>
-          <Pressable onPress={() => { haptic('impactMedium'); setCaptured(true); setSaved(false); }}
-            style={({ pressed }) => ({ width: 61, height: 61, borderRadius: 31, borderWidth: 4, borderColor: '#fff', backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.94 : 1 }] })}>
-            <Icon name="camera" size={26} color="#fff" />
+          <Pressable onPress={() => { setResult(null); setLocalUri(null); setError(null); }}>
+            <T size={8} color="#fff">{result ? t('scan.retake') : t('scan.auto')}</T>
+          </Pressable>
+          <Pressable disabled={!hasPermission || !device || busy || !!result} onPress={capture}
+            style={({ pressed }) => ({ width: 61, height: 61, borderRadius: 31, borderWidth: 4, borderColor: '#fff', backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', opacity: !device || result ? 0.5 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Icon name="camera" size={26} color="#fff" />}
           </Pressable>
           <Pressable onPress={() => setTorch(v => !v)}><T size={8} color="#fff">{torch ? t('scan.flashOn') : t('scan.flashOff')}</T></Pressable>
         </View>
@@ -82,26 +125,36 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
 
       <View style={{ backgroundColor: c.surface, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
-          <View>
-            <T size={6} spacing={1} color={c.muted}>{t('scan.ai')}</T>
+          <View style={{ flex: 1 }}>
+            <T size={6} spacing={1} color={c.muted}>{t('scan.measuredBy')}</T>
             <T size={14} w={800} style={{ marginTop: 2 }}>{t('scan.progress')}</T>
           </View>
-          <Chip tone="green">{t('scan.good')}</Chip>
+          {trendChip && <Chip tone={trendChip.tone}>{trendChip.label}</Chip>}
         </View>
-        <View style={{ height: 92, flexDirection: 'row', borderWidth: 1.3, borderColor: c.ink, borderRadius: 15, overflow: 'hidden' }}>
-          <WoundHalf label={t('scan.day1')} />
-          <WoundHalf label={t('scan.today')} today />
-          <View style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -14, marginTop: -14, width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#1b2a4a', alignItems: 'center', justifyContent: 'center' }}>
-            <T size={9} w={800} color="#1b2a4a">‹ ›</T>
+        <View style={{ height: 120, flexDirection: 'row', borderWidth: 1.3, borderColor: c.ink, borderRadius: 15, overflow: 'hidden' }}>
+          <PhotoHalf uri={abs(reference?.url)} label={t('scan.day1')} />
+          <PhotoHalf uri={localUri ?? undefined} label={t('scan.today')} divider />
+        </View>
+
+        {error && <T size={8.5} color={c.urgentText} style={{ marginTop: 8 }}>{t('scan.failed')} ({error})</T>}
+        {problems.length > 0 && <T size={8.5} w={700} color={c.reviewText} style={{ marginTop: 8 }}>⚠ {problems.join(' · ')}: {t('scan.retakeHint')}</T>}
+
+        {result && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginVertical: 8 }}>
+            {cmp?.available ? (
+              <Chip tone={cmp.trend === 'up' ? 'yellow' : 'pink'} style={{ flexGrow: 1 }}>
+                <T size={9} w={800}>{t('scan.redness')}  {cmp.redness_area_ref_pct}% → {cmp.redness_area_now_pct}%{cmp.redness_area_change_pct != null ? `  (${cmp.redness_area_change_pct > 0 ? '+' : ''}${cmp.redness_area_change_pct}%)` : ''}</T>
+              </Chip>
+            ) : (
+              <Chip tone="blue" style={{ flexGrow: 1 }}><T size={9} w={800}>{t('scan.notCompared')}</T></Chip>
+            )}
+            <Chip tone="white" style={{ flexGrow: 1, alignSelf: 'stretch', width: '100%' }}>
+              <T size={8.5} w={800}>{t('scan.swelling')} · {t('scan.discharge')}: {t('scan.notMeasured')}</T>
+            </Chip>
           </View>
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginVertical: 8 }}>
-          <Chip tone="pink" style={{ flexGrow: 1 }}><T size={9} w={800}>{t('scan.redness')}  ↑ 12%</T></Chip>
-          <Chip tone="yellow" style={{ flexGrow: 1 }}><T size={9} w={800}>{t('scan.swelling')}  {t('scan.stable')}</T></Chip>
-          <Chip tone="green" style={{ flexGrow: 1 }}><T size={9} w={800}>{t('scan.area')}  ↓ 8%</T></Chip>
-          <Chip tone="blue" style={{ flexGrow: 1, alignSelf: 'stretch', width: '100%' }}><T size={9} w={800}>{t('scan.discharge')}  {t('scan.none')}</T></Chip>
-        </View>
-        <Button onPress={() => { haptic('notificationSuccess'); setSaved(true); setTimeout(() => navigation.goBack(), 900); }}>{saved ? t('scan.saved') : t('scan.save')}</Button>
+        )}
+        <T size={7} color={c.muted} style={{ marginVertical: 6 }}>{t('scan.disclaimer')}</T>
+        <Button onPress={() => navigation.goBack()}>{result ? t('scan.saved') : t('common.close')}</Button>
       </View>
     </Screen>
   );

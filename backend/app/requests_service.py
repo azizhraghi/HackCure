@@ -4,14 +4,10 @@ Order is fixed: store the answer as an Observation -> urgent rules -> (only then
 """
 
 import base64
-from pathlib import Path
 
-from . import audit, clock, monitor
+from . import audit, clock, monitor, wounds
 from . import models as m
 from .db import Repo
-
-UPLOADS = Path(__file__).resolve().parent.parent / "uploads"
-DEMO_PHOTOS = {"day1", "day2", "day3"}
 
 
 class RequestError(Exception):
@@ -43,10 +39,14 @@ def answer(repo: Repo, request_id: str, body: m.RequestAnswer, actor: str = "sar
         payload = {"observation_id": obs.id, "text": text}
         rule = monitor.gate_answer(repo, pid, {"answer": text}, {"request_id": req.id}, [obs.id])
     elif req.kind == "photo":
-        value = _photo_value(body)
-        obs = repo.add(m.Observation(patient_id=pid, type="photo", source=source, value={**value, "request_id": req.id},
-                                     simulated=value.get("asset") in DEMO_PHOTOS))
-        payload = {"observation_id": obs.id, "label": value.get("label")}
+        data, asset = _photo_bytes(body)
+        try:
+            obs = wounds.save_photo(repo, pid, data, source, asset=asset, request_id=req.id)
+        except ValueError as e:
+            raise RequestError(str(e), 413) from e
+        a = obs.value["analysis"]
+        payload = {"observation_id": obs.id, "label": obs.value.get("label"), "quality": a["quality"],
+                   "problems": a.get("problems", []), "comparison": obs.value.get("comparison")}
         rule = monitor.gate_answer(repo, pid, {"comment": body.text}, {"request_id": req.id}, [obs.id])
     else:  # measurement: goes through the Monitor like any reading (urgent rules included)
         if body.value is None or not req.metric:
@@ -74,20 +74,16 @@ def answer(repo: Repo, request_id: str, body: m.RequestAnswer, actor: str = "sar
     return {"status": "answered", "request": req}
 
 
-def _photo_value(body: m.RequestAnswer) -> dict:
+def _photo_bytes(body: m.RequestAnswer) -> tuple[bytes, str | None]:
+    """(image bytes, demo asset name or None)."""
     if body.photo_asset:
-        if body.photo_asset not in DEMO_PHOTOS:
-            raise RequestError("unknown demo photo", 422)
-        return {"asset": body.photo_asset, "url": f"/static/photos/{body.photo_asset}.svg", "label": body.photo_asset}
+        try:
+            return wounds.demo_bytes(body.photo_asset), body.photo_asset
+        except ValueError as e:
+            raise RequestError(str(e), 422) from e
     if body.photo_base64:
         try:
-            raw = base64.b64decode(body.photo_base64.split(",")[-1], validate=True)
+            return base64.b64decode(body.photo_base64.split(",")[-1], validate=True), None
         except ValueError as e:
             raise RequestError("photo_base64 is not valid base64", 422) from e
-        if len(raw) > 8 * 1024 * 1024:
-            raise RequestError("photo too large", 413)
-        UPLOADS.mkdir(exist_ok=True)
-        name = f"{m.new_id('img')}.jpg"
-        (UPLOADS / name).write_bytes(raw)
-        return {"asset": None, "url": f"/uploads/{name}", "label": "uploaded"}
-    raise RequestError("answer with photo_asset or photo_base64", 422)
+    raise RequestError("answer with photo_asset or photo_base64 (or POST /patients/{id}/wound-photos)", 422)

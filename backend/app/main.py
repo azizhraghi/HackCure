@@ -13,7 +13,7 @@ from . import db, scheduler
 from .agents import digest, investigation, protocol  # noqa: F401  (registers the runner jobs)
 from .config import settings
 from .routers import (alerts, caregiver, chat, checkin, demo, documents, investigations, medications,
-                      observations, patients)
+                      observations, patients, wounds)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -45,7 +45,8 @@ app.mount("/app", StaticFiles(directory=BACKEND_DIR / "web", html=True), name="w
 def root():
     return RedirectResponse("/app/")
 
-for r in (chat, patients, documents, observations, checkin, investigations, alerts, medications, caregiver, demo):
+for r in (chat, patients, documents, wounds, observations, checkin, investigations, alerts, medications, caregiver,
+          demo):
     app.include_router(r.router)
 
 
