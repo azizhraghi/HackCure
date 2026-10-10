@@ -1,0 +1,24 @@
+{
+  "patient_id": "pt_demo_001",
+  "age": 68,
+  "sex": "male",
+  "bmi": 29.4,
+  "asa_class": 3,
+  "smoker": false,
+  "surgery": {
+    "procedure": "colectomy",
+    "approach": "open",
+    "duration_minutes": 195,
+    "urgency": "elective",
+    "surgery_date": "2026-10-07"
+  },
+  "conditions": ["diabetes", "hypertension"],
+  "medications": [
+    {"name": "beta_blocker", "dose": "fixture"},
+    {"name": "antihypertensive", "dose": "fixture"},
+    {"name": "opioid", "dose": "fixture"},
+    {"name": "metformin", "dose": "fixture"}
+  ],
+  "allergies": ["penicillin"],
+  "baseline": {"hr": 64, "spo2": 97, "sbp": 134, "dbp": 82, "temperature": 36.7}
+}

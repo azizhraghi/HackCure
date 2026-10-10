@@ -1,0 +1,8 @@
+.venv/
+.cache/
+__pycache__/
+.pytest_cache/
+.env
+# large pretrained weights; download again from Hugging Face (amazon/chronos-bolt-tiny)
+models/chronos-bolt-tiny/model.safetensors
+*.egg-info/
