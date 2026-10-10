@@ -1,11 +1,11 @@
 from typing import List
+from pydantic import BaseModel, Field
 from langchain_core.documents import Document
 from app.ai.rag.vectorstore import get_vectorstore
 
-class Actor:
-    def __init__(self, role: str, granted_categories: List[str] = None):
-        self.role = role
-        self.granted_categories = granted_categories or []
+class Actor(BaseModel):
+    role: str
+    granted_categories: List[str] = Field(default_factory=list)
 
 class ScopedRetriever:
     def __init__(self):
