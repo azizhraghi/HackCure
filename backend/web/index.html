@@ -111,6 +111,18 @@
     <div class="role"><div class="avatar" style="background:var(--pink)">SM</div>
       <div><div class="kicker">Patient app</div><h2 id="p-name">Sarah</h2></div></div>
 
+    <div class="card" style="background:var(--sky)">
+      <div class="kicker">Medical records → care plan</div>
+      <div class="small muted" style="margin-top:2px">Upload discharge documents; the AI drafts the plan, Sarah reviews and confirms it.</div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <label class="btn">📄 Upload PDF<input type="file" id="doc-file" accept=".pdf,.txt,image/*" multiple hidden></label>
+        <button class="btn" id="doc-sample">Use sample discharge summary</button>
+        <button class="btn primary" id="doc-analyze">Analyze with AI</button>
+      </div>
+      <div id="doc-list"></div>
+      <div id="doc-draft"></div>
+    </div>
+
     <div id="p-urgent"></div>
     <div id="p-next"></div>
     <div id="p-requests"></div>
@@ -298,6 +310,85 @@ $('#chat-form').addEventListener('submit', async e => {
   finally { $('#chat-send').disabled = false; drawChat(); }
 });
 
+// ---------------------------------------------------------------- medical records -> care plan
+async function loadDocs() {
+  const docs = await api('/patients/sarah/documents');
+  $('#doc-list').innerHTML = docs.length ? docs.map(d => `<div class="row small" style="border-top:1px solid var(--line);padding:6px 0;margin-top:4px">
+      <span style="flex:1">📄 <b>${esc(d.filename)}</b> · ${(d.size / 1024).toFixed(0)} KB</span>
+      ${d.status === 'ready' ? `<span class="badge" style="background:var(--green)">read · ${d.chars} chars</span>`
+                             : `<span class="badge lvl-attention" title="${esc(d.error)}">not readable</span>`}</div>
+      ${d.error ? `<div class="small" style="color:var(--reviewText)">${esc(d.error)}</div>` : ''}`).join('')
+    : '<div class="small muted" style="margin-top:6px">No documents yet.</div>';
+}
+$('#doc-file').addEventListener('change', async e => {
+  const fd = new FormData();
+  for (const f of e.target.files) fd.append('files', f);
+  e.target.value = '';
+  try {
+    const res = await fetch('/patients/sarah/documents', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    toast('Uploaded'); loadDocs();
+  } catch (err) { toast('Upload failed: ' + err.message); }
+});
+$('#doc-sample').addEventListener('click', async () => {
+  try { await api('/patients/sarah/documents/sample', {}); toast('Sample discharge summary added'); loadDocs(); }
+  catch (err) { toast(err.message); }
+});
+$('#doc-analyze').addEventListener('click', async () => {
+  const btn = $('#doc-analyze'); btn.disabled = true; btn.textContent = 'Analyzing…';
+  try {
+    let d = await api('/patients/sarah/plan-drafts', { document_ids: [] });
+    $('#doc-draft').innerHTML = '<div class="small muted" style="margin-top:8px">The AI is reading the documents…</div>';
+    for (let i = 0; i < 90 && d.status === 'analyzing'; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      d = await api(`/plan-drafts/${d.id}`);
+    }
+    renderDraft(d);
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Analyze with AI'; }
+});
+
+function renderDraft(d) {
+  if (d.status === 'failed') { $('#doc-draft').innerHTML = `<div class="card" style="background:var(--peach)">AI could not draft the plan: ${esc(d.error)}</div>`; return; }
+  if (d.status === 'analyzing') { $('#doc-draft').innerHTML = '<div class="small muted">Still analyzing…</div>'; return; }
+  const p = d.plan, info = p.document_info || {};
+  const flagged = item => d.warnings.filter(w => w.item.startsWith(item));
+  const flag = item => flagged(item).map(w => `<div class="small" style="color:${w.level === 'high' ? 'var(--urgentText)' : 'var(--reviewText)'}">⚠ ${esc(w.message)}</div>`).join('');
+  const highs = d.warnings.filter(w => w.level === 'high').length;
+  $('#doc-draft').innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between"><span class="kicker">Review your plan</span>
+      <span class="badge ${highs ? 'lvl-urgent' : d.warnings.length ? 'lvl-attention' : ''}" style="${d.warnings.length ? '' : 'background:var(--green)'}">${d.warnings.length ? `${d.warnings.length} to check` : 'all found in documents'}</span></div>
+    <div style="font-weight:800;margin-top:4px">${esc(info.surgery || '')} ${esc(info.side || '')}</div>
+    <div class="small muted">Surgery ${esc(info.surgery_date || '?')} · discharge ${esc(info.discharge_date || '?')} · ${esc(info.surgeon || '')} · allergies: ${esc((info.allergies || []).join(', ') || 'none')}</div>
+    <div class="kicker" style="margin-top:10px">Medications</div>
+    ${p.medications.map(x => `<div style="border-top:1px solid var(--line);padding:5px 0">
+      <b>${esc(x.name)} ${esc(x.dose)}</b> <span class="small muted">${esc(x.route || '')}</span>
+      <div class="small">${x.times.length ? '🕒 ' + x.times.map(esc).join(' · ') : 'no fixed times'}${x.duration_days ? ` · ${x.duration_days} days` : ''}${x.purpose ? ' · ' + esc(x.purpose) : ''}</div>
+      ${flag(`${x.name} ${x.dose}`.trim())}</div>`).join('') || '<div class="small muted">none found</div>'}
+    <div class="kicker" style="margin-top:10px">Exercises</div>
+    <div class="small">${p.rehab.map(r => `${esc(r.name)}${r.times.length ? ' (' + r.times.map(esc).join(', ') + ')' : ''}`).join('<br>') || 'none found'}</div>
+    <div class="kicker" style="margin-top:10px">Appointments</div>
+    <div class="small">${p.appointments.map(a => `${esc(a.title)}: ${esc(a.date || '')} ${esc(a.time || '')}`).join('<br>')}</div>
+    <div class="kicker" style="margin-top:10px">Warning signs</div>
+    <div class="small">${(info.warning_signs || []).map(esc).join(' · ') || 'none found'}</div>
+    <div class="kicker" style="margin-top:10px">Emergency (112)</div>
+    <div class="small">${(info.emergency_signs || []).map(esc).join(' · ') || 'none found'}</div>
+    ${d.warnings.filter(w => !p.medications.some(x => w.item.startsWith(`${x.name} ${x.dose}`.trim()))).map(w => `<div class="small" style="margin-top:6px;color:var(--reviewText)">⚠ ${esc(w.item)}: ${esc(w.message)}</div>`).join('')}
+    <div class="small muted" style="margin-top:10px">Safety rules (red flags, alert thresholds, who is notified) are not changed by documents.</div>
+    ${d.status === 'confirmed' ? '<div class="badge" style="background:var(--green);margin-top:8px">✓ Active plan</div>'
+      : `<button class="btn primary" style="margin-top:10px;width:100%" id="doc-confirm" data-draft="${d.id}">Confirm my plan</button>`}
+  </div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('#doc-confirm');
+  if (!b) return;
+  try {
+    await api(`/plan-drafts/${b.dataset.draft}/confirm`, { actor: 'sarah' });
+    renderDraft(await api(`/plan-drafts/${b.dataset.draft}`));
+    toast('Care plan confirmed: reminders, check-ins and the assistant now use it'); poll();
+  } catch (err) { toast(err.message); }
+});
+
 // ---------------------------------------------------------------- caregiver
 function renderFamily(alerts, tasks, twin) {
   const urgent = alerts.some(a => a.level === 'urgent'), attention = alerts.some(a => a.level === 'attention');
@@ -407,6 +498,7 @@ document.addEventListener('click', async e => {
     } else if (d.dataset.demo === 'reset') {
       await api('/demo/reset', {}); chat.length = 0; drawChat(); $('#ci-result').innerHTML = ''; $('#p-urgent').innerHTML = ''; selected = null;
       for (const k in cache) delete cache[k]; toast('Demo reset: Sarah, day 3'); loadDigest(false);
+      $('#doc-draft').innerHTML = ''; loadDocs();
     } else if (d.dataset.demo === 'answer') {
       toast('Answering as Sarah… (waits for the AI between answers)');
       const r = await api('/demo/answer_pending', {});
@@ -446,7 +538,7 @@ async function poll() {
   } catch (err) { $('#health').textContent = 'Backend unreachable: ' + err.message; }
   finally { polling = false; }
 }
-drawChips(); drawChat(); health(); poll(); loadDigest(false);
+drawChips(); drawChat(); health(); poll(); loadDigest(false); loadDocs();
 setInterval(poll, 3000);
 </script>
 </body>

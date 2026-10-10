@@ -171,6 +171,34 @@ class Digest(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=clock.now)
 
 
+class Document(SQLModel, table=True):
+    """An uploaded medical document (discharge summary, prescription...). Text is extracted by code."""
+    id: str = Field(default_factory=lambda: new_id("doc"), primary_key=True)
+    patient_id: str = Field(index=True)
+    filename: str
+    content_type: str = ""
+    size: int = 0
+    status: str = "ready"  # ready | unreadable
+    text: str = ""
+    error: str | None = None
+    created_at: NaiveDatetime = Field(default_factory=clock.now)
+
+
+class PlanDraft(SQLModel, table=True):
+    """Care plan drafted from documents by the protocol agent; becomes active when the patient confirms it."""
+    id: str = Field(default_factory=lambda: new_id("draft"), primary_key=True)
+    patient_id: str = Field(index=True)
+    document_ids: list = _json(list)
+    status: str = "analyzing"  # analyzing | ready | failed | confirmed
+    extracted: dict | None = Field(default=None, sa_column=Column(JSON))  # what the AI read (ProtocolExtraction)
+    plan: dict | None = Field(default=None, sa_column=Column(JSON))  # the resulting care plan (preview)
+    warnings: list = _json(list)
+    mode: str = ""
+    error: str | None = None
+    created_at: NaiveDatetime = Field(default_factory=clock.now)
+    confirmed_at: NaiveDatetime | None = None
+
+
 class AuditEvent(SQLModel, table=True):
     """Append-only: rows are inserted, never updated or deleted (except on demo reset)."""
     id: int | None = Field(default=None, primary_key=True)
@@ -280,3 +308,51 @@ class DigestTaskOut(BaseModel):
 class DigestOut(BaseModel):
     summary: str
     tasks: list[DigestTaskOut] = PField(default_factory=list, max_length=3)
+
+
+class ExtractedMedication(BaseModel):
+    name: str
+    dose: str
+    route: str = ""
+    times: list[str] = []  # "HH:MM"
+    times_inferred: bool = False  # True when the document gives a frequency but no clock times
+    frequency_text: str = ""
+    purpose: str = ""
+    duration_days: int | None = None
+    as_needed: bool = False
+    source_quote: str = ""
+
+
+class ExtractedItem(BaseModel):
+    text: str
+    times: list[str] = []
+    source_quote: str = ""
+
+
+class ExtractedAppointment(BaseModel):
+    title: str
+    date: str | None = None  # YYYY-MM-DD
+    time: str | None = None  # HH:MM
+    source_quote: str = ""
+
+
+class ProtocolExtraction(BaseModel):
+    """What the protocol agent must return: only what the documents say."""
+    surgery: str = ""
+    side: str = ""
+    surgery_date: str | None = None
+    discharge_date: str | None = None
+    surgeon: str = ""
+    allergies: list[str] = []
+    medications: list[ExtractedMedication] = []
+    missed_dose_instruction: str = ""
+    activity_restrictions: list[ExtractedItem] = []
+    rehab: list[ExtractedItem] = []
+    wound_care: list[str] = []
+    appointments: list[ExtractedAppointment] = []
+    warning_signs: list[str] = []
+    emergency_signs: list[str] = []
+
+
+class PlanDraftIn(BaseModel):
+    document_ids: list[str] = []  # empty = all documents of the patient

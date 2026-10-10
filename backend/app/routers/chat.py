@@ -48,7 +48,7 @@ APPOINTMENTS
 - Physiotherapy in 6 days at 15:00, staple removal in 8 days at 09:00, follow-up with Dr. Ruiz in 12 days at 10:30.
 """
 
-SYSTEM_PROMPT = f"""You are the SurgiGuard AI Recovery Assistant inside a postoperative recovery app.
+SYSTEM_PROMPT = """You are the SurgiGuard AI Recovery Assistant inside a postoperative recovery app.
 You help the patient understand their recovery plan from the care team, discharge instructions,
 medications and exercises. Use ONLY the plan below and well-established general post-operative guidance.
 
@@ -60,8 +60,46 @@ Rules:
 - If the answer is not in the plan, say so and suggest asking the care team.
 - When professional assessment is needed, end your answer with the exact tag [ESCALATE].
 
-{RECOVERY_PLAN}
+{plan}
 """
+
+
+def plan_context(repo: Repo, patient_id: str) -> str:
+    """The active care plan as text. Plans confirmed from documents replace the built-in demo text."""
+    plan = repo.plan(patient_id)
+    info = plan.get("document_info")
+    p = repo.patient(patient_id)
+    if not info or p is None:
+        return RECOVERY_PLAN
+    from .patients import day_number
+    from .. import clock
+    meds = [f"- {x['name']} {x['dose']}" + (f" at {', '.join(x['times'])}" if x.get("times") else " (as needed)")
+            + (f" ({x['purpose']})" if x.get("purpose") else "")
+            + (f" for {x['duration_days']} days" if x.get("duration_days") else "") for x in plan.get("medications", [])]
+    rehab = [f"- {r['name']}" + (f" at {', '.join(r['times'])}" if r.get("times") else "") for r in plan.get("rehab", [])]
+    appts = [f"- {a['title']}: in {a['day_offset'] - day_number(p, clock.now()) + 1} days at {a['time']}"
+             for a in plan.get("appointments", []) if "day_offset" in a]
+
+    nl = chr(10)
+
+    def block(title, items):
+        body = nl.join(i if i.startswith("- ") else f"- {i}" for i in items) or "- (not in the documents)"
+        return title + nl + body
+
+    header = nl.join([
+        f"PATIENT (fictional demo): {p.name}, {p.age}. {info.get('surgery') or p.surgery} {info.get('side', '')}.",
+        f"Today is day {day_number(p, clock.now())} after hospital discharge. Surgeon: {info.get('surgeon') or 'see documents'}.",
+        f"Allergies: {', '.join(info.get('allergies') or p.allergies) or 'none recorded'}.",
+    ])
+    return (nl + nl).join([
+        header,
+        block("PRESCRIBED MEDICATIONS (from the patient's documents)", meds),
+        block("ACTIVITY & REHABILITATION", list(info.get("activity_restrictions", [])) + rehab),
+        block("WOUND CARE", info.get("wound_care", [])),
+        block("WARNING SIGNS (contact the surgeon's office the same day)", info.get("warning_signs", [])),
+        block("EMERGENCY (call emergency services immediately)", info.get("emergency_signs", [])),
+        block("APPOINTMENTS", appts),
+    ])
 
 
 class Message(BaseModel):
@@ -94,7 +132,8 @@ def chat(req: ChatRequest, repo: Repo = Depends(get_repo)):
             return ChatResponse(reply=text, escalate=True)
 
     language = "French" if req.lang.lower().startswith("fr") else "English"
-    messages = [{"role": "system", "content": SYSTEM_PROMPT.replace("{lang}", language)}]
+    system = SYSTEM_PROMPT.replace("{lang}", language).replace("{plan}", plan_context(repo, req.patient_id))
+    messages = [{"role": "system", "content": system}]
     messages += [msg.model_dump() for msg in req.messages[-12:]]
     try:
         text = llm.chat_text("chat", messages, {"lang": language})  # provider/model: LLM_ROUTE_CHAT
