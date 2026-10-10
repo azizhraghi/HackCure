@@ -142,3 +142,13 @@ def test_prefixed_tool_names_are_normalised(monkeypatch):
     monkeypatch.setattr(settings, "mistral_api_key", "x")
     monkeypatch.setattr(llm, "_client", Fake)
     assert llm.chat_tools("investigation", [], []).tool_calls[0].name == "finish_investigation"
+
+
+def test_per_agent_routing(monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "openrouter")
+    monkeypatch.setenv("LLM_ROUTE_DIGEST", "groq:openai/gpt-oss-20b")
+    monkeypatch.setenv("LLM_ROUTE_CHECKIN_CLARIFY", "groq")
+    monkeypatch.delenv("LLM_ROUTE_INVESTIGATION", raising=False)
+    assert llm.route("digest") == ("groq", "openai/gpt-oss-20b")
+    assert llm.route("checkin_clarify") == ("groq", settings.groq_model)
+    assert llm.route("investigation") == ("openrouter", settings.openrouter_model)

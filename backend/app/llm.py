@@ -94,7 +94,7 @@ def chat_tools(agent: str, messages: list[dict], tools: list[dict], context: dic
         out.mode = "stub"
         return out
     t0 = time.perf_counter()
-    res = _complete(messages=messages, tools=tools, tool_choice=tool_choice, parallel_tool_calls=False)
+    res = _complete(agent, messages=messages, tools=tools, tool_choice=tool_choice, parallel_tool_calls=False)
     msg = res.choices[0].message
     calls = []
     for tc in msg.tool_calls or []:
@@ -119,7 +119,7 @@ def chat_json(agent: str, messages: list[dict], context: dict | None = None) -> 
         return _stub(agent, messages, context)
     last_err = None
     for _ in range(2):
-        res = _complete(messages=messages, response_format={"type": "json_object"})
+        res = _complete(agent, messages=messages, response_format={"type": "json_object"})
         raw = _text(res.choices[0].message.content)
         try:
             data = json.loads(raw)
@@ -198,19 +198,32 @@ OPENAI_COMPATIBLE = {  # provider -> (endpoint, key setting, model setting)
 }
 
 
-def _openai_complete(**kwargs):
+def route(agent: str) -> tuple[str, str]:
+    """(provider, model) for an agent. LLM_ROUTE_<AGENT>=provider:model spreads agents over providers/models
+    so one free-tier quota is not shared by everything; otherwise LLM_PROVIDER and its model."""
+    import os
+    spec = os.getenv(f"LLM_ROUTE_{agent.upper()}", "").strip()
+    if spec:
+        provider, _, model = spec.partition(":")
+        provider = provider.strip().lower()
+        return provider, model.strip() or getattr(settings, f"{provider}_model", "")
+    provider = settings.llm_provider
+    return provider, getattr(settings, f"{provider}_model", settings.mistral_model)
+
+
+def _openai_complete(provider: str, model: str, **kwargs):
     """Groq / OpenRouter (OpenAI-compatible), returned in the same shape as the Mistral SDK response."""
     import httpx
     from types import SimpleNamespace as NS
-    url, key_attr, model_attr = OPENAI_COMPATIBLE[settings.llm_provider]
-    key, model = getattr(settings, key_attr), getattr(settings, model_attr)
+    url, key_attr, _ = OPENAI_COMPATIBLE[provider]
+    key = getattr(settings, key_attr)
     if not key:
         raise LLMUnavailable(f"{key_attr.upper()} is not set")
-    # Groq counts max_tokens against the per-minute token limit up front, so keep it modest.
-    body = {"model": model, "temperature": 0.2, "max_tokens": 1000, **kwargs}
+    # Groq counts max_tokens against the per-minute token limit up front, so keep it modest there.
+    body = {"model": model, "temperature": 0.2, "max_tokens": 1000 if provider == "groq" else 2000, **kwargs}
     if body.get("tool_choice") == "any":  # Mistral's "must call a tool" == OpenAI's "required"
         body["tool_choice"] = "required"
-    if settings.llm_provider == "groq" and model.startswith("openai/gpt-oss"):
+    if provider == "groq" and model.startswith("openai/gpt-oss"):
         body["reasoning_effort"] = "low"  # hidden reasoning tokens count against the per-minute token limit
     r = httpx.post(url, json=body, timeout=settings.llm_timeout_s,
                    headers={"Authorization": f"Bearer {key}", "X-Title": "SurgiGuard AI (hackathon demo)"})
@@ -226,8 +239,11 @@ def _openai_complete(**kwargs):
     return NS(choices=[NS(message=NS(content=msg.get("content"), tool_calls=calls))])
 
 
-def _complete(**kwargs):
-    compat = settings.llm_provider in OPENAI_COMPATIBLE
+def _complete(agent: str, **kwargs):
+    provider, model = route(agent)
+    compat = provider in OPENAI_COMPATIBLE
+    if not compat and provider != "mistral":
+        raise LLMUnavailable(f"unknown LLM provider {provider!r}")
     client = None if compat else _mistral()
     last: Exception | None = None
     attempt, rate_waited = 0, 0.0
@@ -236,14 +252,14 @@ def _complete(**kwargs):
         _pace()
         try:
             if compat:
-                return _openai_complete(**kwargs)
-            return client.chat.complete(model=settings.mistral_model, temperature=0.2, max_tokens=1500,
+                return _openai_complete(provider, model, **kwargs)
+            return client.chat.complete(model=model, temperature=0.2, max_tokens=1500,
                                         timeout_ms=int(settings.llm_timeout_s * 1000), **kwargs)
         except LLMUnavailable:
             raise
         except Exception as e:
             last = e
-            log.warning("%s call failed (attempt %d): %s", settings.llm_provider, attempt, e)
+            log.warning("%s/%s call failed (attempt %d): %s", provider, model, attempt, e)
             if not _retryable(e):  # 400/401/403/422: retrying cannot help
                 break
             hint = getattr(e, "retry_after", None)
@@ -257,7 +273,7 @@ def _complete(**kwargs):
                     break
                 wait = 1.5 * attempt
             time.sleep(wait)
-    raise LLMUnavailable(f"{settings.llm_provider} unavailable: {last}")
+    raise LLMUnavailable(f"{provider}/{model} unavailable: {last}")
 
 
 def _text(content) -> str:

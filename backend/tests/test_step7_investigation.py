@@ -214,3 +214,28 @@ def test_missed_doses_always_in_summary_and_false_photo_gap_dropped(repo):
     out = evidence.finalize(repo, "sarah", s)
     assert any("Cefuroxime" in c.text and "not taken" in c.text for c in out.patient_reported)
     assert "No prior wound photos available for comparison." not in out.missing_or_conflicting
+
+
+def test_findings_sent_as_json_string_are_accepted(repo, monkeypatch):
+    import json as _json
+    from app import llm
+    real = llm._stubs["investigation"]
+
+    def stringify(messages, ctx):
+        r = real(messages, ctx)
+        c = r.tool_calls[0]
+        if c.name == "finish_investigation":
+            c.arguments = {"findings": _json.dumps(c.arguments["findings"])}
+        return r
+    monkeypatch.setitem(llm._stubs, "investigation", stringify)
+    inv = drive(repo, start_infection(repo).id)
+    assert inv.status == "finished" and inv.evidence_retries == 0
+
+
+def test_lenient_json_repairs_live_model_mistakes():
+    from app.agents.investigation import _lenient_json
+    good = '{"a": [{"x": 1}], "b": 2}'
+    assert _lenient_json(good + "}}")[0] == {"a": [{"x": 1}], "b": 2}          # trailing junk
+    assert _lenient_json('{"a": [{"x": 1}], {"b": 2}')[0] == {"a": [{"x": 1}], "b": 2}  # stray '{'
+    obj, err = _lenient_json("not json")
+    assert obj is None and err

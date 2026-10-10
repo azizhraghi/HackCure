@@ -8,6 +8,7 @@ The conversation is persisted in Investigation.state so the loop can pause for t
 """
 
 import json
+import re
 import threading
 from collections import defaultdict
 
@@ -49,6 +50,21 @@ Rules you must follow:
 # Evidence the agent must have looked at before it may finish (enforced in code, not only in the prompt).
 REQUIRED = [("get_vitals_trend", "hr"), ("get_vitals_trend", "temp"), ("get_symptom_checkins", None),
             ("get_medication_context", None)]
+
+
+def _lenient_json(text: str) -> tuple[dict | None, str | None]:
+    """Parse a JSON object written by a model: tolerate trailing junk and a stray '{' after a list
+    (both seen live). The result still goes through full evidence validation."""
+    candidates = [text, re.sub(r'\]\s*,\s*\{\s*"', '], "', text)]
+    last = "not a JSON object"
+    for c in candidates:
+        try:
+            obj, _ = json.JSONDecoder().raw_decode(c.strip())
+            if isinstance(obj, dict):
+                return obj, None
+        except json.JSONDecodeError as e:
+            last = str(e)
+    return None, last
 
 
 def _missing_required(messages: list) -> list[str]:
@@ -151,7 +167,12 @@ def _loop(repo: Repo, inv: m.Investigation) -> None:
 
         if call.name == "finish_investigation":
             findings = call.arguments.get("findings", call.arguments)
-            summary, errors = evidence.validate(repo, inv.patient_id, findings)
+            if isinstance(findings, str):  # some models send the object as a (sometimes malformed) JSON string
+                findings, parse_error = _lenient_json(findings)
+                summary, errors = (None, [f"findings must be a JSON object; your JSON is invalid: {parse_error}"]) \
+                    if parse_error else evidence.validate(repo, inv.patient_id, findings)
+            else:
+                summary, errors = evidence.validate(repo, inv.patient_id, findings)
             audit.log(repo, inv.patient_id, AGENT, "evidence.validated", {"ok": not errors, "errors": errors},
                       "investigation", inv.id)
             if summary:
