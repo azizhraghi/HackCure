@@ -112,7 +112,7 @@ def get_vitals_trend(ctx: Ctx, metric: str, hours: int = 24) -> dict:
                     {"count": len(rows), "good": 0, "note": "no usable readings: unknown"}),
         "unusable_count": sum(1 for o in rows if o.quality == "unusable"),
         "gaps": quality.find_gaps(rows, now - timedelta(hours=hours), now, every),
-        "recent_readings": [{"observation_id": o.id, "value": o.value, "at": o.measured_at.isoformat(),
+        "recent_readings": [{"observation_id": o.id, "source": o.source, "value": o.value, "at": o.measured_at.isoformat(),
                              "quality": o.quality, "simulated": o.simulated} for o in shown],
     }
 
@@ -156,14 +156,25 @@ def get_medication_context(ctx: Ctx) -> dict:
 
 def get_wound_photos(ctx: Ctx, n: int = 2) -> dict:
     rows = ctx.repo.observations(ctx.pid, "photo", newest_first=True, limit=max(1, min(int(n), 5)))
-    return {"photos": [{"observation_id": o.id, "label": o.value.get("label"), "at": o.measured_at.isoformat(),
+    return {"note": "photos are taken by the patient: cite them under patient_reported",
+            "photos": [{"observation_id": o.id, "source": o.source, "label": o.value.get("label"), "at": o.measured_at.isoformat(),
                         "url": o.value.get("url")} for o in rows]}
 
 
+def _photo(ctx: Ctx, ref: str) -> m.Observation | None:
+    """Accept an observation id or a photo label ("day2"): small models often pass the label."""
+    o = ctx.repo.get(m.Observation, ref)
+    if o is None:
+        o = next((p for p in ctx.repo.observations(ctx.pid, "photo", newest_first=True)
+                  if ref in (p.value.get("label"), p.value.get("asset"))), None)
+    return o if o and o.patient_id == ctx.pid and o.type == "photo" else None
+
+
 def compare_wound_photos(ctx: Ctx, photo_id_a: str, photo_id_b: str) -> dict:
-    a, b = ctx.repo.get(m.Observation, photo_id_a), ctx.repo.get(m.Observation, photo_id_b)
-    if not a or not b or a.patient_id != ctx.pid or b.patient_id != ctx.pid or a.type != "photo" or b.type != "photo":
-        return {"error": "unknown photo id(s)"}
+    a, b = _photo(ctx, photo_id_a), _photo(ctx, photo_id_b)
+    if not a or not b:
+        known = [p.id for p in ctx.repo.observations(ctx.pid, "photo", newest_first=True, limit=5)]
+        return {"error": "unknown photo id(s)", "known_photo_ids": known}
     if a.measured_at > b.measured_at:
         a, b = b, a
     key = f'{a.value.get("asset")}|{b.value.get("asset")}'

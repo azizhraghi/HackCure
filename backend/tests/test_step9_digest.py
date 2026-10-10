@@ -81,3 +81,22 @@ def test_digest_api(client):
     body = client.get("/caregiver/ahmed/digest", params={"refresh": True}).json()
     assert body["digest"]["text"] and "vitals" in body["shared_categories"]
     assert client.get("/caregiver/sarah/digest").status_code == 404
+
+
+def test_reassurance_rejected(repo, monkeypatch):
+    busy_day(repo)
+    monkeypatch.setitem(llm._stubs, "digest", lambda msgs, ctx: {
+        "summary": "Sarah's evening is smooth and she is resting well. The care team is handling a minor update.",
+        "tasks": []})
+    d = digest.generate(repo, "sarah", "ahmed")
+    assert d.mode == "template" and "minor" not in d.text
+
+
+def test_investigation_caregiver_message_respects_permissions(repo):
+    from tests.test_step7_investigation import drive, start_infection
+    restrict(repo, medications=False, wound=False)
+    inv = start_infection(repo)
+    drive(repo, inv.id)
+    repo.s.expire_all()
+    task = repo.first(m.CaregiverTask, m.CaregiverTask.dedupe_key == f"inv:{inv.id}")
+    assert task and not digest.check_text(task.text, ["medications", "wound"])

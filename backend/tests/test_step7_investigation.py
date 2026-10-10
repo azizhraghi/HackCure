@@ -150,3 +150,67 @@ def test_answer_via_api(client, repo):
     r = client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3"})
     assert r.status_code == 200 and r.json()["status"] == "answered"
     assert client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3"}).status_code == 409
+
+
+# ---- hardening from the first live Mistral run (open-mistral-nemo)
+
+def test_finish_refused_until_core_evidence_reviewed(repo, monkeypatch):
+    from app import llm
+    from app.llm import Reply, ToolCall, new_call_id
+    real = llm._stubs["investigation"]
+    state = {"first": True}
+
+    def hasty(messages, ctx):  # tries to finish immediately, like the small live model
+        if state["first"]:
+            state["first"] = False
+            return Reply(tool_calls=[ToolCall(new_call_id(), "finish_investigation", {"findings": {}})])
+        return real(messages, ctx)
+    monkeypatch.setitem(llm._stubs, "investigation", hasty)
+    inv = monitor.request_investigation(repo, "sarah", {"signals": []})
+    inv = drive(repo, inv.id)
+    assert inv.status == "finished"
+    refused = [e.data for e in audit.trail(repo, "investigation", inv.id) if e.kind == "agent.finish_refused"]
+    assert refused and "get_medication_context" in refused[0]["missing_tools"]
+
+
+def test_false_missing_data_claims_are_dropped(repo):
+    from app.agents import evidence
+    s = evidence.fallback(repo, repo.add(m.Investigation(patient_id="sarah", deadline=clock.now())), "x")
+    s.missing_or_conflicting = ["No recent temperature or oxygen saturation data available.",
+                                "Follow-up question about chills not answered"]
+    out = evidence.finalize(repo, "sarah", s)
+    assert out.missing_or_conflicting[0] == "Follow-up question about chills not answered"
+    assert not any("temperature" in x.lower() and "no recent" in x.lower() for x in out.missing_or_conflicting)
+
+
+def test_patient_message_asking_for_tests_is_replaced(repo):
+    from app.agents import evidence
+    s = evidence.fallback(repo, repo.add(m.Investigation(patient_id="sarah", deadline=clock.now())), "x")
+    s.messages.patient = "Could you please take your temperature and oxygen levels today?"
+    out = evidence.finalize(repo, "sarah", s)
+    assert "temperature" not in out.messages.patient
+
+
+def test_condition_speculation_rejected_for_clinician(repo):
+    from app.agents import evidence
+    s = evidence.fallback(repo, repo.add(m.Investigation(patient_id="sarah", deadline=clock.now())), "x")
+    data = s.model_dump(mode="json")
+    data["messages"]["clinician"] = "HR 91. Consider assessing for potential infection or dehydration."
+    summary, errors = evidence.validate(repo, "sarah", data)
+    assert summary is None and any("diagnosis wording" in e for e in errors)
+
+
+def test_compare_accepts_photo_labels(repo):
+    inv = repo.add(m.Investigation(patient_id="sarah", deadline=clock.now()))
+    r = tools.compare_wound_photos(tools.Ctx(repo, inv), "day2", "day1")
+    assert r["available"] and r["comparison"]["redness_area_change_pct"] == 4
+
+
+def test_missed_doses_always_in_summary_and_false_photo_gap_dropped(repo):
+    from app.agents import evidence
+    s = evidence.fallback(repo, repo.add(m.Investigation(patient_id="sarah", deadline=clock.now())), "x")
+    s.patient_reported = [c for c in s.patient_reported if "not taken" not in c.text]
+    s.missing_or_conflicting = ["No prior wound photos available for comparison."]
+    out = evidence.finalize(repo, "sarah", s)
+    assert any("Cefuroxime" in c.text and "not taken" in c.text for c in out.patient_reported)
+    assert "No prior wound photos available for comparison." not in out.missing_or_conflicting
