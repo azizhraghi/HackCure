@@ -1,0 +1,369 @@
+{
+  "data_origin": "simulated",
+  "features": {
+    "categorical": [
+      "surgery.procedure"
+    ],
+    "flags": [
+      "conditions.copd",
+      "conditions.diabetes",
+      "conditions.heart_failure",
+      "conditions.hypertension",
+      "medications.anticoagulant",
+      "medications.antihypertensive",
+      "medications.beta_blocker",
+      "medications.corticosteroid",
+      "medications.opioid",
+      "smoker"
+    ],
+    "numeric": [
+      "age"
+    ],
+    "optional_categorical": [
+      "sex",
+      "surgery.approach",
+      "surgery.urgency"
+    ],
+    "optional_numeric": [
+      "asa_class",
+      "baseline.dbp",
+      "baseline.hr",
+      "baseline.sbp",
+      "baseline.spo2",
+      "baseline.temperature",
+      "bmi",
+      "surgery.duration_minutes"
+    ]
+  },
+  "method": "gradient-boosted quantile regression (scikit-learn)",
+  "metrics": {
+    "dbp": {
+      "categorical": {
+        "sex": [
+          "female",
+          "male"
+        ],
+        "surgery.approach": [
+          "minimally_invasive",
+          "open"
+        ],
+        "surgery.procedure": [
+          "cabg",
+          "colectomy",
+          "hip_replacement",
+          "laparoscopic_cholecystectomy",
+          "lobectomy"
+        ],
+        "surgery.urgency": [
+          "elective"
+        ]
+      },
+      "day_max": 31.0,
+      "day_min": 0.0,
+      "numeric": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "asa_class": [
+          1.0,
+          4.0
+        ],
+        "baseline.dbp": [
+          56.7,
+          99.1
+        ],
+        "baseline.hr": [
+          38.4,
+          94.3
+        ],
+        "baseline.sbp": [
+          93.9,
+          161.1
+        ],
+        "baseline.spo2": [
+          92.3,
+          99.2
+        ],
+        "baseline.temperature": [
+          36.1,
+          37.4
+        ],
+        "bmi": [
+          17.0,
+          41.8
+        ],
+        "surgery.duration_minutes": [
+          38.0,
+          437.0
+        ]
+      },
+      "patients": 1500,
+      "rows": 46500
+    },
+    "hr": {
+      "categorical": {
+        "sex": [
+          "female",
+          "male"
+        ],
+        "surgery.approach": [
+          "minimally_invasive",
+          "open"
+        ],
+        "surgery.procedure": [
+          "cabg",
+          "colectomy",
+          "hip_replacement",
+          "laparoscopic_cholecystectomy",
+          "lobectomy"
+        ],
+        "surgery.urgency": [
+          "elective"
+        ]
+      },
+      "day_max": 31.0,
+      "day_min": 0.0,
+      "numeric": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "asa_class": [
+          1.0,
+          4.0
+        ],
+        "baseline.dbp": [
+          56.7,
+          99.1
+        ],
+        "baseline.hr": [
+          38.4,
+          94.3
+        ],
+        "baseline.sbp": [
+          93.9,
+          161.1
+        ],
+        "baseline.spo2": [
+          92.3,
+          99.2
+        ],
+        "baseline.temperature": [
+          36.1,
+          37.4
+        ],
+        "bmi": [
+          17.0,
+          41.8
+        ],
+        "surgery.duration_minutes": [
+          38.0,
+          437.0
+        ]
+      },
+      "patients": 1500,
+      "rows": 46500
+    },
+    "sbp": {
+      "categorical": {
+        "sex": [
+          "female",
+          "male"
+        ],
+        "surgery.approach": [
+          "minimally_invasive",
+          "open"
+        ],
+        "surgery.procedure": [
+          "cabg",
+          "colectomy",
+          "hip_replacement",
+          "laparoscopic_cholecystectomy",
+          "lobectomy"
+        ],
+        "surgery.urgency": [
+          "elective"
+        ]
+      },
+      "day_max": 31.0,
+      "day_min": 0.0,
+      "numeric": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "asa_class": [
+          1.0,
+          4.0
+        ],
+        "baseline.dbp": [
+          56.7,
+          99.1
+        ],
+        "baseline.hr": [
+          38.4,
+          94.3
+        ],
+        "baseline.sbp": [
+          93.9,
+          161.1
+        ],
+        "baseline.spo2": [
+          92.3,
+          99.2
+        ],
+        "baseline.temperature": [
+          36.1,
+          37.4
+        ],
+        "bmi": [
+          17.0,
+          41.8
+        ],
+        "surgery.duration_minutes": [
+          38.0,
+          437.0
+        ]
+      },
+      "patients": 1500,
+      "rows": 46500
+    },
+    "spo2": {
+      "categorical": {
+        "sex": [
+          "female",
+          "male"
+        ],
+        "surgery.approach": [
+          "minimally_invasive",
+          "open"
+        ],
+        "surgery.procedure": [
+          "cabg",
+          "colectomy",
+          "hip_replacement",
+          "laparoscopic_cholecystectomy",
+          "lobectomy"
+        ],
+        "surgery.urgency": [
+          "elective"
+        ]
+      },
+      "day_max": 31.0,
+      "day_min": 0.0,
+      "numeric": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "asa_class": [
+          1.0,
+          4.0
+        ],
+        "baseline.dbp": [
+          56.7,
+          99.1
+        ],
+        "baseline.hr": [
+          38.4,
+          94.3
+        ],
+        "baseline.sbp": [
+          93.9,
+          161.1
+        ],
+        "baseline.spo2": [
+          92.3,
+          99.2
+        ],
+        "baseline.temperature": [
+          36.1,
+          37.4
+        ],
+        "bmi": [
+          17.0,
+          41.8
+        ],
+        "surgery.duration_minutes": [
+          38.0,
+          437.0
+        ]
+      },
+      "patients": 1500,
+      "rows": 46500
+    },
+    "temperature": {
+      "categorical": {
+        "sex": [
+          "female",
+          "male"
+        ],
+        "surgery.approach": [
+          "minimally_invasive",
+          "open"
+        ],
+        "surgery.procedure": [
+          "cabg",
+          "colectomy",
+          "hip_replacement",
+          "laparoscopic_cholecystectomy",
+          "lobectomy"
+        ],
+        "surgery.urgency": [
+          "elective"
+        ]
+      },
+      "day_max": 31.0,
+      "day_min": 0.0,
+      "numeric": {
+        "age": [
+          18.0,
+          90.0
+        ],
+        "asa_class": [
+          1.0,
+          4.0
+        ],
+        "baseline.dbp": [
+          56.7,
+          99.1
+        ],
+        "baseline.hr": [
+          38.4,
+          94.3
+        ],
+        "baseline.sbp": [
+          93.9,
+          161.1
+        ],
+        "baseline.spo2": [
+          92.3,
+          99.2
+        ],
+        "baseline.temperature": [
+          36.1,
+          37.4
+        ],
+        "bmi": [
+          17.0,
+          41.8
+        ],
+        "surgery.duration_minutes": [
+          38.0,
+          437.0
+        ]
+      },
+      "patients": 1500,
+      "rows": 46500
+    }
+  },
+  "model_file_sha256": "dd0c2e4f7bffa9205be285d0ebd3d0f60f89eeda40c0ef3c3c21fca943986398",
+  "model_version": "trajectory-gbq-0.1.0",
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "training_data_sha256": "9e75bf9976380c9f39a26178bde8305f34f92e2e959029dd358d588d214dc9a6"
+}

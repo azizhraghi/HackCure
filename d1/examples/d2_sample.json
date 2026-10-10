@@ -1,0 +1,49 @@
+{
+  "status": "WARNING",
+  "ocr_method": "pymupdf",
+  "word_count": 272,
+  "extraction": {
+    "document_type": "ordonnance",
+    "patient_lastname": "MILLER",
+    "patient_firstname": "Sarah",
+    "patient_dob": "15/03/1961",
+    "known_allergies": ["pénicilline"],
+    "prescriber": "Dr. Elena Ruiz",
+    "prescription_date": "04/06/2025",
+    "surgery_type": "Prothèse Totale du Genou Droite",
+    "medications": [
+      {"dci": "paracétamol", "commercial_name": "Doliprane", "dosage_mg": 1000.0, "dosage_raw": "1 g",
+       "frequency_per_day": 3, "frequency_raw": "matin, midi, soir", "duration_days": 14, "route": "oral",
+       "drug_class": "Analgésique", "antibiotic_family": null, "special_instructions": "au cours du repas",
+       "confidence": 0.97, "confidence_notes": null},
+      {"dci": "célécoxib", "commercial_name": null, "dosage_mg": 200.0, "dosage_raw": "200 mg",
+       "frequency_per_day": 1, "frequency_raw": "1 fois par jour", "duration_days": 14, "route": "oral",
+       "drug_class": "AINS COX-2", "antibiotic_family": null, "special_instructions": "avec le repas",
+       "confidence": 0.95, "confidence_notes": null},
+      {"dci": "énoxaparine sodique", "commercial_name": "Lovenox", "dosage_mg": 40.0,
+       "dosage_raw": "4000 UI / 0.4 mL", "frequency_per_day": 1, "frequency_raw": "1 injection le soir",
+       "duration_days": 14, "route": "injectable_sc", "drug_class": "HBPM", "antibiotic_family": null,
+       "special_instructions": "injection sous-cutanée abdominale", "confidence": 0.96,
+       "confidence_notes": null}
+    ],
+    "physical_restrictions": ["Pas de conduite automobile avant J+28", "Appui avec béquilles obligatoire"],
+    "followup_appointments": [
+      {"description": "Ablation des agrafes", "timing": "J+14", "type": "infirmier"},
+      {"description": "Consultation de contrôle", "timing": "6 semaines post-op", "type": "médecin"}
+    ],
+    "general_instructions": "Ne pas prendre d'AINS supplémentaires; kinésithérapie dès J+1",
+    "global_confidence": 0.96,
+    "extraction_warnings": []
+  },
+  "safety_report": {
+    "status": "WARNING",
+    "alerts": [
+      {"severity": "WARNING", "code": "AINS_HBPM_INTERACTION",
+       "message": "Célécoxib (AINS) + Énoxaparine (HBPM) — risque hémorragique augmenté",
+       "medications_involved": ["célécoxib", "énoxaparine sodique"],
+       "recommendation": "Surveillance clinique stricte, signes de saignement"}
+    ],
+    "llm_analysis": "Ordonnance post-PTG conforme..."
+  },
+  "errors": []
+}
