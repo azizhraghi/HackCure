@@ -1,6 +1,8 @@
 """Canned LLM behaviour for LLM_MODE=stub (tests, offline demo). Deterministic, schema-valid."""
 
-from .llm import stub
+import json
+
+from .llm import Reply, ToolCall, new_call_id, stub
 
 ITEM_WORDS = {"pain": "pain", "fatigue": "tiredness", "mobility": "difficulty moving"}
 
@@ -39,3 +41,130 @@ def _digest(messages, ctx):
     if "medications" in cats:
         tasks.append({"text": f"Remind {name} about the 20:00 medicines.", "category": "medications"})
     return {"summary": summary, "tasks": tasks[:3]}
+
+
+# ------------------------------------------------------------------ investigation (tool loop)
+
+def _results(messages) -> list[tuple[str, dict]]:
+    out = []
+    for msg in messages:
+        if msg.get("role") == "tool":
+            try:
+                out.append((msg.get("name"), json.loads(msg.get("content") or "{}")))
+            except json.JSONDecodeError:
+                out.append((msg.get("name"), {}))
+    return out
+
+
+def _last(results, name, pred=lambda r: True):
+    return next((r for n, r in reversed(results) if n == name and pred(r)), None)
+
+
+def _call(name, args):
+    return Reply(content=f"Next: {name}", tool_calls=[ToolCall(new_call_id(), name, args)])
+
+
+@stub("investigation")
+def _investigate(messages, ctx):
+    """Scripted but grounded: reads the real tool results and cites their observation ids."""
+    res = _results(messages)
+    done = [n for n, _ in res]
+    flags = ctx.get("flags", [])
+    if "never_finish" in flags:
+        return _call("get_medication_context", {})
+    script = [("get_vitals_trend", {"metric": "hr", "hours": 24}),
+              ("get_vitals_trend", {"metric": "temp", "hours": 24}),
+              ("get_symptom_checkins", {"days": 3}),
+              ("get_medication_context", {}),
+              ("get_wound_photos", {"n": 2}),
+              ("request_wound_photo", {"reason": "Check the incision for spreading redness"})]
+    if len(done) < len(script):
+        return _call(*script[len(done)])
+    photos = _last(res, "get_wound_photos") or {"photos": []}
+    new_photo_id = ((_last(res, "request_wound_photo") or {}).get("answer") or {}).get("observation_id")
+    if "compare_wound_photos" not in done and photos["photos"]:
+        oldest = photos["photos"][-1]["observation_id"]
+        newest = new_photo_id or photos["photos"][0]["observation_id"]
+        if oldest != newest:
+            return _call("compare_wound_photos", {"photo_id_a": oldest, "photo_id_b": newest})
+    if "ask_followup_question" not in done:
+        return _call("ask_followup_question", {"text": "Since yesterday, have you had chills or felt feverish?",
+                                               "options": ["No", "Yes, a little", "Yes, a lot"]})
+    return _call("finish_investigation", {"findings": _findings(res, ctx, new_photo_id)})
+
+
+def _findings(res, ctx, new_photo_id):
+    flags, name = ctx.get("flags", []), ctx.get("first_name", "the patient")
+    hr = _last(res, "get_vitals_trend", lambda r: r.get("metric") == "hr") or {}
+    temp = _last(res, "get_vitals_trend", lambda r: r.get("metric") == "temp") or {}
+    checkins = _last(res, "get_symptom_checkins") or {}
+    meds = _last(res, "get_medication_context") or {}
+    cmp = _last(res, "compare_wound_photos") or {}
+    q = _last(res, "ask_followup_question") or {}
+
+    device, patient, missing = [], [], []
+    hr_rows = [r for r in hr.get("recent_readings", []) if r["quality"] == "good"]
+    if hr_rows:
+        last = hr_rows[-1]
+        device.append({"text": f"Heart rate {last['value'].get('value')} bpm (baseline {hr.get('baseline')}), "
+                               f"24 h range {hr['summary'].get('min')}-{hr['summary'].get('max')}",
+                       "observation_id": last["observation_id"], "quality": last["quality"]})
+    temp_rows = [r for r in temp.get("recent_readings", []) if r["quality"] == "good"]
+    if temp_rows:
+        last = temp_rows[-1]
+        device.append({"text": f"Temperature {last['value'].get('value')} °C (baseline {temp.get('baseline')})",
+                       "observation_id": last["observation_id"], "quality": last["quality"]})
+    worse = checkins.get("worsening_vs_previous") or {}
+    if worse:
+        items = ", ".join(f"{w['item']} {w['before']}/5 → {w['now']}/5" for w in worse.get("items", []))
+        patient.append({"text": f"Check-in: {items}", "observation_id": worse["observation_id"]})
+    elif checkins.get("checkins"):
+        c = checkins["checkins"][-1]
+        patient.append({"text": f"Check-in scores {c['scores_1_to_5']}", "observation_id": c["observation_id"]})
+    for d in meds.get("not_taken", []):
+        if d.get("observation_id"):
+            patient.append({"text": f"{d['name']} dose at {d['scheduled_for'][11:16]} on {d['scheduled_for'][:10]} "
+                                    "recorded as not taken", "observation_id": d["observation_id"]})
+    if new_photo_id:
+        patient.append({"text": "New wound photo taken today", "observation_id": new_photo_id})
+    else:
+        missing.append("No new wound photo (request not answered)")
+    answer = q.get("answer") or {}
+    if answer.get("observation_id"):
+        patient.append({"text": f"Asked about chills/fever: \"{answer.get('text')}\"",
+                        "observation_id": answer["observation_id"]})
+    else:
+        missing.append("Follow-up question about chills not answered")
+    if meds.get("unknown"):
+        missing.append(f"{len(meds['unknown'])} recent dose(s) with no answer (unknown)")
+    if "bad_ids_first" in flags and not any(n == "finish_investigation" for n, _ in res):
+        patient.append({"text": "Invented claim", "observation_id": "obs_doesnotexist"})
+
+    redness = (cmp.get("comparison") or {}).get("redness_area_change_pct") if cmp.get("available") else None
+    wound_txt = f", wound redness area +{redness}% vs day 1 (pre-computed comparison)" if redness is not None else ""
+    hr_last = hr_rows[-1]["value"].get("value") if hr_rows else "unknown"
+    temp_last = temp_rows[-1]["value"].get("value") if temp_rows else "unknown"
+    n_missed = len(meds.get("not_taken", []))
+    return {
+        "what_changed": f"Heart rate rising to {hr_last} bpm (baseline {hr.get('baseline')}) and temperature "
+                        f"{temp_last} °C over the last 24 h, with more fatigue{wound_txt}.",
+        "started_at": hr_rows[0]["at"] if hr_rows else None,
+        "persistent": True,
+        "patient_reported": patient,
+        "device_measured": device,
+        "ai_interpretation": "Several small changes point in the same direction (higher heart rate, low-grade "
+                             "temperature, more fatigue" + (", a missed antibiotic dose" if n_missed else "") +
+                             (" and more redness around the incision" if redness else "") +
+                             "). Together they may deserve a clinician review today. This is not a diagnosis.",
+        "missing_or_conflicting": missing,
+        "suggested_priority": "attention",
+        "messages": {
+            "patient": "Thank you. Your care team will look at your readings today and may call you. Keep your "
+                       "phone nearby and rest. If you get short of breath, chest pain or feel faint, call 112.",
+            "caregiver": f"Please check in on {name} this evening, help with rest and keep the phone close. "
+                         "The care team may call.",
+            "clinician": f"Day 3 after TKR: HR {hr_last} (baseline {hr.get('baseline')}), T {temp_last} °C, "
+                         f"fatigue up on check-in, {n_missed} missed antibiotic dose(s){wound_txt}. "
+                         "Suggest review today.",
+        },
+    }

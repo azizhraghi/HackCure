@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+import app.main  # noqa: E402,F401  (registers agent jobs)
 from app import clock, db  # noqa: E402
 from app.config import settings  # noqa: E402
 

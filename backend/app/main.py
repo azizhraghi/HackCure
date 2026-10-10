@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db
 from .config import settings
-from .routers import alerts, chat, medications, observations, patients
+from .agents import investigation  # noqa: F401  (registers the runner job)
+from .routers import alerts, chat, investigations, medications, observations, patients
 
 SEED_DIR = Path(__file__).resolve().parent.parent / "seed"
 
@@ -27,8 +28,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/static/photos", StaticFiles(directory=SEED_DIR / "photos"), name="photos")
+UPLOADS = Path(__file__).resolve().parent.parent / "uploads"
+UPLOADS.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
 
-for r in (chat.router, patients.router, observations.router, alerts.router, medications.router):
+for r in (chat.router, patients.router, observations.router, alerts.router, medications.router,
+          investigations.router):
     app.include_router(r)
 
 
