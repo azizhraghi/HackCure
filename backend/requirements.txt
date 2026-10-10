@@ -1,3 +1,4 @@
+# --- core API + D3 agents
 fastapi>=0.115
 uvicorn[standard]>=0.30
 mistralai>=2.0
@@ -6,9 +7,21 @@ sqlmodel>=0.0.40
 apscheduler>=3.10,<4
 pytest>=8
 httpx>=0.27
-langgraph>=1.0,<2.0
 pypdf>=5
 python-multipart>=0.0.9
 fpdf2>=2.7  # only to regenerate seed/documents (python -m seed.make_sample_docs)
 pillow>=10
 numpy>=1.26
+# --- LangGraph (D3 /v1/demo workflow, D2 graphs)
+langgraph>=1.0,<2.0
+# --- D2: protocol compiler (OCR, extraction, safety graph) + RAG assistant
+sqlalchemy>=2.0
+aiosqlite>=0.20
+langchain>=0.3
+langchain-core>=0.3
+langchain-community>=0.3
+langchain-mistralai>=0.2
+langchain-groq>=1.1
+faiss-cpu>=1.8
+pymupdf>=1.24
+bleach>=6.0

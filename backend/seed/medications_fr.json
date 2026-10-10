@@ -1,0 +1,50 @@
+{
+  "paracétamol": {
+    "classe": "Antalgique périphérique, antipyrétique",
+    "indications": "Douleurs d'intensité légère à modérée et/ou états fébriles.",
+    "effets_indesirables_frequents": ["Aucun en usage courant aux doses recommandées."],
+    "effets_indesirables_rares": ["Éruption cutanée", "Réaction allergique (choc anaphylactique)"],
+    "interactions_pertinentes": [],
+    "contre_indications": ["Insuffisance hépatique sévère", "Allergie au paracétamol"],
+    "surdosage": "Hépatotoxicité sévère au-delà de 4g/jour (adulte >50kg). Signes : nausées, vomissements, anorexie, pâleur, douleurs abdominales."
+  },
+  "célécoxib": {
+    "classe": "Anti-inflammatoire non stéroïdien (AINS) sélectif COX-2",
+    "indications": "Traitement symptomatique de l'arthrose, de la polyarthrite rhumatoïde et de la spondylarthrite ankylosante.",
+    "effets_indesirables_frequents": ["Douleurs abdominales", "Nausées", "Troubles digestifs", "Aggravation d'une hypertension artérielle", "Œdème périphérique"],
+    "effets_indesirables_rares": ["Ulcère gastro-duodénal", "Saignement digestif", "Insuffisance rénale aiguë"],
+    "interactions_pertinentes": [
+      {
+        "avec": "Anticoagulants (ex: énoxaparine)",
+        "effet": "Augmentation du risque de saignement",
+        "gestion": "Surveillance clinique, associer un protecteur gastrique (IPP) chez les patients à risque"
+      }
+    ],
+    "contre_indications": ["Ulcère peptique évolutif", "Saignement gastro-intestinal", "Insuffisance rénale sévère", "Allergie aux sulfamides"],
+    "surdosage": "Léthargie, somnolence, nausées, vomissements, douleurs épigastriques."
+  },
+  "pantoprazole": {
+    "classe": "Inhibiteur de la pompe à protons (IPP)",
+    "indications": "Prévention et traitement des ulcères gastro-duodénaux, souvent associés à la prise d'AINS.",
+    "effets_indesirables_frequents": ["Céphalées", "Diarrhées", "Nausées/vomissements", "Flatulences", "Douleurs abdominales"],
+    "effets_indesirables_rares": ["Éruption cutanée", "Arthralgies"],
+    "interactions_pertinentes": [],
+    "contre_indications": ["Insuffisance hépatique sévère (ajustement de dose)", "Allergie au pantoprazole"],
+    "surdosage": "Aucun symptôme spécifique décrit."
+  },
+  "énoxaparine sodique": {
+    "classe": "Anticoagulant (Héparine de bas poids moléculaire - HBPM)",
+    "indications": "Traitement prophylactique de la maladie thromboembolique veineuse, en particulier en chirurgie orthopédique ou générale.",
+    "effets_indesirables_frequents": ["Hémorragie", "Hématome au point d'injection", "Thrombopénie", "Élévation des enzymes hépatiques"],
+    "effets_indesirables_rares": ["Thrombopénie induite par l'héparine (TIH)", "Nécrose cutanée au point d'injection"],
+    "interactions_pertinentes": [
+      {
+        "avec": "AINS (ex: célécoxib)",
+        "effet": "Augmentation du risque hémorragique",
+        "gestion": "Prudence et surveillance clinique"
+      }
+    ],
+    "contre_indications": ["Hémorragie majeure évolutive", "Antécédent de TIH type II", "Endocardite infectieuse"],
+    "surdosage": "Complications hémorragiques. Antidote : sulfate de protamine."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "titre": "Protocole de Rééducation - PTG Droite",
+  "patient_nom": "Miller",
+  "patient_prenom": "Sarah",
+  "chirurgien": "Dr. Elena Ruiz",
+  "principes_generaux": [
+    "Respecter la douleur (EVA < 4/10 pendant les exercices). Si douleur > 4, réduire l'intensité.",
+    "Pas de coussin sous le genou (risque de flessum). Le membre inférieur doit être en extension complète au repos.",
+    "Glaçage après chaque séance."
+  ],
+  "phases": [
+    {
+      "nom": "Phase 1 : J1 à J14 (Cicatrisation)",
+      "objectifs": [
+        "Contrôle de la douleur et de l'inflammation",
+        "Extension complète (0°)",
+        "Flexion à 90° à J10",
+        "Autonomie pour les transferts et la marche avec 2 béquilles"
+      ],
+      "exercices_quotidiens": [
+        {
+          "nom": "Pompages de la cheville",
+          "description": "Mouvements de haut en bas de la cheville pour stimuler la circulation.",
+          "frequence": "3 séries de 15",
+          "moment": "matin et soir"
+        },
+        {
+          "nom": "Écrasement du coussin (contraction du quadriceps)",
+          "description": "Jambe tendue, écraser un petit coussin placé sous le genou en contractant la cuisse.",
+          "frequence": "2 séries de 10",
+          "moment": "matin et soir"
+        },
+        {
+          "nom": "Flexion du genou (talon fesse)",
+          "description": "Assis au bord de la chaise ou du lit, plier doucement le genou en reculant le pied.",
+          "frequence": "2 séries de 10",
+          "moment": "matin et soir",
+          "restriction": "Arrêter si douleur (EVA > 4)"
+        }
+      ]
+    },
+    {
+      "nom": "Phase 2 : S3 à S6 (Récupération fonctionnelle)",
+      "objectifs": [
+        "Marche avec 1 béquille puis sevrage",
+        "Flexion > 110° à S6",
+        "Renforcement musculaire progressif"
+      ],
+      "exercices_quotidiens": [
+        {
+          "nom": "Vélo d'appartement",
+          "description": "Sans résistance initiale. Commencer par des allers-retours si le tour complet n'est pas possible.",
+          "frequence": "10-15 minutes",
+          "moment": "une fois par jour"
+        },
+        {
+          "nom": "Montée/Descente escaliers",
+          "description": "Apprentissage : monter avec la jambe saine, descendre avec la jambe opérée.",
+          "frequence": "Selon tolérance",
+          "moment": "au besoin"
+        }
+      ]
+    }
+  ],
+  "restrictions": [
+    "Pas de conduite automobile avant le feu vert du chirurgien (généralement S4-S6) et sevrage des antalgiques forts.",
+    "Pas de port de charges lourdes.",
+    "Pas de sports d'impact (course à pied, sauts) définitivement."
+  ]
+}

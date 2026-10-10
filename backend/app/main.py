@@ -15,6 +15,7 @@ from .config import settings
 from .routers import (alerts, caregiver, chat, checkin, demo, documents, investigations, medications,
                       observations, patients, wounds)
 from d3_demo import router as d3_demo_router
+from .api.v1 import router as d2_router  # Developer 2: documents (D2A), RAG assistant (D2B), check-in rules
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +45,7 @@ PATIENT_WEB = BACKEND_DIR.parent / "mobile" / "dist-web"
 app.mount("/app", StaticFiles(directory=PATIENT_WEB, html=True, check_dir=False), name="patient-web-preview")
 app.mount("/agent-demo", StaticFiles(directory=BACKEND_DIR / "web", html=True), name="agent-dashboard")
 app.include_router(d3_demo_router)
+app.include_router(d2_router, prefix="/v1")
 
 
 @app.get("/demo", include_in_schema=False)
