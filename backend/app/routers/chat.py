@@ -1,6 +1,6 @@
 """Recovery Assistant chat (moved from the original backend/main.py; same request/response shape).
 
-Proxies to Mistral so the API key never ships inside the mobile app.
+Goes through app/llm.py (route "chat", LLM_ROUTE_CHAT) so the API key never ships inside the mobile app.
 """
 
 import re
@@ -8,10 +8,9 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from .. import monitor
+from .. import llm, monitor
 from ..models import ObservationIn
 from ..safety import urgent_rules
-from ..config import settings
 from ..db import Repo, get_repo
 
 router = APIRouter(tags=["chat"])
@@ -81,19 +80,8 @@ class ChatResponse(BaseModel):
     escalate: bool
 
 
-_client = None
-
-
-def _mistral():
-    global _client
-    if _client is None and settings.mistral_api_key:
-        from mistralai.client import Mistral
-        _client = Mistral(api_key=settings.mistral_api_key)
-    return _client
-
-
 @router.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest, repo: Repo = Depends(get_repo)):
+def chat(req: ChatRequest, repo: Repo = Depends(get_repo)):
     # Safety gate first: a red-flag message never waits for (or depends on) the LLM.
     last_user = next((msg.content for msg in reversed(req.messages) if msg.role == "user"), "")
     if repo.patient(req.patient_id):
@@ -105,24 +93,13 @@ async def chat(req: ChatRequest, repo: Repo = Depends(get_repo)):
             text = plan.get("patient_texts", {}).get("urgent", "Call emergency services now.")
             return ChatResponse(reply=text, escalate=True)
 
-    client = _mistral()
-    if client is None:
-        raise HTTPException(status_code=503, detail="MISTRAL_API_KEY is not set on the server")
-
     language = "French" if req.lang.lower().startswith("fr") else "English"
     messages = [{"role": "system", "content": SYSTEM_PROMPT.replace("{lang}", language)}]
     messages += [msg.model_dump() for msg in req.messages[-12:]]
-
     try:
-        res = await client.chat.complete_async(model=settings.mistral_model, messages=messages, temperature=0.2,
-                                               max_tokens=400)
-    except Exception as exc:  # network / auth / quota errors
-        raise HTTPException(status_code=502, detail=f"Mistral error: {exc}") from exc
-
-    content = res.choices[0].message.content if res.choices else ""
-    if isinstance(content, list):  # content chunks
-        content = "".join(getattr(c, "text", "") for c in content)
-    text = (content or "").strip()
+        text = llm.chat_text("chat", messages, {"lang": language})  # provider/model: LLM_ROUTE_CHAT
+    except llm.LLMUnavailable as exc:
+        raise HTTPException(status_code=503, detail=f"AI assistant unavailable: {exc}") from exc
     escalate = "[ESCALATE]" in text
     text = re.sub(r"\s*\[ESCALATE\]\s*", " ", text).strip()
     return ChatResponse(reply=text, escalate=escalate)

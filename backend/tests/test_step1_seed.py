@@ -35,7 +35,13 @@ def test_unknown_patient_404(client):
 
 def test_chat_still_routed(client):
     assert any(getattr(r, "path", "") == "/chat" for r in chat_router.routes)
-    # No key in tests -> explicit 503, same behaviour as before
+    r = client.post("/chat", json={"messages": [{"role": "user", "content": "When is physio?"}]})
+    assert r.status_code == 200 and r.json() == {"reply": r.json()["reply"], "escalate": False}  # stub reply
+
+
+def test_chat_llm_down_is_503(client, monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "llm_mode", "off")
     r = client.post("/chat", json={"messages": [{"role": "user", "content": "When is physio?"}]})
     assert r.status_code == 503
 

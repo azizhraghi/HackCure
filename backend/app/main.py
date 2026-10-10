@@ -48,4 +48,4 @@ def health():
     return {"status": "ok", "llm": prov, "llm_mode": settings.llm_mode,
             "model": getattr(settings, f"{prov}_model", settings.mistral_model),
             "configured": bool(getattr(settings, f"{prov}_api_key", "")),
-            "routes": {a: "/".join(route(a)) for a in ("investigation", "checkin_clarify", "digest")}}
+            "routes": {a: "/".join(route(a)) for a in ("investigation", "checkin_clarify", "digest", "chat")}}

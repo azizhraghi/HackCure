@@ -26,6 +26,15 @@ def _clarify(messages, ctx):
                         "I can hardly get out of bed"]}
 
 
+@stub("chat")
+def _chat(messages, ctx):
+    if ctx.get("lang") == "French":
+        return ("Je peux vous aider à comprendre votre plan de récupération. Pour toute décision médicale, "
+                "parlez-en à votre équipe de soins. (réponse de démonstration)")
+    return ("I can help you understand your recovery plan. For any medical decision, please check with your "
+            "care team. (demo reply)")
+
+
 @stub("digest")
 def _digest(messages, ctx):
     name = ctx.get("first_name", "The patient")

@@ -110,6 +110,19 @@ def chat_tools(agent: str, messages: list[dict], tools: list[dict], context: dic
     return Reply(content=_text(msg.content), tool_calls=calls, mode="live", ms=int((time.perf_counter() - t0) * 1000))
 
 
+def chat_text(agent: str, messages: list[dict], context: dict | None = None) -> str:
+    """Plain conversational reply (Recovery Assistant chat)."""
+    m = mode()
+    if m == "off":
+        raise LLMUnavailable("LLM disabled (LLM_MODE=off)")
+    if m == "stub":
+        return _stub(agent, messages, context)
+    text = _text(_complete(agent, messages=messages).choices[0].message.content)
+    if not text:
+        raise LLMBadOutput("empty reply from model")
+    return text
+
+
 def chat_json(agent: str, messages: list[dict], context: dict | None = None) -> dict:
     """Structured output: returns a parsed JSON object (validate it with Pydantic in the caller)."""
     m = mode()
