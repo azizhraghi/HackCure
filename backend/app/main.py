@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from . import db
 from .config import settings
 from .agents import investigation  # noqa: F401  (registers the runner job)
-from .routers import alerts, chat, investigations, medications, observations, patients
+from .routers import alerts, chat, checkin, investigations, medications, observations, patients
 
 SEED_DIR = Path(__file__).resolve().parent.parent / "seed"
 
@@ -33,7 +33,7 @@ UPLOADS.mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
 
 for r in (chat.router, patients.router, observations.router, alerts.router, medications.router,
-          investigations.router):
+          investigations.router, checkin.router):
     app.include_router(r)
 
 

@@ -40,9 +40,20 @@ def readings(scenario: str) -> list[m.ObservationIn]:
     raise ValueError(f"unknown scenario {scenario}; choose one of {SCENARIOS}")
 
 
-def inject(repo: Repo, scenario: str, patient_id: str = "sarah") -> dict:
-    """Apply a scenario in-process. Every reading goes through the Monitor exactly like POST /observations."""
+# Sarah's day-3 check-in in the demo story: fatigue 7/10 (= 4/5; it was 2/5 yesterday)
+DEMO_CHECKIN = {"pain": 4, "fatigue": 7, "mobility": 4, "chips": [], "comment": "Very tired today"}
+
+
+def inject(repo: Repo, scenario: str, patient_id: str = "sarah", with_checkin: bool = False) -> dict:
+    """Apply a scenario in-process. Every reading goes through the Monitor exactly like POST /observations.
+
+    with_checkin (infection_pattern): submit Sarah's check-in first, as in the demo story.
+    """
     results = []
+    checkin_result = None
+    if scenario == "infection_pattern" and with_checkin:
+        from app.agents import checkin
+        checkin_result = checkin.submit(repo, m.CheckinIn(patient_id=patient_id, **DEMO_CHECKIN))
     if scenario == "no_data":
         cutoff = clock.now() - timedelta(hours=6)
         repo.delete_where(m.Observation, m.Observation.patient_id == patient_id, m.Observation.source == "device",
@@ -57,7 +68,7 @@ def inject(repo: Repo, scenario: str, patient_id: str = "sarah") -> dict:
                                  value={"chips": ["shortness_of_breath"], "comment": "severe breathlessness"})
         obs, res = monitor.ingest(repo, report)
         results.append(res)
-    return {"scenario": scenario, "results": results}
+    return {"scenario": scenario, "checkin": checkin_result, "results": results}
 
 
 def stream(url: str, scenario: str, every: float, count: int) -> None:  # pragma: no cover - manual tool

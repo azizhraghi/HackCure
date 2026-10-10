@@ -11,6 +11,7 @@ from pathlib import Path
 
 from app import clock
 from app import models as m
+from app.agents.checkin import to_scale5
 from app.db import Repo, drop_all
 
 SEED_DIR = Path(__file__).parent
@@ -107,11 +108,6 @@ def load(repo: Repo, now: datetime | None = None) -> dict:
 def _dev(type_: str, value: dict, ts: datetime) -> m.Observation:
     return m.Observation(patient_id="sarah", type=type_, value=value, unit=UNITS[type_], measured_at=ts,
                          received_at=ts, source="device", quality="good", simulated=True)
-
-
-def to_scale5(raw: int) -> int:
-    """Map the app's 0-10 slider to the internal 1-5 scale."""
-    return min(5, raw // 2 + 1)
 
 
 def checkin_value(pain: int, fatigue: int, mobility: int, chips=None, comment=None) -> dict:
