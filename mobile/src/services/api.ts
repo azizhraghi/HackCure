@@ -7,10 +7,10 @@ export async function sendChat(apiUrl: string, messages: ChatMessage[], lang: st
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
   try {
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/chat`, {
+    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/v1/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, lang }),
+      body: JSON.stringify({ messages, lang, actor_role: 'patient', granted_categories: [] }),
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

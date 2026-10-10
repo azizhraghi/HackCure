@@ -1,0 +1,44 @@
+{
+  "etablissement": "St. Joseph Medical Center",
+  "patient_nom": "Miller",
+  "patient_prenom": "Sarah",
+  "date_sortie": "2025-06-07",
+  "diagnostic_principal": "Suites d'une Prothèse Totale du Genou (PTG) droit",
+  "chirurgien": "Dr. Elena Ruiz",
+  "allergie_connue": "Pénicilline",
+  "instructions_de_sortie": {
+    "mobilite": "Appui complet autorisé sur la jambe droite. Utilisation de deux béquilles requise pour les déplacements jusqu'à avis contraire du chirurgien ou du kiné (généralement 2 à 4 semaines).",
+    "soins_locaux": "Pansement imperméable en place. La douche est autorisée (sans frotter le pansement). Pas de bain, piscine ou immersion tant que la plaie n'est pas totalement cicatrisée et les agrafes retirées (vers J14). Ne pas changer le pansement vous-même, cela sera fait par une infirmière ou lors de la consultation.",
+    "prevention_thromboembolique": "Injections quotidiennes d'anticoagulant (Lovenox) à poursuivre à domicile selon l'ordonnance.",
+    "gestion_douleur": "Prendre les antalgiques régulièrement, surtout avant les séances de kinésithérapie. Appliquer de la glace (avec un linge, jamais directement sur la peau) 15-20 min plusieurs fois par jour, surtout après les exercices."
+  },
+  "signes_d_alerte": [
+    "Fièvre > 38°C",
+    "Rougeur, chaleur ou gonflement important au niveau de la cicatrice",
+    "Écoulement purulent ou malodorant de la plaie",
+    "Douleur qui augmente de façon importante malgré les antalgiques"
+  ],
+  "urgences_absolues": [
+    "Essoufflement soudain, difficulté à respirer",
+    "Douleur dans la poitrine",
+    "Douleur importante ou gonflement dans le mollet (droit ou gauche)",
+    "Malaise ou perte de connaissance"
+  ],
+  "rendez_vous_suivi": [
+    {
+      "type": "Kinésithérapie (1ère séance)",
+      "date": "2025-06-12",
+      "heure": "15:00"
+    },
+    {
+      "type": "Infirmière (ablation agrafes)",
+      "date": "2025-06-14",
+      "heure": "09:00"
+    },
+    {
+      "type": "Consultation chirurgien (Dr. Ruiz)",
+      "date": "2025-06-18",
+      "heure": "10:30"
+    }
+  ]
+}

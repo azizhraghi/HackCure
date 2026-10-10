@@ -1,0 +1,22 @@
+{
+  "etablissement": "St. Joseph Medical Center",
+  "service": "Chirurgie Orthopédique",
+  "patient_nom": "Miller",
+  "patient_prenom": "Sarah",
+  "date_intervention": "2025-06-04",
+  "chirurgien": "Dr. Elena Ruiz",
+  "anesthesiste": "Dr. Thomas Leblanc",
+  "type_anesthesie": "Rachianesthésie",
+  "intervention": "Prothèse Totale du Genou (PTG) droit",
+  "indication": "Gonarthrose tricompartimentale droite invalidante en échec du traitement médical.",
+  "installation": "Patient en décubitus dorsal, garrot pneumatique à la racine de la cuisse droite.",
+  "deroulement_operatoire": "Voie d'abord antérieure parapatellaire interne. Excision des ostéophytes. Coupes osseuses fémorales et tibiales aux ancillaires conventionnels. Mise en place d'une prothèse totale cimentée (Modèle NexGen, Zimmer). Taille fémur : E, Taille tibia : 4. Insert en polyéthylène épaisseur 10 mm. Rotule non resurfacée mais dénervée. Lavage articulaire abondant. Fermeture plan par plan sur redon aspiratif intra-articulaire. Pansement sec et stérile.",
+  "suites_immediates": "Surveillance en SSPI. Sortie autorisée vers le service de soins. Appui total autorisé sous couvert de cannes béquilles.",
+  "consignes_post_operatoires": [
+    "Surveillance des constantes vitales et de la cicatrice.",
+    "Anticoagulation préventive par HBPM (énoxaparine) pendant 14 jours.",
+    "Antalgiques selon protocole.",
+    "Ablation du redon à J1.",
+    "Premier levé à J1 par le kinésithérapeute."
+  ]
+}

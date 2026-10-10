@@ -66,50 +66,23 @@ Rules:
 {RECOVERY_PLAN}
 """
 
-app = FastAPI(title="SurgiGuard AI backend", version="0.1.0")
+from app.api.v1 import router as api_router
+from app.database import engine, Base
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-client = Mistral(api_key=MISTRAL_API_KEY) if MISTRAL_API_KEY else None
-
-
-class Message(BaseModel):
-    role: str = Field(pattern="^(user|assistant)$")
-    content: str = Field(max_length=4000)
-
-
-class ChatRequest(BaseModel):
-    messages: list[Message] = Field(min_length=1, max_length=40)
-    lang: str = "en"
-
-
-class ChatResponse(BaseModel):
-    reply: str
-    escalate: bool
-
+app.include_router(api_router, prefix="/v1")
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "llm": "mistral", "model": MISTRAL_MODEL, "configured": client is not None}
+    return {"status": "ok", "llm": "mistral", "model": MISTRAL_MODEL, "v2": True}
 
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
-    if client is None:
-        raise HTTPException(status_code=503, detail="MISTRAL_API_KEY is not set on the server")
-
-    language = "French" if req.lang.lower().startswith("fr") else "English"
-    messages = [{"role": "system", "content": SYSTEM_PROMPT.replace("{lang}", language)}]
-    messages += [m.model_dump() for m in req.messages[-12:]]
-
-    try:
-        res = await client.chat.complete_async(model=MISTRAL_MODEL, messages=messages, temperature=0.2, max_tokens=400)
-    except Exception as exc:  # network / auth / quota errors
-        raise HTTPException(status_code=502, detail=f"Mistral error: {exc}") from exc
-
-    content = res.choices[0].message.content if res.choices else ""
-    if isinstance(content, list):  # content chunks
-        content = "".join(getattr(c, "text", "") for c in content)
-    text = (content or "").strip()
-    escalate = "[ESCALATE]" in text
-    text = re.sub(r"\s*\[ESCALATE\]\s*", " ", text).strip()
-    return ChatResponse(reply=text, escalate=escalate)

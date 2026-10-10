@@ -1,0 +1,48 @@
+{
+  "patient_nom": "Miller",
+  "patient_prenom": "Sarah",
+  "date_naissance": "1961-03-15",
+  "allergie": "pénicilline",
+  "date_prescription": "2025-06-04",
+  "chirurgien": "Dr. Elena Ruiz",
+  "etablissement": "St. Joseph Medical Center",
+  "medicaments": [
+    {
+      "dci": "paracétamol",
+      "nom_commercial": "Doliprane",
+      "dosage": "1 g",
+      "frequence": "3 fois par jour (matin, midi, soir)",
+      "duree": "14 jours ou selon douleur",
+      "instructions_speciales": "Ne pas dépasser 4 g par jour",
+      "classe_therapeutique": "Antalgique palier 1"
+    },
+    {
+      "dci": "célécoxib",
+      "nom_commercial": "Celebrex",
+      "dosage": "200 mg",
+      "frequence": "1 fois par jour le matin",
+      "duree": "14 jours",
+      "instructions_speciales": "Prendre au milieu du repas",
+      "classe_therapeutique": "AINS (Anti-inflammatoire non stéroïdien)"
+    },
+    {
+      "dci": "pantoprazole",
+      "nom_commercial": "Inexium",
+      "dosage": "20 mg",
+      "frequence": "1 fois par jour le matin",
+      "duree": "14 jours",
+      "instructions_speciales": "Prendre à jeun, protège l'estomac",
+      "classe_therapeutique": "IPP (Inhibiteur de la pompe à protons)"
+    },
+    {
+      "dci": "énoxaparine sodique",
+      "nom_commercial": "Lovenox",
+      "dosage": "4000 UI (40 mg)",
+      "frequence": "1 injection par jour le soir",
+      "duree": "14 jours",
+      "instructions_speciales": "Injection sous-cutanée. Prévention phlébite.",
+      "classe_therapeutique": "Anticoagulant (HBPM)"
+    }
+  ],
+  "instructions_generales": "Aucun autre anti-inflammatoire ne doit être pris (pas d'ibuprofène, d'aspirine ou de kétoprofène). Si la douleur augmente malgré le traitement, contacter le cabinet."
+}
