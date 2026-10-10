@@ -9,6 +9,7 @@ os.environ["RUN_AGENTS_INLINE"] = "1"
 os.environ["DB_URL"] = "sqlite://"
 os.environ["MISTRAL_API_KEY"] = ""  # set (empty) so load_dotenv cannot pull the real key from .env
 os.environ["GROQ_API_KEY"] = ""
+os.environ["OPENROUTER_API_KEY"] = ""
 os.environ["LLM_PROVIDER"] = "mistral"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

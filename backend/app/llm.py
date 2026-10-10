@@ -192,39 +192,51 @@ def _retry_after(headers, body: str) -> float | None:
     return (int(m_.group(1) or 0) * 60 + float(m_.group(2))) if m_ else None
 
 
-def _groq_complete(**kwargs):
-    """Groq's OpenAI-compatible endpoint, returned in the same shape as the Mistral SDK response."""
+OPENAI_COMPATIBLE = {  # provider -> (endpoint, key setting, model setting)
+    "groq": ("https://api.groq.com/openai/v1/chat/completions", "groq_api_key", "groq_model"),
+    "openrouter": ("https://openrouter.ai/api/v1/chat/completions", "openrouter_api_key", "openrouter_model"),
+}
+
+
+def _openai_complete(**kwargs):
+    """Groq / OpenRouter (OpenAI-compatible), returned in the same shape as the Mistral SDK response."""
     import httpx
     from types import SimpleNamespace as NS
-    if not settings.groq_api_key:
-        raise LLMUnavailable("GROQ_API_KEY is not set")
+    url, key_attr, model_attr = OPENAI_COMPATIBLE[settings.llm_provider]
+    key, model = getattr(settings, key_attr), getattr(settings, model_attr)
+    if not key:
+        raise LLMUnavailable(f"{key_attr.upper()} is not set")
     # Groq counts max_tokens against the per-minute token limit up front, so keep it modest.
-    body = {"model": settings.groq_model, "temperature": 0.2, "max_tokens": 1000, **kwargs}
+    body = {"model": model, "temperature": 0.2, "max_tokens": 1000, **kwargs}
     if body.get("tool_choice") == "any":  # Mistral's "must call a tool" == OpenAI's "required"
         body["tool_choice"] = "required"
-    if settings.groq_model.startswith("openai/gpt-oss"):
+    if settings.llm_provider == "groq" and model.startswith("openai/gpt-oss"):
         body["reasoning_effort"] = "low"  # hidden reasoning tokens count against the per-minute token limit
-    r = httpx.post("https://api.groq.com/openai/v1/chat/completions", json=body, timeout=settings.llm_timeout_s,
-                   headers={"Authorization": f"Bearer {settings.groq_api_key}"})
+    r = httpx.post(url, json=body, timeout=settings.llm_timeout_s,
+                   headers={"Authorization": f"Bearer {key}", "X-Title": "SurgiGuard AI (hackathon demo)"})
     if r.status_code != 200:
         raise ProviderError(r.status_code, r.text, _retry_after(r.headers, r.text))
-    msg = r.json()["choices"][0]["message"]
+    data = r.json()
+    if "choices" not in data:  # OpenRouter can return 200 with an upstream error object
+        err = data.get("error", {})
+        raise ProviderError(int(err.get("code") or 502), str(err)[:300])
+    msg = data["choices"][0]["message"]
     calls = [NS(id=tc.get("id"), function=NS(name=tc["function"]["name"], arguments=tc["function"]["arguments"]))
              for tc in msg.get("tool_calls") or []]
     return NS(choices=[NS(message=NS(content=msg.get("content"), tool_calls=calls))])
 
 
 def _complete(**kwargs):
-    groq = settings.llm_provider == "groq"
-    client = None if groq else _mistral()
+    compat = settings.llm_provider in OPENAI_COMPATIBLE
+    client = None if compat else _mistral()
     last: Exception | None = None
     attempt, rate_waited = 0, 0.0
     while True:
         attempt += 1
         _pace()
         try:
-            if groq:
-                return _groq_complete(**kwargs)
+            if compat:
+                return _openai_complete(**kwargs)
             return client.chat.complete(model=settings.mistral_model, temperature=0.2, max_tokens=1500,
                                         timeout_ms=int(settings.llm_timeout_s * 1000), **kwargs)
         except LLMUnavailable:
