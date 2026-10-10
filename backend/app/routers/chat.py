@@ -5,10 +5,14 @@ Proxies to Mistral so the API key never ships inside the mobile app.
 
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from .. import monitor
+from ..models import ObservationIn
+from ..safety import urgent_rules
 from ..config import settings
+from ..db import Repo, get_repo
 
 router = APIRouter(tags=["chat"])
 
@@ -69,6 +73,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(min_length=1, max_length=40)
     lang: str = "en"
+    patient_id: str = "sarah"
 
 
 class ChatResponse(BaseModel):
@@ -88,7 +93,18 @@ def _mistral():
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, repo: Repo = Depends(get_repo)):
+    # Safety gate first: a red-flag message never waits for (or depends on) the LLM.
+    last_user = next((msg.content for msg in reversed(req.messages) if msg.role == "user"), "")
+    if repo.patient(req.patient_id):
+        plan = repo.plan(req.patient_id)
+        if urgent_rules.evaluate_answer(last_user, plan).urgent:
+            # Stored as a patient report so the urgent alert links to an observation.
+            monitor.ingest(repo, ObservationIn(patient_id=req.patient_id, type="checkin", source="patient",
+                                               value={"comment": last_user, "channel": "chat"}))
+            text = plan.get("patient_texts", {}).get("urgent", "Call emergency services now.")
+            return ChatResponse(reply=text, escalate=True)
+
     client = _mistral()
     if client is None:
         raise HTTPException(status_code=503, detail="MISTRAL_API_KEY is not set on the server")

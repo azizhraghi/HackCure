@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db
 from .config import settings
-from .routers import alerts, chat, patients
+from .routers import alerts, chat, observations, patients
 
 SEED_DIR = Path(__file__).resolve().parent.parent / "seed"
 
@@ -28,7 +28,7 @@ app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/static/photos", StaticFiles(directory=SEED_DIR / "photos"), name="photos")
 
-for r in (chat.router, patients.router, alerts.router):
+for r in (chat.router, patients.router, observations.router, alerts.router):
     app.include_router(r)
 
 
