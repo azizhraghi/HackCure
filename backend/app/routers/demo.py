@@ -56,6 +56,9 @@ def answer_pending(patient_id: str = "sarah", option_index: int = 1, repo: Repo 
     (day-3 wound photo, multiple-choice option `option_index`)."""
     answered = []
     for _ in range(6):
+        active = repo.active_investigation(patient_id)
+        if active:  # live agents are slower: let it post its next request (or finish) first
+            _wait_for_agent(repo, active.id)
         repo.s.expire_all()
         reqs = repo.pending_requests(patient_id)
         if not reqs:

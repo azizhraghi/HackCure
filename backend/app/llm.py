@@ -10,6 +10,7 @@ Callers must treat LLMUnavailable as normal and fall back to rules/templates.
 
 import json
 import logging
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -149,17 +150,39 @@ def _mistral():
     return _client
 
 
+_pace_lock = threading.Lock()
+_last_call = 0.0
+
+
+def _pace() -> None:
+    """Space out calls (free tiers allow ~1 request/s). Shared by all agent threads."""
+    global _last_call
+    with _pace_lock:
+        wait = settings.llm_min_interval_s - (time.monotonic() - _last_call)
+        if wait > 0:
+            time.sleep(wait)
+        _last_call = time.monotonic()
+
+
+def _retryable(e: Exception) -> bool:
+    status = getattr(e, "status_code", None)
+    return status is None or status == 429 or status >= 500  # network/timeout, rate limit, server error
+
+
 def _complete(**kwargs):
     client = _mistral()
     last: Exception | None = None
-    for attempt in range(2):  # one retry
+    for attempt in range(3):
+        _pace()
         try:
             return client.chat.complete(model=settings.mistral_model, temperature=0.2, max_tokens=1500,
                                         timeout_ms=int(settings.llm_timeout_s * 1000), **kwargs)
-        except Exception as e:  # network, 429, 5xx, timeout, auth
+        except Exception as e:
             last = e
             log.warning("Mistral call failed (attempt %d): %s", attempt + 1, e)
-            time.sleep(0.8)
+            if not _retryable(e):  # 400/401/403/422: retrying cannot help (bad key, model not in tier, ...)
+                break
+            time.sleep(1.5 * (attempt + 1))
     raise LLMUnavailable(f"Mistral unavailable: {last}")
 
 

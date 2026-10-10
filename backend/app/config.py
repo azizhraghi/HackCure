@@ -19,10 +19,12 @@ def _bool(name: str, default: bool) -> bool:
 @dataclass
 class Settings:
     mistral_api_key: str = field(default_factory=lambda: os.getenv("MISTRAL_API_KEY", ""))
-    mistral_model: str = field(default_factory=lambda: os.getenv("MISTRAL_MODEL", "mistral-large-latest"))
+    mistral_model: str = field(default_factory=lambda: os.getenv("MISTRAL_MODEL", "mistral-medium-latest"))
     # stub = canned outputs, no network | live = Mistral | off = every LLM call fails (demo "LLM down")
     llm_mode: str = field(default_factory=lambda: os.getenv("LLM_MODE", "live" if os.getenv("MISTRAL_API_KEY") else "stub"))
     llm_timeout_s: float = field(default_factory=lambda: float(os.getenv("LLM_TIMEOUT_S", "25")))
+    # Minimum gap between Mistral calls (the free tier allows about 1 request/second).
+    llm_min_interval_s: float = field(default_factory=lambda: float(os.getenv("LLM_MIN_INTERVAL_S", "1.1")))
 
     db_url: str = field(default_factory=lambda: os.getenv("DB_URL", "sqlite:///./surgiguard.db"))
 

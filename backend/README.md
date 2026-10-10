@@ -22,7 +22,7 @@ copy .env.example .env      # put MISTRAL_API_KEY in .env (optional: stub mode n
 | Variable | Default | Meaning |
 |---|---|---|
 | `MISTRAL_API_KEY` | – | Needed for `LLM_MODE=live` and for `/chat` |
-| `MISTRAL_MODEL` | `mistral-large-latest` | Model used by every agent |
+| `MISTRAL_MODEL` | `mistral-medium-latest` | Model used by every agent |
 | `LLM_MODE` | `live` if a key is set, else `stub` | `live` = Mistral, `stub` = canned deterministic agent output, `off` = the LLM is "down" (agents fall back to rules and templates) |
 | `ACK_TIMEOUT_S` | `60` | An alert not acknowledged within this time escalates to the backup contact |
 | `INVESTIGATION_TIMEOUT_S` | `120` | Past this, the investigation finishes with "evidence incomplete" and goes to the clinician anyway |

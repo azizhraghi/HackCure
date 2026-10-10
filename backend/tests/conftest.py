@@ -7,7 +7,7 @@ os.environ["LLM_MODE"] = "stub"
 os.environ["SCHEDULER_ENABLED"] = "0"
 os.environ["RUN_AGENTS_INLINE"] = "1"
 os.environ["DB_URL"] = "sqlite://"
-os.environ.pop("MISTRAL_API_KEY", None)
+os.environ["MISTRAL_API_KEY"] = ""  # set (empty) so load_dotenv cannot pull the real key from .env
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest  # noqa: E402

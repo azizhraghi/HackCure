@@ -62,3 +62,33 @@ def test_live_tool_call_parsing(monkeypatch):
     monkeypatch.setattr(llm, "_client", Fake)
     r = llm.chat_tools("investigation", [{"role": "user", "content": "go"}], [{"type": "function"}])
     assert r.tool_calls[0].name == "get_medication_context" and r.message["tool_calls"][0]["id"] == "abc123def"
+
+
+def test_permanent_errors_not_retried_rate_limits_are(monkeypatch):
+    calls = {"n": 0}
+
+    class Err(Exception):
+        def __init__(self, status):
+            super().__init__(f"status {status}")
+            self.status_code = status
+
+    def make(status):
+        class Fake:
+            class chat:
+                @staticmethod
+                def complete(**kw):
+                    calls["n"] += 1
+                    raise Err(status)
+        return Fake
+    monkeypatch.setattr(settings, "llm_mode", "live")
+    monkeypatch.setattr(settings, "mistral_api_key", "x")
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(llm, "_client", make(403))  # e.g. model not in subscription tier
+    with pytest.raises(llm.LLMUnavailable):
+        llm.chat_json("digest", [{"role": "user", "content": "hi"}])
+    assert calls["n"] == 1
+    calls["n"] = 0
+    monkeypatch.setattr(llm, "_client", make(429))
+    with pytest.raises(llm.LLMUnavailable):
+        llm.chat_tools("investigation", [], [])
+    assert calls["n"] == 3
