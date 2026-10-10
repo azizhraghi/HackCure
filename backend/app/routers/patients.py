@@ -2,7 +2,7 @@ from datetime import datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import clock, monitor
+from .. import clock, monitor, wound_photos
 from .. import models as m
 from ..agents import medication
 from ..db import Repo, get_repo
@@ -65,6 +65,7 @@ def today(patient_id: str, repo: Repo = Depends(get_repo)):
         "pending_requests": [r.model_dump() for r in repo.pending_requests(patient_id)],
         "open_alerts": len(repo.open_alerts(patient_id)),
         "next_step": next_step.model_dump() if next_step else None,
+        "wound_photo": wound_photos.eligibility(repo, patient_id),
     }
 
 

@@ -39,7 +39,15 @@ Recommended next implementation: enforce care-plan photo eligibility and follow-
 
 ## Validation
 
-- `python -m pytest -q tests test_d3_demo.py`: **102 passed** (offline stub mode).
+- `python -m pytest -q tests test_d3_demo.py`: **110 passed** (offline stub mode).
 - `npm run build:web`: passed.
 - Local HTTP checks: `/health`, `/app/`, `/app/app.js`, `/agent-demo/`, `/demo`, `/patients/sarah/today` and `/patients/sarah/requests` all returned 200.
 - Windows application control blocked SQLAlchemy's compiled DLL. The environment now uses SQLAlchemy 2.1.4 built with its supported `DISABLE_SQLALCHEMY_CEXT=1` option. No Windows security settings were changed.
+
+## Update: 2026-10-11
+
+Remaining-work items 1 and 3 above are now implemented. Structured dressing windows govern both requests and uploads, require confirmation, and permit one collection per window. Photo collection can outlast an investigation deadline. The seeded schedule is fictional pending D2 integration.
+
+The new alert workflow now enforces contact, action, post-action evidence, clinician verification and resolution. Failed verification keeps the alert open. The clinic UI exposes these steps; the patient web preview links to it. Home now uses backend photo timing, and Requests shows schedule, confirmation, explicit simulation labels and errors. Real uploads and the check-in failure states in item 5 remain outstanding.
+
+Validation: 110 offline backend tests passed; web bundle built successfully; dashboard JavaScript syntax checked.

@@ -28,7 +28,7 @@ Source = Literal["device", "patient", "caregiver_on_behalf", "ai"]
 Quality = Literal["good", "questionable", "unusable"]
 AlertLevel = Literal["info", "attention", "urgent"]
 
-ALERT_STATES = ["created", "assigned", "acknowledged", "patient_contacted", "action_taken", "resolved"]
+ALERT_STATES = ["created", "assigned", "acknowledged", "patient_contacted", "action_taken", "verified", "resolved"]
 
 
 # ---------------------------------------------------------------- tables
@@ -131,6 +131,27 @@ class Alert(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=clock.now)
     updated_at: NaiveDatetime = Field(default_factory=clock.now)
     history: list = _json(list)
+
+
+class PhotoCollectionSlot(SQLModel, table=True):
+    """One collection per care-plan dressing window; does not change existing tables."""
+    id: str = Field(primary_key=True)
+    patient_id: str = Field(index=True)
+    starts_at: NaiveDatetime
+    ends_at: NaiveDatetime
+    request_id: str | None = None
+    observation_id: str | None = None
+
+
+class FollowupVerification(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: new_id("ver"), primary_key=True)
+    patient_id: str = Field(index=True)
+    alert_id: str = Field(index=True)
+    actor: str
+    summary: str
+    outcome: str
+    observation_ids: list = _json(list)
+    created_at: NaiveDatetime = Field(default_factory=clock.now)
 
 
 class CaregiverTask(SQLModel, table=True):
@@ -246,6 +267,7 @@ class RequestAnswer(BaseModel):
     value: float | dict[str, float] | None = None  # measurement
     photo_asset: str | None = None  # demo photo name (day3)
     photo_base64: str | None = None
+    dressing_change_confirmed: bool = False
 
 
 class ActorBody(BaseModel):
@@ -256,6 +278,14 @@ class ActorBody(BaseModel):
 class ResolveBody(BaseModel):
     actor: str
     reason: str = PField(min_length=3)
+    verification_id: str
+
+
+class VerificationIn(BaseModel):
+    actor: str
+    summary: str = PField(min_length=3, max_length=2000)
+    outcome: Literal["resolved", "needs_review"]
+    observation_ids: list[str] = PField(min_length=1, max_length=20)
 
 
 class DoseIn(BaseModel):

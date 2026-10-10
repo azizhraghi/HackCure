@@ -1,10 +1,11 @@
 """Demo controls: reset, scenarios, run any scheduled job now, move the demo clock."""
 
 import time
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import audit, clock, requests_service, sweep
+from .. import alerts, audit, clock, requests_service, sweep, wound_photos
 from .. import models as m
 from ..agents import checkin, digest, medication
 from ..config import settings
@@ -12,6 +13,35 @@ from ..db import Repo, get_repo
 
 router = APIRouter(prefix="/demo", tags=["demo"])
 DEMO_MEASUREMENTS = {"hr": 90, "spo2": 96, "temp": 37.9, "bp": {"systolic": 126, "diastolic": 80}}
+
+
+@router.post("/clock/next_dressing_change")
+def next_dressing_change(repo: Repo = Depends(get_repo)):
+    status = wound_photos.eligibility(repo, "sarah")
+    if not status["permitted"]:
+        window = status.get("next_window")
+        if not window:
+            raise HTTPException(409, "No upcoming dressing window in the demo plan. Reset the demo to load its schedule.")
+        clock.advance((datetime.fromisoformat(window["starts_at"]) - clock.now()).total_seconds())
+    audit.log(repo, "sarah", "demo", "clock.dressing_window", {"now": clock.now()}, "patient", "sarah")
+    return {"now": clock.now(), "sweep": sweep.run(repo), "wound_photo": wound_photos.eligibility(repo, "sarah")}
+
+
+@router.post("/alerts/{alert_id}/followup-evidence")
+def followup_evidence(alert_id: str, body: m.ActorBody, repo: Repo = Depends(get_repo)):
+    """Explicitly synthetic follow-up for exercising the verification UI offline."""
+    try:
+        alert = alerts.get(repo, alert_id)
+        alerts._clinician(repo, alert, body.actor)
+        if alert.state != "action_taken":
+            raise alerts.AlertError("record the clinician action before adding follow-up evidence")
+    except alerts.AlertError as e:
+        raise HTTPException(e.status, str(e)) from e
+    obs = repo.add(m.Observation(patient_id=alert.patient_id, type="checkin", source="patient", simulated=True,
+                   value={"comment": "Synthetic follow-up for workflow demonstration; no clinical assessment implied.",
+                          "demo_alert_id": alert.id}))
+    audit.log(repo, alert.patient_id, body.actor, "demo.followup_evidence", {"observation_id": obs.id}, "alert", alert.id)
+    return obs
 
 
 @router.post("/reset")
@@ -65,7 +95,7 @@ def answer_pending(patient_id: str = "sarah", option_index: int = 1, repo: Repo 
             break
         r = reqs[0]
         if r.kind == "photo":
-            body = m.RequestAnswer(photo_asset="day3")
+            body = m.RequestAnswer(photo_asset="day3", dressing_change_confirmed=True)
         elif r.kind == "measurement":
             body = m.RequestAnswer(value=DEMO_MEASUREMENTS.get(r.metric))
         else:

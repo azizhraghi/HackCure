@@ -13,7 +13,7 @@ from datetime import timedelta
 
 from pydantic import ValidationError
 
-from .. import clock
+from .. import clock, wound_photos
 from .. import models as m
 from ..db import Repo
 from ..safety import output_guard, quality
@@ -113,6 +113,9 @@ def missing_data(repo: Repo, patient_id: str, status: dict | None = None) -> lis
     now = clock.now()
     status = status or metric_statuses(repo, patient_id)
     out = []
+    photo = wound_photos.eligibility(repo, patient_id)
+    if photo["status"] != "completed":
+        out.append("Wound photo collection: " + photo["reason"])
     for metric, label in LABELS.items():
         st = status[metric]
         if st["status"] == "unknown":

@@ -22,7 +22,7 @@ export function HomeHeader({ greeting, name, avatar, avatarBg }: { greeting: str
       </View>
       <View style={{ flexDirection: 'row', gap: 6 }}>
         <RoundButton icon="sparkle" size={35} onPress={() => nav.navigate('AIAssistant')} />
-        <RoundButton icon="bell" size={35} onPress={() => nav.navigate('SensingRequest')} />
+        <RoundButton icon="bell" size={35} onPress={() => nav.navigate('Requests')} />
       </View>
     </View>
   );
@@ -45,11 +45,11 @@ export function HomeScreen() {
   const { c } = useTheme();
   const { t } = useT();
   const nav = useNavigation();
-  const [taskDone, setTaskDone] = useState(false);
   const [taskHidden, setTaskHidden] = useState(false);
   const today = usePoll(getToday, 4000).data;
   const twin = usePoll(getTwin, 10000).data;
   const pending = today?.pending_requests ?? [];
+  const photoDue = today?.wound_photo?.permitted === true;
   const temp = twin?.vitals?.temp;
   const tempValue = temp?.value?.value;
   const tempLabel = !temp ? t('home.normal') : temp.status === 'ok' ? t('home.live') : t(`home.status_${temp.status}`);
@@ -81,7 +81,7 @@ export function HomeScreen() {
       )}
 
       {/* Sensor alert → active sensing request */}
-      <Pressable onPress={() => nav.navigate('SensingRequest')}>
+      <Pressable onPress={() => nav.navigate(pending.length ? 'Requests' : 'SensingRequest')}>
         <Card bg={c.lilacBg} radius={16} style={{ padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <IconBadge icon="sensor" bg={c.surface} size={32} radius={10} />
           <View style={{ flex: 1 }}>
@@ -95,18 +95,19 @@ export function HomeScreen() {
       </Pressable>
 
       {!taskHidden && (
-        <Pressable onPress={() => nav.navigate('WoundScan')}>
+        <Pressable onPress={() => nav.navigate(photoDue ? 'Requests' : 'Rehab')}>
           <Card bg={c.task} radius={22} style={{ padding: 16, minHeight: 131, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', width: 100, height: 100, borderRadius: 50, borderWidth: 18, borderColor: 'rgba(255,255,255,0.18)', right: -25, bottom: -38 }} />
             <Pressable onPress={() => setTaskHidden(true)} style={{ position: 'absolute', right: 11, top: 10, width: 26, height: 26, borderRadius: 13, borderWidth: 1.2, borderColor: c.ink, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
               <Icon name="close" size={16} />
             </Pressable>
             <T size={8} w={800} spacing={1.2}>{t('home.task')}</T>
-            <T size={16} w={800} lh={1.3} style={{ marginTop: 6, textDecorationLine: taskDone ? 'line-through' : 'none' }}>{t('home.taskTitle')}</T>
+            <T size={16} w={800} lh={1.3} style={{ marginTop: 6 }}>{t(photoDue ? 'home.dressingPhoto' : 'home.rehabTask')}</T>
+            <T size={8} lh={1.35} style={{ marginTop: 6, paddingRight: 12 }}>{t(photoDue ? 'req.photoConfirm' : 'home.photoWait')}</T>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 11 }}>
               <T size={8}>{t('home.about')}</T>
-              <Pressable onPress={() => { haptic('notificationSuccess'); setTaskDone(v => !v); }} style={{ borderWidth: 1.2, borderColor: c.ink, backgroundColor: taskDone ? c.green : c.surface, borderRadius: 99, paddingVertical: 7, paddingHorizontal: 12 }}>
-                <T size={9} w={800}>{taskDone ? '✓ ' : ''}{t('common.done')} ›</T>
+              <Pressable onPress={() => { haptic(); nav.navigate(photoDue ? 'Requests' : 'Rehab'); }} style={{ borderWidth: 1.2, borderColor: c.ink, backgroundColor: c.surface, borderRadius: 99, paddingVertical: 7, paddingHorizontal: 12 }}>
+                <T size={9} w={800}>{t('common.open')} ›</T>
               </Pressable>
             </View>
           </Card>

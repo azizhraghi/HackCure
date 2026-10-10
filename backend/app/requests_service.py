@@ -6,7 +6,7 @@ Order is fixed: store the answer as an Observation -> urgent rules -> (only then
 import base64
 from pathlib import Path
 
-from . import audit, clock, monitor
+from . import audit, clock, monitor, wound_photos
 from . import models as m
 from .db import Repo
 
@@ -26,6 +26,8 @@ def answer(repo: Repo, request_id: str, body: m.RequestAnswer, actor: str = "sar
         raise RequestError("unknown request", 404)
     if req.status != "pending":
         raise RequestError(f"request is {req.status}")
+    if clock.now() >= req.expires_at:
+        raise RequestError("request has expired")
     member = repo.member(actor)
     source = "caregiver_on_behalf" if member and member.role == "caregiver" else "patient"
     pid = req.patient_id
@@ -43,9 +45,17 @@ def answer(repo: Repo, request_id: str, body: m.RequestAnswer, actor: str = "sar
         payload = {"observation_id": obs.id, "text": text}
         rule = monitor.gate_answer(repo, pid, {"answer": text}, {"request_id": req.id}, [obs.id])
     elif req.kind == "photo":
+        try:
+            slot = wound_photos.validate_answer(repo, req, body.dressing_change_confirmed)
+        except ValueError as e:
+            raise RequestError(str(e)) from e
         value = _photo_value(body)
-        obs = repo.add(m.Observation(patient_id=pid, type="photo", source=source, value={**value, "request_id": req.id},
+        obs = repo.add(m.Observation(patient_id=pid, type="photo", source=source,
+                                     value={**value, "request_id": req.id, "photo_slot_id": slot.id,
+                                            "dressing_change_confirmed": True},
                                      simulated=value.get("asset") in DEMO_PHOTOS))
+        slot.observation_id = obs.id
+        repo.add(slot)
         payload = {"observation_id": obs.id, "label": value.get("label")}
         rule = monitor.gate_answer(repo, pid, {"comment": body.text}, {"request_id": req.id}, [obs.id])
     else:  # measurement: goes through the Monitor like any reading (urgent rules included)

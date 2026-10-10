@@ -5,7 +5,7 @@ import { T } from '../../components/T';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, TopBar } from '../../components/ui';
 import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
-import { answerRequest, getRequests, usePoll, type AnswerBody, type PatientRequest } from '../../services/api';
+import { answerRequest, getRequests, getToday, usePoll, type AnswerBody, type PatientRequest } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, fs } from '../../theme/tokens';
 
@@ -15,19 +15,23 @@ export function RequestsScreen() {
   const { t } = useT();
   const { apiUrl } = useAppState();
   const { data, online, refresh } = usePoll(getRequests, 3000);
+  const today = usePoll(getToday, 4000).data;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [urgent, setUrgent] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
   const send = async (r: PatientRequest, body: AnswerBody) => {
     haptic('selection');
     setBusyId(r.id);
+    setError(null);
     try {
       const res = await answerRequest(apiUrl, r.id, body);
       if (res.status === 'urgent') setUrgent(res.message || t('checkin.emergency'));
       else haptic('notificationSuccess');
-    } catch {
-      // stays in the list; the next poll shows the real state
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('req.failed'));
     } finally {
       setBusyId(null);
       refresh();
@@ -40,6 +44,12 @@ export function RequestsScreen() {
       <TopBar title={t('req.top')} />
       <PageTitle style={{ marginTop: 6 }}>{t('req.title')}</PageTitle>
       <Muted>{t('req.sub')}</Muted>
+      {today?.wound_photo && <Card bg={c.ice} radius={14} style={{ padding: 10, marginTop: 10 }}>
+        <T size={8.5} w={700}>{t('req.photoTiming')}</T>
+        <T size={8} lh={1.4} style={{ marginTop: 4 }}>{t(today.wound_photo.permitted ? 'req.photoConfirm' : 'home.photoWait')}</T>
+        {today.wound_photo.next_window && <T size={8} style={{ marginTop: 4 }}>{new Date(today.wound_photo.next_window.starts_at).toLocaleString()}</T>}
+      </Card>}
+      {error && <Card bg={c.peach} radius={14} style={{ padding: 10, marginTop: 10 }}><T size={8.5}>{error}</T></Card>}
 
       {urgent && (
         <Pressable onPress={() => Linking.openURL('tel:112')}>
@@ -77,9 +87,15 @@ export function RequestsScreen() {
             ))}
 
             {r.kind === 'photo' && (
-              <Button style={{ marginTop: 10 }} height={44} size={11} icon="camera" onPress={busyId ? undefined : () => send(r, { photo_asset: 'day3' })}>
+              <View>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: !!confirmed[r.id] }}
+                onPress={() => setConfirmed(s => ({ ...s, [r.id]: !s[r.id] }))} style={{ marginTop: 10, padding: 8 }}>
+                <T size={8.5} w={700}>{confirmed[r.id] ? '☑ ' : '☐ '}{t('req.photoConfirm')}</T>
+              </Pressable>
+              <Button style={{ marginTop: 10, opacity: confirmed[r.id] ? 1 : 0.5 }} height={44} size={11} icon="camera" onPress={busyId || !confirmed[r.id] ? undefined : () => send(r, { photo_asset: 'day3', dressing_change_confirmed: true })}>
                 {t('req.sendPhoto')}
               </Button>
+              </View>
             )}
 
             {r.kind === 'measurement' && (

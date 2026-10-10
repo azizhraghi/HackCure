@@ -12,6 +12,8 @@ def post_observation(body: m.ObservationIn, repo: Repo = Depends(get_repo)):
     """Device (ESP32 / simulator) or app readings. Runs the Monitor synchronously (no LLM on this path)."""
     if repo.patient(body.patient_id) is None:
         raise HTTPException(404, "unknown patient")
+    if body.type == "photo":
+        raise HTTPException(422, "Submit photos through a scheduled dressing-change request.")
     obs, result = monitor.ingest(repo, body)
     return {"observation": obs, "monitor": result}
 

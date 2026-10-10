@@ -19,7 +19,10 @@ async function call<T>(apiUrl: string, path: string, init?: { method?: string; b
       body: init?.body === undefined ? undefined : JSON.stringify(init.body),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(typeof error?.detail === 'string' ? error.detail : `HTTP ${res.status}`);
+    }
     return (await res.json()) as T;
   } finally {
     clearTimeout(timer);
@@ -51,6 +54,8 @@ export type Today = {
   pending_requests: PatientRequest[];
   open_alerts: number;
   next_step: Notification | null;
+  wound_photo: { status: 'due' | 'completed' | 'not_due' | 'unconfigured' | 'blocked'; permitted: boolean;
+    reason: string; next_window?: { starts_at: string; ends_at: string } | null };
 };
 
 export type CheckinResult =
@@ -68,7 +73,7 @@ export const getRequests = (apiUrl: string) => call<PatientRequest[]>(apiUrl, `/
 export const submitCheckin = (apiUrl: string, body: { pain: number; fatigue: number; mobility: number; chips: string[]; comment?: string }) =>
   call<CheckinResult>(apiUrl, '/checkin', { method: 'POST', body: { patient_id: PATIENT_ID, ...body } }, 30000);
 
-export type AnswerBody = { option_index?: number; text?: string; value?: number; photo_asset?: string; photo_base64?: string };
+export type AnswerBody = { option_index?: number; text?: string; value?: number; photo_asset?: string; photo_base64?: string; dressing_change_confirmed?: boolean };
 
 export const answerRequest = (apiUrl: string, id: string, body: AnswerBody) =>
   call<{ status: 'answered' | 'urgent'; message?: string }>(apiUrl, `/requests/${id}/answer`, { method: 'POST', body }, 30000);

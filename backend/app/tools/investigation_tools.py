@@ -11,7 +11,7 @@ from datetime import timedelta
 from pathlib import Path
 from statistics import median
 
-from .. import audit, clock
+from .. import audit, clock, wound_photos
 from .. import models as m
 from ..agents import medication
 from ..config import settings
@@ -242,9 +242,11 @@ def ask_followup_question(ctx: Ctx, text: str, options: list[str] | None = None,
 def request_wound_photo(ctx: Ctx, reason: str = "", call_id=None) -> dict:
     if err := _can_request(ctx, "wound_photo"):
         return {"error": err}
-    return _create_request(ctx, "photo", "At your next dressing change permitted by your care plan, add a wound photo. "
-                           "Do not remove the dressing just to take a photo.", reason,
-                           call_id=call_id)
+    result = wound_photos.request(ctx.repo, ctx.pid, ctx.inv.id, reason)
+    if result.get("status") == "requested":
+        ctx.inv.patient_requests += 1
+        ctx.repo.add(ctx.inv)
+    return result
 
 
 READ_TOOLS = {"get_vitals_trend": get_vitals_trend, "get_symptom_checkins": get_symptom_checkins,

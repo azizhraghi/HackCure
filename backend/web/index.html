@@ -87,6 +87,8 @@
 <body>
 <div class="bar">
   <h1>SurgiGuard demo</h1>
+  <a class="btn" href="/app/">Patient app</a>
+  <a class="btn" href="#clinic">Clinic ↓</a>
   <button class="btn" data-demo="reset">Reset</button>
   <span class="sep"></span>
   <span class="kicker">Scenario</span>
@@ -98,6 +100,7 @@
   <span class="sep"></span>
   <button class="btn" data-demo="answer">Answer all as Sarah</button>
   <button class="btn" data-demo="clock" title="Advance demo clock 61 s and run the sweep (escalation)">+61 s</button>
+  <button class="btn" data-demo="dressing">Next permitted dressing change</button>
   <button class="btn" data-demo="meds">Run medication job</button>
   <span class="sep"></span>
   <span class="kicker">AI</span>
@@ -161,7 +164,7 @@
   </section>
 
   <!-- ======================= CLINIC ======================= -->
-  <section class="clinic" aria-label="Clinic dashboard preview">
+  <section class="clinic" id="clinic" aria-label="Clinic dashboard preview">
     <div class="role"><div class="avatar" style="background:var(--green)">ER</div>
       <div><div class="kicker">Clinic dashboard (preview of the API your teammate uses)</div><h2>Dr. Elena Ruiz</h2></div></div>
     <div class="kicker">Open alerts</div>
@@ -253,7 +256,10 @@ document.addEventListener('click', e => {
   if (!b) return;
   const id = b.dataset.answer;
   if (b.dataset.opt !== undefined) answer(id, { option_index: +b.dataset.opt });
-  else if (b.dataset.photo) answer(id, { photo_asset: 'day3' });
+  else if (b.dataset.photo) {
+    if (!$(`#photo-confirm-${id}`).checked) { toast('Confirm this is a permitted dressing change first.'); return; }
+    answer(id, { photo_asset: 'day3', dressing_change_confirmed: true });
+  }
   else if (b.dataset.measure) { const v = $(`#m-${id}`).value; if (v) answer(id, { value: +v.replace(',', '.') }); }
 });
 
@@ -266,7 +272,7 @@ function renderPatient(today, twin) {
       <div style="font-weight:800;margin-top:4px">${esc(r.prompt)}</div>
       ${r.reason ? `<div class="small muted">${esc(r.reason)}</div>` : ''}
       ${r.kind === 'question' ? r.options.map((o, i) => `<button class="opt" data-answer="${r.id}" data-opt="${i}">${esc(o)}</button>`).join('') : ''}
-      ${r.kind === 'photo' ? `<button class="btn primary" style="margin-top:8px" data-answer="${r.id}" data-photo="1">📷 Send today's photo (demo)</button>` : ''}
+      ${r.kind === 'photo' ? `<label style="display:block;margin-top:8px"><input type="checkbox" id="photo-confirm-${r.id}"> I am changing my dressing now, as permitted by my care plan.</label><button class="btn primary" style="margin-top:8px" data-answer="${r.id}" data-photo="1">📷 Send synthetic demo photo</button>` : ''}
       ${r.kind === 'measurement' ? `<div class="row" style="margin-top:8px"><input type="text" id="m-${r.id}" placeholder="${esc(r.metric)}" style="flex:1"><button class="btn primary" data-answer="${r.id}" data-measure="1">Send</button></div>` : ''}
     </div>`).join(''));
   const v = twin.vitals || {};
@@ -324,6 +330,8 @@ $('#f-digest-refresh').addEventListener('click', () => loadDigest(true));
 
 // ---------------------------------------------------------------- clinic
 let selected = null;
+let detailAlert = null;
+const verificationDrafts = {};
 function renderClinic(alerts) {
   if (selected && !alerts.some(a => a.id === selected)) selected = null;
   if (!selected && alerts.length) selected = alerts[0].id;
@@ -343,14 +351,24 @@ document.addEventListener('click', e => {
 async function renderDetail() {
   if (!selected) { render('#c-detail', null, () => ''); return; }
   const a = await api(`/alerts/${selected}`);
+  detailAlert = a;
   const inv = a.investigation_id ? await api(`/investigations/${a.investigation_id}`) : null;
   render('#c-detail', { a, inv }, () => {
     const s = a.evidence_summary;
     const acts = `<div class="row" style="flex-wrap:wrap;margin-top:10px">
       <button class="btn primary" data-act="ack" ${a.ack_at ? 'disabled' : ''}>Acknowledge</button>
-      <button class="btn" data-act="contacted" ${!a.ack_at || a.state === 'resolved' ? 'disabled' : ''}>Patient contacted</button>
-      <button class="btn" data-act="action" ${!a.ack_at || a.state === 'resolved' ? 'disabled' : ''}>Action taken</button>
-      <button class="btn" data-act="resolve">Resolve…</button></div>`;
+      <button class="btn" data-act="contacted" ${a.state !== 'acknowledged' ? 'disabled' : ''}>Patient contacted</button>
+      <button class="btn" data-act="action" ${a.state !== 'patient_contacted' ? 'disabled' : ''}>Record clinician action…</button>
+      <button class="btn" data-act="resolve" ${a.state !== 'verified' ? 'disabled' : ''}>Resolve after verification…</button></div>`;
+    const draft = verificationDrafts[a.id] || { summary: '', outcome: 'needs_review', ids: [] };
+    const verification = a.state === 'action_taken' ? `<div class="card"><div class="kicker">Follow-up verification required</div>
+      <p>Record follow-up evidence collected after the clinician action, then assess the outcome. Reading or acknowledging the alert does not close it.</p>
+      <button class="btn" data-followup-evidence>Add synthetic follow-up evidence (demo)</button>
+      <div style="margin-top:10px">${a.followup_observations.length ? a.followup_observations.map(o => `<label style="display:block;margin:6px 0"><input type="checkbox" data-ver-id="${esc(o.id)}" ${draft.ids.includes(o.id) ? 'checked' : ''}> ${esc(o.type)} · ${time(o.measured_at)} · ${esc(o.id)} ${o.simulated ? '(SIMULATED)' : ''}</label>`).join('') : '<p>No follow-up evidence yet.</p>'}</div>
+      <label>Clinician assessment<textarea data-ver-field="summary" style="display:block;width:100%;margin-top:4px" placeholder="Record what the follow-up evidence establishes">${esc(draft.summary)}</textarea></label>
+      <label>Outcome <select data-ver-field="outcome"><option value="needs_review" ${draft.outcome === 'needs_review' ? 'selected' : ''}>Further review required — keep open</option><option value="resolved" ${draft.outcome === 'resolved' ? 'selected' : ''}>Follow-up verified — may resolve</option></select></label>
+      <button class="btn primary" data-verify style="margin-top:8px">Record verification</button></div>` : '';
+    const verHistory = a.verifications.length ? `<div class="card"><div class="kicker">Verification history</div>${a.verifications.map(v => `<p>${esc(v.outcome)} · ${esc(v.summary)}<br><span class="oid">${esc(v.id)} · ${v.observation_ids.map(esc).join(', ')}</span></p>`).join('')}</div>` : '';
     const hist = `<div class="small muted" style="margin-top:8px">${a.history.map(h => `${time(h.at)} ${esc(h.event)} (${esc(h.by)})`).join(' → ')}</div>`;
     let ev = '';
     if (s) {
@@ -380,7 +398,7 @@ async function renderDetail() {
       }).join('')}</div></div>`;
     }
     return `<div class="card"><div class="row" style="justify-content:space-between"><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span><span class="small muted">${esc(a.id)}</span></div>
-      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${hist}</div>${ev}${steps}`;
+      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${hist}</div>${verification}${verHistory}${ev}${steps}`;
   });
 }
 document.addEventListener('click', async e => {
@@ -388,9 +406,38 @@ document.addEventListener('click', async e => {
   if (!b || !selected) return;
   const act = b.dataset.act;
   let body = { actor: 'dr_ruiz' };
-  if (act === 'resolve') { const reason = prompt('Resolution reason (required):'); if (!reason) return; body.reason = reason; }
+  if (act === 'contacted' || act === 'action') { const note = prompt(act === 'action' ? 'Clinician decision / action taken (required):' : 'Patient contact note:'); if (!note) return; body.note = note; }
+  if (act === 'resolve') {
+    const reason = prompt('Resolution reason (required):'); if (!reason) return;
+    body.reason = reason;
+    body.verification_id = [...(detailAlert?.history || [])].reverse().find(h => h.event === 'verified')?.verification_id;
+  }
   try { await api(`/alerts/${selected}/${act}`, body); toast(`Alert: ${act}`); } catch (err) { toast(err.message); }
   poll();
+});
+
+document.addEventListener('input', e => {
+  if (!selected || (!e.target.dataset.verField && !e.target.dataset.verId)) return;
+  const draft = verificationDrafts[selected] ||= { summary: '', outcome: 'needs_review', ids: [] };
+  if (e.target.dataset.verField) draft[e.target.dataset.verField] = e.target.value;
+  else { const id = e.target.dataset.verId; draft.ids = e.target.checked ? [...new Set([...draft.ids, id])] : draft.ids.filter(x => x !== id); }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-verify], [data-followup-evidence]');
+  if (!b || !selected) return;
+  b.disabled = true;
+  try {
+    if (b.hasAttribute('data-followup-evidence')) {
+      await api(`/demo/alerts/${selected}/followup-evidence`, { actor: 'dr_ruiz' });
+      toast('Synthetic follow-up evidence added. Select it and record a verification assessment.');
+    } else {
+      const d = verificationDrafts[selected] || {};
+      if (!d.summary?.trim() || !d.ids?.length) throw new Error('Select follow-up evidence and enter the clinician assessment.');
+      await api(`/alerts/${selected}/verify`, { actor: 'dr_ruiz', summary: d.summary, outcome: d.outcome, observation_ids: d.ids });
+      toast(d.outcome === 'resolved' ? 'Follow-up verified. You may now resolve the alert.' : 'Further review required. Alert stays open.');
+    }
+  } catch (err) { toast(err.message); }
+  finally { b.disabled = false; poll(); }
 });
 
 // ---------------------------------------------------------------- demo bar
@@ -404,6 +451,8 @@ document.addEventListener('click', async e => {
       const r = await api(`/demo/scenario/${s.dataset.scn}`, {});
       const urgent = (r.open_alerts || []).filter(a => a.level === 'urgent').length;
       toast(`Scenario ${s.dataset.scn} applied in ${Math.round(performance.now() - t0)} ms${urgent ? ` · ${urgent} urgent alert(s)` : ''}`);
+    } else if (d.dataset.demo === 'dressing') {
+      await api('/demo/clock/next_dressing_change', {}); toast('Demo clock is in a permitted dressing-change window.');
     } else if (d.dataset.demo === 'reset') {
       await api('/demo/reset', {}); chat.length = 0; drawChat(); $('#ci-result').innerHTML = ''; $('#p-urgent').innerHTML = ''; selected = null;
       for (const k in cache) delete cache[k]; toast('Demo reset: Sarah, day 3'); loadDigest(false);

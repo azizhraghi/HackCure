@@ -53,6 +53,8 @@ const en = {
     confirm: 'Confirm & create Twin',
   },
   home: {
+    dressingPhoto: 'Photo at your permitted\ndressing change', rehabTask: 'Follow your planned\nrehabilitation exercises',
+    photoWait: 'Wound photos follow your care team’s dressing-change schedule. Keep the dressing in place until then.',
     bodyTemp: 'TEMPERATURE', live: 'Latest reading', status_unknown: 'Unknown: no recent data', status_unreliable: 'Unreliable signal', status_questionable: 'Latest reading (questionable)',
     welcome: 'Welcome back', title: "Here's your recovery\nat a glance",
     task: "TODAY'S TASK", taskTitle: 'Take a wound photo\nand do 10 knee bends', about: 'About 5 min',
@@ -145,9 +147,11 @@ const en = {
     about: 'SurgiGuard AI · HackCure prototype', disclaimer: 'Fictional patient data. Simulated measurements are labeled.',
   },
   req: {
+    photoTiming: 'DRESSING-CHANGE SCHEDULE', photoConfirm: 'I am changing my dressing now, as permitted by my care plan.',
+    failed: 'Your answer was not saved. Please try again.',
     top: 'Care team requests', title: 'A few quick\nanswers', sub: 'Your care team’s assistant needs this to review your recovery. It never replaces a call to 112.',
     kind_question: 'QUESTION', kind_photo: 'WOUND PHOTO', kind_measurement: 'MEASUREMENT',
-    sendPhoto: 'Take & send today’s photo', send: 'Send', none: 'Nothing to answer right now.', offline: 'Cannot reach the SurgiGuard server. Check the AI server URL in Settings.',
+    sendPhoto: 'Send synthetic demo photo', send: 'Send', none: 'Nothing to answer right now.', offline: 'Cannot reach the SurgiGuard server. Check the AI server URL in Settings.',
     pending: 'YOUR CARE TEAM NEEDS', pendingCta: 'Answer', nextStep: 'NEXT STEP FROM YOUR CARE TEAM',
   },
   checkin: {

@@ -1,6 +1,15 @@
 {
   "_note": "FICTIONAL demo plan. Thresholds are demo values, NOT clinical advice.",
-  "version": 1,
+  "version": 2,
+  "wound_photo_schedule": {
+    "_note": "FICTIONAL demonstration windows only; replace with the patient's care-team schedule.",
+    "mode": "permitted_dressing_changes",
+    "windows": [
+      {"id": "demo-change-3", "day_offset": 2, "start": "09:00", "end": "20:00"},
+      {"id": "demo-change-5", "day_offset": 4, "start": "09:00", "end": "20:00"},
+      {"id": "demo-change-7", "day_offset": 6, "start": "09:00", "end": "20:00"}
+    ]
+  },
   "pathway": "Total knee replacement (right) - home recovery",
   "checkin": {
     "times": ["08:00", "20:00"],

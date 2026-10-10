@@ -66,10 +66,12 @@ def test_full_lifecycle(repo):
     alerts.acknowledge(repo, a.id, "dr_ruiz")
     alerts.patient_contacted(repo, a.id, "dr_ruiz", "called Sarah")
     alerts.action_taken(repo, a.id, "dr_ruiz", "sent to ED")
-    a = alerts.resolve(repo, a.id, "dr_ruiz", "Assessed in ED, discharged")
+    obs = repo.add(m.Observation(patient_id="sarah", type="checkin", source="patient", value={"comment": "follow-up recorded"}))
+    v = alerts.verify(repo, a.id, m.VerificationIn(actor="dr_ruiz", summary="Follow-up reviewed", outcome="resolved", observation_ids=[obs.id]))
+    a = alerts.resolve(repo, a.id, "dr_ruiz", "Assessed in ED, discharged", v.id)
     assert a.state == "resolved" and a.resolution_reason
     events = [h["event"] for h in a.history]
-    assert events == ["created", "assigned", "acknowledged", "patient_contacted", "action_taken", "resolved"]
+    assert events == ["created", "assigned", "acknowledged", "patient_contacted", "action_taken", "verified", "resolved"]
     with pytest.raises(alerts.AlertError):
         alerts.acknowledge(repo, a.id, "dr_ruiz")
 
@@ -87,7 +89,11 @@ def test_api_lifecycle(client):
     assert client.post(f"/alerts/{a.id}/ack", json={"actor": "ahmed"}).status_code == 403
     assert client.post(f"/alerts/{a.id}/ack", json={"actor": "dr_ruiz"}).json()["state"] == "acknowledged"
     assert client.post(f"/alerts/{a.id}/resolve", json={"actor": "dr_ruiz"}).status_code == 422
-    r = client.post(f"/alerts/{a.id}/resolve", json={"actor": "dr_ruiz", "reason": "Reviewed, safe"})
+    client.post(f"/alerts/{a.id}/contacted", json={"actor": "dr_ruiz", "note": "Called patient"})
+    client.post(f"/alerts/{a.id}/action", json={"actor": "dr_ruiz", "note": "Recorded decision"})
+    obs = client.post(f"/demo/alerts/{a.id}/followup-evidence", json={"actor": "dr_ruiz"}).json()
+    v = client.post(f"/alerts/{a.id}/verify", json={"actor": "dr_ruiz", "summary": "Follow-up reviewed", "outcome": "resolved", "observation_ids": [obs["id"]]}).json()
+    r = client.post(f"/alerts/{a.id}/resolve", json={"actor": "dr_ruiz", "reason": "Reviewed, safe", "verification_id": v["id"]})
     assert r.json()["state"] == "resolved"
     caregiver_view = client.get("/alerts", params={"role": "caregiver", "member_id": "ahmed"}).json()
     assert caregiver_view and "reason" not in caregiver_view[0]

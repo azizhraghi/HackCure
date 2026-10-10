@@ -28,6 +28,16 @@ def list_alerts(role: str = Query("clinician", pattern="^(patient|caregiver|clin
 def get_alert(alert_id: str, repo: Repo = Depends(get_repo)):
     a = _run(alerts.get, repo, alert_id)
     out = alerts.public(a)
+    out["verifications"] = [v.model_dump() for v in repo.all(m.FollowupVerification,
+                            m.FollowupVerification.alert_id == a.id, order=m.FollowupVerification.created_at)]
+    action_at = next((h["at"] for h in reversed(a.history) if h["event"] == "action_taken"), None)
+    if action_at:
+        from datetime import datetime
+        out["followup_observations"] = [o.model_dump() for o in repo.observations(a.patient_id,
+                                       since=datetime.fromisoformat(action_at), limit=50)
+                                       if o.source != "ai" and o.quality == "good"]
+    else:
+        out["followup_observations"] = []
     if a.investigation_id:
         inv = repo.get(m.Investigation, a.investigation_id)
         out["evidence_summary"] = inv.summary if inv else None
@@ -51,7 +61,12 @@ def action(alert_id: str, body: m.ActorBody, repo: Repo = Depends(get_repo)):
 
 @router.post("/alerts/{alert_id}/resolve")
 def resolve(alert_id: str, body: m.ResolveBody, repo: Repo = Depends(get_repo)):
-    return alerts.public(_run(alerts.resolve, repo, alert_id, body.actor, body.reason))
+    return alerts.public(_run(alerts.resolve, repo, alert_id, body.actor, body.reason, body.verification_id))
+
+
+@router.post("/alerts/{alert_id}/verify")
+def verify(alert_id: str, body: m.VerificationIn, repo: Repo = Depends(get_repo)):
+    return _run(alerts.verify, repo, alert_id, body).model_dump()
 
 
 @router.get("/notifications")

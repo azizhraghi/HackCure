@@ -96,6 +96,8 @@ def _advance(repo: Repo, alert: m.Alert, actor_id: str, target: str, note: str |
         raise AlertError("alert already resolved")
     if ORDER[target] <= ORDER[alert.state]:
         raise AlertError(f"cannot go from {alert.state} to {target}")
+    if target != "acknowledged" and ORDER[target] != ORDER[alert.state] + 1:
+        raise AlertError(f"cannot skip follow-up steps from {alert.state} to {target}")
     alert.state = target
     _hist(alert, target, actor_id, note)
     repo.add(alert)
@@ -128,19 +130,58 @@ def action_taken(repo: Repo, alert_id: str, actor_id: str, note: str | None = No
     alert = get(repo, alert_id)
     _clinician(repo, alert, actor_id)
     _require_ack(alert)
+    if not note or len(note.strip()) < 3:
+        raise AlertError("record the clinician decision/action before verification", 422)
     return _advance(repo, alert, actor_id, "action_taken", note)
 
 
-def resolve(repo: Repo, alert_id: str, actor_id: str, reason: str) -> m.Alert:
+def verify(repo: Repo, alert_id: str, body: m.VerificationIn) -> m.FollowupVerification:
+    alert = get(repo, alert_id)
+    _clinician(repo, alert, body.actor)
+    if alert.state != "action_taken":
+        raise AlertError("record acknowledgement, patient contact and a clinician action before verification")
+    action_at = datetime.fromisoformat(next(h["at"] for h in reversed(alert.history) if h["event"] == "action_taken"))
+    if not body.summary.strip() or len(body.summary.strip()) < 3:
+        raise AlertError("a verification assessment is required", 422)
+    ids = list(dict.fromkeys(body.observation_ids))
+    for oid in ids:
+        obs = repo.get(m.Observation, oid)
+        if obs is None or obs.patient_id != alert.patient_id:
+            raise AlertError("verification evidence must belong to this patient", 422)
+        if obs.source not in ("patient", "caregiver_on_behalf", "device") or obs.quality != "good":
+            raise AlertError("verification requires usable patient-reported or measured evidence", 422)
+        if obs.measured_at < action_at or obs.received_at < action_at or obs.measured_at > clock.now():
+            raise AlertError("verification evidence must be collected after the clinician action", 422)
+    verification = repo.add(m.FollowupVerification(patient_id=alert.patient_id, alert_id=alert.id,
+                            actor=body.actor, summary=body.summary.strip(), outcome=body.outcome, observation_ids=ids))
+    if body.outcome == "resolved":
+        _advance(repo, alert, body.actor, "verified", body.summary.strip())
+        alert.history = [*alert.history[:-1], {**alert.history[-1], "verification_id": verification.id}]
+        repo.add(alert)
+    else:
+        _hist(alert, "verification_needs_review", body.actor, body.summary.strip(), verification_id=verification.id)
+        repo.add(alert)
+    audit.log(repo, alert.patient_id, body.actor, "followup.verified", verification.model_dump(mode="json"), "alert", alert.id)
+    return verification
+
+
+def resolve(repo: Repo, alert_id: str, actor_id: str, reason: str, verification_id: str | None = None) -> m.Alert:
     alert = get(repo, alert_id)
     _clinician(repo, alert, actor_id)
     if not reason or len(reason.strip()) < 3:
         raise AlertError("a resolution reason is required", 422)
-    if alert.ack_at is None:  # resolving implies the clinician has reviewed it
-        alert.ack_by, alert.ack_at = actor_id, clock.now()
-        _hist(alert, "acknowledged", actor_id, "implicit on resolve")
+    if alert.state != "verified":
+        raise AlertError("follow-up must be verified before the alert can close")
+    latest = repo.get(m.FollowupVerification, verification_id) if verification_id else None
+    verified_id = next((h.get("verification_id") for h in reversed(alert.history) if h["event"] == "verified"), None)
+    if (latest is None or latest.id != verified_id or latest.alert_id != alert.id
+            or latest.patient_id != alert.patient_id or latest.outcome != "resolved"):
+        raise AlertError("reference this alert's successful follow-up verification", 422)
     alert.resolution_reason = reason.strip()
-    return _advance(repo, alert, actor_id, "resolved", reason.strip())
+    _advance(repo, alert, actor_id, "resolved", reason.strip())
+    notify(repo, alert.patient_id, alert.patient_id, "next_step", "Follow-up completed",
+           "Your care team has completed and verified follow-up for this alert.", "alert", alert.id)
+    return alert
 
 
 def escalate(repo: Repo, alert: m.Alert, reason: str, actor: str = "system") -> m.Alert:

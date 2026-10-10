@@ -27,7 +27,7 @@ def test_full_demo_story(client):
     # 3. Investigation asks for a wound photo, then one follow-up question (max 2 requests)
     reqs = c.get("/patients/sarah/requests").json()
     assert [r["kind"] for r in reqs] == ["photo"]
-    c.post(f"/requests/{reqs[0]['id']}/answer", json={"photo_asset": "day3"})
+    c.post(f"/requests/{reqs[0]['id']}/answer", json={"photo_asset": "day3", "dressing_change_confirmed": True})
     reqs = c.get("/patients/sarah/requests").json()
     assert [r["kind"] for r in reqs] == ["question"]
     c.post(f"/requests/{reqs[0]['id']}/answer", json={"option_index": 0})
@@ -51,8 +51,11 @@ def test_full_demo_story(client):
     assert c.post(f"/alerts/{inv_alert['id']}/ack", json={"actor": "ahmed"}).status_code == 403
     assert c.post(f"/alerts/{inv_alert['id']}/ack", json={"actor": "dr_ruiz"}).json()["state"] == "acknowledged"
     c.post(f"/alerts/{inv_alert['id']}/contacted", json={"actor": "dr_ruiz", "note": "Called Sarah"})
+    c.post(f"/alerts/{inv_alert['id']}/action", json={"actor": "dr_ruiz", "note": "Clinician decision recorded"})
+    obs = c.post(f"/demo/alerts/{inv_alert['id']}/followup-evidence", json={"actor": "dr_ruiz"}).json()
+    verification = c.post(f"/alerts/{inv_alert['id']}/verify", json={"actor": "dr_ruiz", "summary": "Demo follow-up reviewed", "outcome": "resolved", "observation_ids": [obs["id"]]}).json()
     done = c.post(f"/alerts/{inv_alert['id']}/resolve",
-                  json={"actor": "dr_ruiz", "reason": "Seen in clinic, wound swab taken"}).json()
+                  json={"actor": "dr_ruiz", "reason": "Seen in clinic, follow-up verified", "verification_id": verification["id"]}).json()
     assert done["state"] == "resolved"
 
     # 6. Urgent contrast with the LLM switched OFF: breathlessness + SpO2 88 -> urgent alert < 5 s

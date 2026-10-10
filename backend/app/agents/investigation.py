@@ -230,6 +230,12 @@ def timeout(repo: Repo, inv: m.Investigation) -> None:
     """Deadline passed: finish with 'evidence incomplete' and send to the clinician anyway."""
     for r in repo.all(m.PatientRequest, m.PatientRequest.investigation_id == inv.id,
                       m.PatientRequest.status == "pending"):
+        if r.kind == "photo":
+            # The clinical review deadline must not force an early dressing change.
+            # Keep the scheduled request independent of the timed-out investigation.
+            r.investigation_id = None
+            repo.add(r)
+            continue
         r.status = "expired"
         repo.add(r)
     audit.log(repo, inv.patient_id, AGENT, "agent.timeout", {"deadline": inv.deadline}, "investigation", inv.id)

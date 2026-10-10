@@ -25,7 +25,7 @@ Run `npm run build:web` from `mobile`, then start this backend. Open:
 - `http://localhost:8000/agent-demo/`: the agent dashboard from `agentic-backend`, with patient, family and clinic views.
 - `http://localhost:8000/demo`: the earlier synthetic Developer 3 workflow panel, using `/v1/demo`.
 
-For offline development, set `$env:LLM_MODE='stub'` in the server terminal before launching Uvicorn. The new agents use a persisted custom tool loop; the earlier `/v1/demo` investigation uses LangGraph. These are separate workflows. Wound-photo requests are worded for dressing changes permitted by the care plan. Plan-specific scheduling and D1 image analysis still need integration; the supplied photo comparisons are simulated.
+For offline development, set `$env:LLM_MODE='stub'` in the server terminal before launching Uvicorn. The new agents use a persisted custom tool loop; the earlier `/v1/demo` investigation uses LangGraph. These are separate workflows. Wound-photo requests are worded for dressing changes permitted by the care plan. Photo requests and uploads now require a permitted care-plan dressing window and dressing-change confirmation. Seeded windows, photos and comparisons are fictional. D2 plan ingestion and D1 image analysis remain to be connected. The patient app navigation opens the agent workspace and clinic.
 
 If Windows application control blocks a SQLAlchemy DLL, install its [supported pure Python build](https://docs.sqlalchemy.org/en/21/intro.html#building-the-cython-extensions) in the backend environment:
 
@@ -61,7 +61,7 @@ Use `/docs`, curl or the app. Without a phone, `POST /demo/answer_pending` answe
 3. `GET /patients/sarah/requests` lists the clarification and the **Investigation Agent**'s wound-photo request. Answer them with `POST /requests/{id}/answer`, or call `/demo/answer_pending`. The agent compares the photos (redness +22 %), asks one follow-up question (its second and last patient request), then finishes.
 4. `GET /investigations/{id}` returns the evidence summary: patient-reported, device-measured, AI interpretation and missing evidence, every claim linked to an observation. `steps` holds the full reasoning and audit trail. The clinician gets an **attention** alert, Ahmed gets a support task, and Sarah gets a next step (in `GET /patients/sarah/today`, under `next_step`).
 5. Alert lifecycle:
-   - `POST /alerts/{id}/ack` with `{"actor":"dr_ruiz"}`, then `/contacted`, then `/action`, then `/resolve` with `{"actor":"dr_ruiz","reason":"..."}`.
+   - `POST /alerts/{id}/ack` with `{"actor":"dr_ruiz"}`, then `/contacted`, then `/action`, then `/verify` with post-action evidence, then `/resolve` with a successful `verification_id` and `{"actor":"dr_ruiz","reason":"..."}`.
    - If you don't acknowledge it, the alert is escalated to `dr_oncall` after 60 s. `POST /demo/clock/advance?seconds=61` gets there instantly.
 6. Urgent contrast: `POST /demo/llm_mode/off`, then `POST /demo/scenario/urgent_breathless` (severe breathlessness plus SpO₂ 88 %). The urgent alert fires in under 1 s **with no LLM call**, and any running investigation is aborted.
 7. `GET /caregiver/ahmed/digest?refresh=true` returns Ahmed's evening summary: at most 80 words, only the categories Sarah shares.
@@ -85,7 +85,7 @@ app/safety/urgent_rules.py   S1 urgent rules: pure functions, no I/O, no LLM (Sp
 app/safety/quality.py        reading quality (good / questionable / unusable), "unknown" for missing/stale data, gap detection
 app/safety/output_guard.py   blocks doses, medication changes and diagnosis wording in LLM text
 app/monitor.py               quality -> urgent rules -> deviation signals -> investigation_request (synchronous, LLM-free)
-app/alerts.py                S2 routing + S3 lifecycle: created -> assigned -> acknowledged -> patient_contacted -> action_taken -> resolved
+app/alerts.py                S2 routing + S3 lifecycle: created -> assigned -> acknowledged -> patient_contacted -> action_taken -> verified -> resolved
 app/agents/checkin.py        B1 Daily Check-in (LLM writes the one clarification; template fallback)
 app/agents/investigation.py  A2 Investigation: resumable Mistral tool loop, paused while waiting for the patient
 app/agents/evidence.py       A3 evidence validation (observation ids, source separation, no diagnosis) + rule-built fallback
@@ -106,7 +106,7 @@ seed/                        demo plan (plan_sarah.json), history, photos, scena
   - at most 2 patient requests per investigation;
   - only tests listed in the plan;
   - a deadline, after which the investigation ends as "evidence incomplete" and is escalated anyway.
-- **Agents cannot** change medication, suggest doses, close or downgrade alerts, or acknowledge. Only a clinician acknowledges or resolves, and resolving requires a reason. A delivered or read notification is never an acknowledgement.
+- **Agents cannot** change medication, suggest doses, close or downgrade alerts, or acknowledge. Only a clinician acknowledges or resolves; closure requires contact, a recorded action, successful verification of post-action evidence and a resolution reason. A delivered or read notification is never an acknowledgement.
 - **Evidence summaries** cite real observation IDs, in the right section (patient vs device). The stored quality wins over the model's. The summary always says it is not a diagnosis. Bad citations are rejected and retried once, then replaced by a rule-built summary.
 - **Missing data is "unknown", never "normal".** Unusable readings are "unreliable". Both are listed in `missing_or_conflicting`.
 - **Patient text is data.** It reaches the LLM only inside tool results or JSON data blocks, and the prompts say so.
@@ -128,7 +128,7 @@ The actor is passed in the body (`{"actor": "dr_ruiz"}`) or as `?actor=`. Member
 | POST | `/requests/{id}/answer` | `{option_index}` or `{text}` / `{photo_asset:"day3"}` or `{photo_base64}` / `{value}` |
 | GET | `/alerts?role=clinician\|caregiver\|patient&member_id=&open_only=` | Non-clinicians get a reduced view |
 | GET | `/alerts/{id}` | Includes `evidence_summary` |
-| POST | `/alerts/{id}/ack` · `/contacted` · `/action` · `/resolve` | Clinician only. `resolve` needs `reason` |
+| POST | `/alerts/{id}/ack` · `/contacted` · `/action` · `/resolve` | Clinician only. `resolve` needs `reason` and a successful `verification_id`; `/verify` must precede it |
 | GET | `/notifications?member_id=` · POST `/notifications/{id}/read` | Delivered messages (reading one ≠ acknowledging an alert) |
 | GET | `/investigations/{id}?include_messages=` | Summary, requests, and `steps` (audit trail for the "AI reasoning" panel) |
 | GET | `/patients/{id}/investigations` · `/audit?patient_id=&ref_type=&ref_id=` | |
@@ -150,3 +150,9 @@ Connected screens and remaining work:
 - **Requests:** polls `GET /patients/sarah/requests` and shows questions and measurements. Its photo button currently submits a synthetic `day3` photo; real camera/file upload remains to be connected.
 - **Family home:** reads `GET /caregiver/ahmed/digest`, `/caregiver/ahmed/tasks` and `/alerts?role=caregiver&member_id=ahmed`.
 - **Demo data:** `src/data/mock.ts` still says day 6 and has no cefuroxime. The backend uses day 3 and adds cefuroxime 500 mg at 08:00/14:00/20:00 (fictional, not a penicillin).
+
+### Photo scheduling and follow-up verification
+
+Use **Next permitted dressing change** in the agent workspace to advance the fictional demo clock to a scheduled window. Open the patient app bell to view requests; confirm the dressing change before submitting the explicitly synthetic photo. Photo requests remain valid until their window closes, independently of the investigation deadline. Urgent alerts take precedence.
+
+The alert lifecycle requires acknowledgement, patient contact, a recorded action, verification and resolution in that order. POST /alerts/{id}/verify requires actor, summary, outcome (resolved or needs_review) and observation_ids. Evidence must be usable patient/device observations collected after the action. POST /alerts/{id}/resolve requires actor, reason and the successful verification_id. The clinic UI provides these controls and an explicitly synthetic follow-up evidence button.

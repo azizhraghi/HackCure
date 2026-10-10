@@ -30,7 +30,7 @@ def drive(repo, inv_id, question_answer=m.RequestAnswer(option_index=1)):
         if not reqs:
             break
         req = reqs[0]
-        body = m.RequestAnswer(photo_asset="day3") if req.kind == "photo" else question_answer
+        body = m.RequestAnswer(photo_asset="day3", dressing_change_confirmed=True) if req.kind == "photo" else question_answer
         requests_service.answer(repo, req.id, body)
     return fresh(repo, m.Investigation, inv_id)
 
@@ -73,8 +73,10 @@ def test_timeout_finishes_incomplete_and_escalates(repo):
     clock.advance(settings.investigation_timeout_s + 1)
     out = sweep.run(repo)
     inv = fresh(repo, m.Investigation, inv.id)
-    # the unanswered photo request expires, the agent resumes, sees the deadline and stops
-    assert out["expired_requests"] and inv.status == "incomplete"
+    # Clinical review finishes on time; the scheduled dressing photo remains independent.
+    assert inv.id in out["timed_out_investigations"] and inv.status == "incomplete"
+    photo = next(r for r in repo.pending_requests("sarah") if r.kind == "photo")
+    assert photo.investigation_id is None
     assert any(e.kind == "agent.timeout" for e in audit.trail(repo, "investigation", inv.id))
     assert inv.summary["evidence_status"] == "incomplete"
     assert any("incomplete" in x.lower() or "timed out" in x.lower() for x in inv.summary["missing_or_conflicting"])
@@ -147,9 +149,9 @@ def test_investigation_api_shows_steps(client, repo):
 def test_answer_via_api(client, repo):
     inv = start_infection(repo)
     (req,) = pending(repo, inv.id)
-    r = client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3"})
+    r = client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3", "dressing_change_confirmed": True})
     assert r.status_code == 200 and r.json()["status"] == "answered"
-    assert client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3"}).status_code == 409
+    assert client.post(f"/requests/{req.id}/answer", json={"photo_asset": "day3", "dressing_change_confirmed": True}).status_code == 409
 
 
 # ---- hardening from the first live Mistral run (open-mistral-nemo)

@@ -55,6 +55,8 @@ const fr: Dict = {
     confirm: 'Confirmer et créer le jumeau',
   },
   home: {
+    dressingPhoto: 'Photo au changement\nde pansement autorisé', rehabTask: 'Suivez vos exercices\nde rééducation prévus',
+    photoWait: 'Les photos suivent le calendrier de pansement de votre équipe. Gardez le pansement en place jusque-là.',
     bodyTemp: 'TEMPÉRATURE', live: 'Dernière mesure', status_unknown: 'Inconnue : pas de données récentes', status_unreliable: 'Signal peu fiable', status_questionable: 'Dernière mesure (incertaine)',
     welcome: 'Bon retour', title: "Votre récupération\nen un coup d'œil",
     task: 'TÂCHE DU JOUR', taskTitle: 'Photographiez la plaie\net faites 10 flexions', about: 'Environ 5 min',
@@ -147,9 +149,11 @@ const fr: Dict = {
     about: 'SurgiGuard AI · prototype HackCure', disclaimer: 'Données patient fictives. Les mesures simulées sont indiquées.',
   },
   req: {
+    photoTiming: 'CALENDRIER DE PANSEMENT', photoConfirm: 'Je change mon pansement maintenant, comme autorisé dans mon plan de soins.',
+    failed: 'Votre réponse n’a pas été enregistrée. Réessayez.',
     top: 'Demandes de l’équipe', title: 'Quelques réponses\nrapides', sub: 'L’assistant de votre équipe de soins en a besoin pour suivre votre récupération. Cela ne remplace jamais un appel au 112.',
     kind_question: 'QUESTION', kind_photo: 'PHOTO DE LA PLAIE', kind_measurement: 'MESURE',
-    sendPhoto: 'Prendre et envoyer la photo du jour', send: 'Envoyer', none: 'Rien à répondre pour le moment.', offline: 'Serveur SurgiGuard injoignable. Vérifiez l’URL du serveur IA dans Réglages.',
+    sendPhoto: 'Envoyer une photo fictive de démo', send: 'Envoyer', none: 'Rien à répondre pour le moment.', offline: 'Serveur SurgiGuard injoignable. Vérifiez l’URL du serveur IA dans Réglages.',
     pending: 'VOTRE ÉQUIPE A BESOIN DE', pendingCta: 'Répondre', nextStep: 'PROCHAINE ÉTAPE DE VOTRE ÉQUIPE',
   },
   checkin: {
