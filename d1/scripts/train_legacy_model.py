@@ -1,10 +1,10 @@
 """Train the normal-recovery-trajectory model and report how it does on unseen patients.
 
 From the built-in simulated cohort:
-    .venv/bin/python scripts/train_trajectory.py --simulate 1500 --out models/trajectory
+    .venv/bin/python scripts/train_legacy_model.py --simulate 1500 --out models/trajectory
 
 From a file of past patients (real, or real mixed with simulated):
-    .venv/bin/python scripts/train_trajectory.py --jsonl patients.jsonl --origin real --out models/trajectory
+    .venv/bin/python scripts/train_legacy_model.py --jsonl patients.jsonl --origin real --out models/trajectory
 
 File format: one patient per line,
     {"patient_id": "...", "dossier": { the full medical dossier },
@@ -19,8 +19,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from surgiguard_d1.trajectory import FeatureSpec, TrajectoryModel, evaluate, load_jsonl, split_by_patient  # noqa: E402
-from surgiguard_d1.trajectory.simulate import simulate_cohort  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model import FeatureSpec, TrajectoryModel, evaluate, load_jsonl, split_by_patient  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model.simulate import simulate_cohort  # noqa: E402
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 source = parser.add_mutually_exclusive_group(required=True)

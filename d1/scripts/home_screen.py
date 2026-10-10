@@ -22,7 +22,7 @@ if (ROOT / ".env").exists():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"\''))
 
-from surgiguard_d1.recovery import predict_normal_trajectory  # noqa: E402
+from surgiguard_d1.trajectory_prediction import predict_normal_trajectory  # noqa: E402
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("d2_json")

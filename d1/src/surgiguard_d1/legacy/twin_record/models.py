@@ -8,9 +8,9 @@ from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-from ..forecast.models import Forecast
-from ..physiology.models import Evidence, Quality
-from ..trajectory.model import ExpectedTrajectory
+from ...patient_twin.models import Forecast
+from ...physiology.models import Evidence, Quality
+from ..trajectory_model.model import ExpectedTrajectory
 
 # ---------------------------------------------------------------- inputs
 

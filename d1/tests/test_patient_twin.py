@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from surgiguard_d1.forecast import (
+from surgiguard_d1.patient_twin import (
     ChronosForecaster, Forecast, ForecastConfig, PersistenceForecaster, TrendForecaster,
     backtest, forecast_metric, to_hourly,
 )

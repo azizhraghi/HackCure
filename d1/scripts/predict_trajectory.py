@@ -1,6 +1,6 @@
 """Predict the normal recovery trajectory from Developer 2's JSON.
 
-    .venv/bin/python scripts/predict_recovery.py examples/d2_sample.json --days 42
+    .venv/bin/python scripts/predict_trajectory.py examples/d2_sample.json --days 42
 
 Needs GROQ_API_KEY, either exported in the terminal or in a `.env` file at the
 project root (one line: GROQ_API_KEY=...). GROQ_MODEL picks a different Groq model.
@@ -23,7 +23,7 @@ if (ROOT / ".env").exists():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"\''))
 
-from surgiguard_d1.recovery import predict_normal_trajectory  # noqa: E402
+from surgiguard_d1.trajectory_prediction import predict_normal_trajectory  # noqa: E402
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("d2_json")

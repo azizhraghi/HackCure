@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from surgiguard_d1.recovery import RecoveryTrajectory, deidentify, predict_normal_trajectory
-from surgiguard_d1.recovery.predict import checkpoint_days, default_llm
+from surgiguard_d1.trajectory_prediction import RecoveryTrajectory, deidentify, predict_normal_trajectory
+from surgiguard_d1.trajectory_prediction.predict import checkpoint_days, default_llm
 
 SAMPLE = json.loads((Path(__file__).resolve().parents[1] / "examples" / "d2_sample.json").read_text())
 
@@ -277,8 +277,8 @@ def test_each_day_is_told_what_is_still_expected_and_which_medication_has_ended(
 
 
 def test_day_facts_drop_a_symptom_once_its_usual_duration_has_passed():
-    from surgiguard_d1.recovery.predict import day_facts
-    from surgiguard_d1.recovery.schema import TypicalCourse
+    from surgiguard_d1.trajectory_prediction.predict import day_facts
+    from surgiguard_d1.trajectory_prediction.schema import TypicalCourse
 
     c = TypicalCourse(
         full_recovery_typically_weeks=26, noticeable_pain_until_day=20, phases=[],
@@ -291,7 +291,7 @@ def test_day_facts_drop_a_symptom_once_its_usual_duration_has_passed():
 
 
 def test_an_object_wrapped_in_a_one_item_list_is_unwrapped_and_other_junk_is_not():
-    from surgiguard_d1.recovery.predict import _unwrap
+    from surgiguard_d1.trajectory_prediction.predict import _unwrap
 
     assert json.loads(_unwrap('[{"surgery": "x"}]')) == {"surgery": "x"}
     assert _unwrap('[{"a": 1}, "personal_factors", ":"]') is None

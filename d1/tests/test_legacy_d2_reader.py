@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from surgiguard_d1.trajectory import flatten
-from surgiguard_d1.trajectory.d2 import dossier_from_d2, normalise_drug_class, normalise_procedure
-from surgiguard_d1.twin import Episode, TwinInputs, build_snapshot
+from surgiguard_d1.legacy.trajectory_model import flatten
+from surgiguard_d1.legacy.trajectory_model.d2 import dossier_from_d2, normalise_drug_class, normalise_procedure
+from surgiguard_d1.legacy.twin_record import Episode, TwinInputs, build_snapshot
 
 from .conftest import T0
 

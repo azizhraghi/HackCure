@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from surgiguard_d1.physiology import CodeConfig, PhysiologyConfig, analyze_physiology
-from surgiguard_d1.twin import (
+from surgiguard_d1.legacy.twin_record import (
     AnalysisInput,
     ApprovedMilestone,
     Episode,
@@ -19,7 +19,7 @@ from surgiguard_d1.twin import (
     clinician_view,
     patient_view,
 )
-from surgiguard_d1.twin.timeline import calendar_days_between
+from surgiguard_d1.legacy.twin_record.timeline import calendar_days_between
 
 from .conftest import T0, make_obs
 
@@ -286,7 +286,7 @@ def test_caregiver_sees_only_granted_dimensions():
 
 # ------------------------------------- patient background via D2's protocol
 
-from surgiguard_d1.twin import ContextItem, MetricReference, physiology_config  # noqa: E402
+from surgiguard_d1.legacy.twin_record import ContextItem, MetricReference, physiology_config  # noqa: E402
 
 PERSONALISED = PROTOCOL.model_copy(update={
     "procedure": "Fixture procedure",
@@ -358,8 +358,8 @@ def test_background_is_not_in_patient_or_caregiver_views():
 
 # --------------------------------------- predicted normal trajectory
 
-from surgiguard_d1.trajectory import TrajectoryModel  # noqa: E402
-from surgiguard_d1.twin import dossier_from_protocol, predict_expected  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model import TrajectoryModel  # noqa: E402
+from surgiguard_d1.legacy.twin_record import dossier_from_protocol, predict_expected  # noqa: E402
 
 from .sim_cohort import SPEC, simulate  # noqa: E402
 
@@ -442,7 +442,7 @@ def test_when_the_model_abstains_the_twin_says_so_and_makes_no_comparison(trajec
 
 # ------------------------------------------------- near-term forecasts
 
-from surgiguard_d1.forecast import PersistenceForecaster, forecast_metric  # noqa: E402
+from surgiguard_d1.patient_twin import PersistenceForecaster, forecast_metric  # noqa: E402
 from surgiguard_d1.physiology import build_series  # noqa: E402
 
 

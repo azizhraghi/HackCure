@@ -7,7 +7,7 @@ and nothing here ships as the model's training data.
 import math
 import random
 
-from surgiguard_d1.trajectory import FeatureSpec, Row
+from surgiguard_d1.legacy.trajectory_model import FeatureSpec, Row
 
 SPEC = FeatureSpec(numeric=("age",), categorical=("procedure",), flags=("condition.fixture_a",))
 

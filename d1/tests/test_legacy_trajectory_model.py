@@ -1,6 +1,6 @@
 import pytest
 
-from surgiguard_d1.trajectory import (
+from surgiguard_d1.legacy.trajectory_model import (
     PatientProfile, TrajectoryModel, evaluate, load_csv, save_csv, split_by_patient,
 )
 
@@ -105,8 +105,8 @@ def test_csv_round_trip(tmp_path):
 
 # ------------------------------ shipped simulated cohort, full dossiers
 
-from surgiguard_d1.trajectory import FeatureSpec, flatten, load_jsonl, rows_from_patients, save_jsonl  # noqa: E402
-from surgiguard_d1.trajectory.simulate import LAST_DAY, PROCEDURES, simulate_patients  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model import FeatureSpec, flatten, load_jsonl, rows_from_patients, save_jsonl  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model.simulate import LAST_DAY, PROCEDURES, simulate_patients  # noqa: E402
 
 DOSSIER = {
     "patient_id": "pt_x", "age": 65, "sex": "Male", "bmi": 27.0, "asa_class": 2, "smoker": False,

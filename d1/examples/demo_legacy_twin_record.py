@@ -1,6 +1,6 @@
 """Build Recovery Twin snapshots for a synthetic episode and print them.
 
-    .venv/bin/python examples/demo_twin.py
+    .venv/bin/python examples/demo_legacy_twin_record.py
 
 All values are fixtures; milestones stand in for D2's approved protocol.
 """
@@ -13,18 +13,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from surgiguard_d1.physiology import CodeConfig, PhysiologyConfig, RecordedObservation, analyze_physiology  # noqa: E402
-from surgiguard_d1.twin import (  # noqa: E402
+from surgiguard_d1.legacy.twin_record import (  # noqa: E402
     AnalysisInput, ApprovedMilestone, ContextItem, Episode, MedicationReport, MetricReference,
     ProtocolView, SymptomReport, TwinInputs, TwinStore, caregiver_view, patient_view,
     physiology_config, predict_expected,
 )
-from surgiguard_d1.trajectory import TrajectoryModel  # noqa: E402
-from surgiguard_d1.forecast import ChronosForecaster, TrendForecaster, forecast_metric  # noqa: E402
+from surgiguard_d1.legacy.trajectory_model import TrajectoryModel  # noqa: E402
+from surgiguard_d1.patient_twin import ChronosForecaster, TrendForecaster, forecast_metric  # noqa: E402
 from surgiguard_d1.physiology import build_series  # noqa: E402
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models" / "trajectory"
 if not MODEL_DIR.exists():
-    sys.exit("No trained model. Run: .venv/bin/python scripts/train_trajectory.py --simulate 1500 --out models/trajectory")
+    sys.exit("No trained model. Run: .venv/bin/python scripts/train_legacy_model.py --simulate 1500 --out models/trajectory")
 model = TrajectoryModel.load(MODEL_DIR)
 
 # Pretrained forecaster if it has been downloaded, otherwise the simple trend method.

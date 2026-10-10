@@ -18,7 +18,7 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from ..physiology.codes import CANONICAL_UNITS, OPTIONAL_UNITS
+from ...physiology.codes import CANONICAL_UNITS, OPTIONAL_UNITS
 from .dataset import FeatureSpec, Row
 
 MODEL_VERSION = "trajectory-gbq-0.1.0"

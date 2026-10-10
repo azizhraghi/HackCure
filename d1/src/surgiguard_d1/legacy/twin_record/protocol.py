@@ -3,9 +3,9 @@
 from datetime import timedelta
 from typing import Any
 
-from ..physiology.models import ApprovedReference, CodeConfig, PhysiologyConfig
-from ..trajectory.dossier import flatten
-from ..trajectory.model import ExpectedTrajectory, TrajectoryModel
+from ...physiology.models import ApprovedReference, CodeConfig, PhysiologyConfig
+from ..trajectory_model.dossier import flatten
+from ..trajectory_model.model import ExpectedTrajectory, TrajectoryModel
 from .models import ProtocolView
 
 

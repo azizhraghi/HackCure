@@ -6,9 +6,9 @@ from typing import get_args
 
 import numpy as np
 
-from ..physiology.models import Evidence, Quality
-from ..trajectory.dossier import flatten
-from ..trajectory.model import ExpectedTrajectory
+from ...physiology.models import Evidence, Quality
+from ..trajectory_model.dossier import flatten
+from ..trajectory_model.model import ExpectedTrajectory
 from .models import (
     AnalysisInput,
     Dimension,
