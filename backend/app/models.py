@@ -265,3 +265,19 @@ class DoseIn(BaseModel):
     scheduled_for: datetime
     status: Literal["taken", "not_taken", "postponed", "unknown"]
     actor: str = "sarah"
+
+
+class ClarificationOut(BaseModel):
+    """Check-in agent: one clarification question for a worsened item."""
+    text: str = PField(min_length=5, max_length=200)
+    options: list[str] = PField(min_length=2, max_length=5)
+
+
+class DigestTaskOut(BaseModel):
+    text: str = PField(min_length=3, max_length=160)
+    category: str
+
+
+class DigestOut(BaseModel):
+    summary: str
+    tasks: list[DigestTaskOut] = PField(default_factory=list, max_length=3)
