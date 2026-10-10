@@ -1,0 +1,89 @@
+{
+  "_note": "FICTIONAL demo plan. Thresholds are demo values, NOT clinical advice.",
+  "version": 1,
+  "pathway": "Total knee replacement (right) - home recovery",
+  "checkin": {
+    "times": ["08:00", "20:00"],
+    "items": ["pain", "fatigue", "mobility"],
+    "scale_in": "0-10",
+    "scale_internal": "1-5",
+    "worsening_delta": 2,
+    "max_clarifications": 1
+  },
+  "vitals_schedule": {
+    "hr": {"expected_every_min": 30},
+    "spo2": {"expected_every_min": 30},
+    "temp": {"expected_every_min": 120},
+    "bp": {"expected_every_min": 720}
+  },
+  "thresholds": {
+    "spo2_urgent_below": 90,
+    "temp_attention_at": 38.5,
+    "temp_urgent_at": 39.5,
+    "hr_deviation_bpm": 15,
+    "temp_deviation_c": 1.0,
+    "deviation_signals_to_investigate": 2,
+    "stale_after_min": 240
+  },
+  "red_flags": {
+    "chips": ["shortness_of_breath", "calf_pain", "chest_pain", "fainting", "confusion", "heavy_bleeding"],
+    "phrases": [
+      "severe breathlessness", "shortness of breath", "short of breath", "breathless", "can't breathe",
+      "cannot breathe", "can not breathe", "struggling to breathe", "hard to breathe", "difficulty breathing",
+      "chest pain", "chest tightness", "pain in my chest",
+      "faint", "fainted", "fainting", "passed out", "blacked out", "lost consciousness",
+      "confused", "confusion", "disoriented",
+      "heavy bleeding", "bleeding heavily", "bleeding a lot", "blood everywhere", "soaked with blood",
+      "calf pain", "calf swelling", "swollen calf", "pain in my calf",
+      "essoufflement", "souffle court", "du mal a respirer", "douleur thoracique", "douleur dans la poitrine",
+      "evanoui", "perdu connaissance", "saignement abondant", "douleur au mollet", "mollet gonfle"
+    ]
+  },
+  "allowed_tests": ["hr", "spo2", "temp", "bp", "wound_photo", "question"],
+  "alert_routing": {
+    "urgent": {"assign": "dr_ruiz", "notify": ["dr_ruiz", "sarah", "ahmed"], "backup": "dr_oncall"},
+    "attention": {"assign": "dr_ruiz", "notify": ["dr_ruiz"], "backup": "dr_oncall"},
+    "info": {"assign": null, "notify": ["sarah"], "backup": null}
+  },
+  "caregiver_permissions": {
+    "ahmed": {
+      "categories": {
+        "vitals": true,
+        "symptoms": true,
+        "medications": true,
+        "wound": true,
+        "alerts": true,
+        "rehab": true,
+        "appointments": true
+      }
+    }
+  },
+  "medications": [
+    {"id": "m1", "name": "Paracetamol", "dose": "1 g", "purpose": "Pain relief", "times": ["08:00", "14:00", "20:00"],
+     "missed_dose_text": "If you missed a paracetamol dose, do not take two doses together. Continue with the next planned dose."},
+    {"id": "m2", "name": "Celecoxib", "dose": "200 mg", "purpose": "Anti-inflammatory", "times": ["09:00"],
+     "missed_dose_text": "Do not take two doses together. Continue tomorrow at the usual time and mention it to your care team."},
+    {"id": "m3", "name": "Pantoprazole", "dose": "20 mg", "purpose": "Protects the stomach", "times": ["08:00"],
+     "missed_dose_text": "Do not take two doses together. Continue tomorrow at the usual time."},
+    {"id": "m4", "name": "Enoxaparin", "dose": "40 mg injection", "purpose": "Prevents blood clots", "times": ["20:00"],
+     "missed_dose_text": "Do not inject a double dose. Contact your care team today to say a dose was missed."},
+    {"id": "m5", "name": "Cefuroxime", "dose": "500 mg", "purpose": "Antibiotic (fictional demo prescription)", "times": ["08:00", "14:00", "20:00"],
+     "missed_dose_text": "Do not take two doses together. Tell your care team that a dose was missed."}
+  ],
+  "medication_rules": {"missed_window_h": 48, "missed_count_for_flag": 2, "answer_grace_min": 120},
+  "rehab": [
+    {"id": "r1", "name": "Knee bends", "detail": "2 x 10", "times": ["09:30", "18:00"]},
+    {"id": "r2", "name": "Straight-leg raises", "detail": "2 x 10", "times": ["09:30", "18:00"]},
+    {"id": "r3", "name": "Ankle pumps", "detail": "3 x 15", "times": ["09:30", "13:00", "18:00"]}
+  ],
+  "appointments": [
+    {"title": "Physiotherapy", "day_offset": 6, "time": "15:00"},
+    {"title": "Staple removal", "day_offset": 8, "time": "09:00"},
+    {"title": "Follow-up with Dr. Ruiz", "day_offset": 12, "time": "10:30"}
+  ],
+  "patient_texts": {
+    "urgent": "Call emergency services (112) now. Your care team has also been alerted.",
+    "attention_next_step": "Your care team has been asked to review your recent readings today. Keep your phone nearby. If you feel worse, use the emergency button.",
+    "investigation_started": "We noticed some changes and may ask you one or two quick questions."
+  }
+}
