@@ -144,8 +144,9 @@ export function FamilyAttentionScreen() {
 }
 
 /** F07 — urgent alert (full-screen red) */
-export function FamilyUrgentScreen({ navigation }: RootScreen<'FamilyUrgent'>) {
+export function FamilyUrgentScreen({ navigation, route }: RootScreen<'FamilyUrgent'>) {
   const { t } = useT();
+  const live = route.params;
   const { seen, mark } = useAck();
   return (
     <Screen bg="#ff6b6b" edges={['top', 'bottom']} style={{ paddingHorizontal: 20, paddingTop: 13 }}>
@@ -157,8 +158,8 @@ export function FamilyUrgentScreen({ navigation }: RootScreen<'FamilyUrgent'>) {
       <View style={{ width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: '#1b2a4a', backgroundColor: '#fff', alignSelf: 'center', marginTop: 56, marginBottom: 20, alignItems: 'center', justifyContent: 'center' }}>
         <T size={50} w={800} color="#1b2a4a">!</T>
       </View>
-      <T size={27} w={800} center spacing={-1} color="#1b2a4a" style={{ lineHeight: 32 }}>{t('urgent.title')}</T>
-      <T size={10} w={600} center lh={1.5} color="#1b2a4a" style={{ marginTop: 14, marginBottom: 22, marginHorizontal: 16 }}>{t('urgent.body')}</T>
+      <T size={27} w={800} center spacing={-1} color="#1b2a4a" style={{ lineHeight: 32 }}>{live?.title ?? t('urgent.title')}</T>
+      <T size={10} w={600} center lh={1.5} color="#1b2a4a" style={{ marginTop: 14, marginBottom: 22, marginHorizontal: 16 }}>{live?.message ?? t('urgent.body')}</T>
       <View style={{ borderWidth: 1.5, borderColor: '#1b2a4a', borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.78)', padding: 12 }}>
         <T size={11} w={800} color="#1b2a4a">{t('urgent.act')}</T>
         <T size={7} lh={1.45} color="#1b2a4a" style={{ marginTop: 4 }}>{t('urgent.actSub')}</T>

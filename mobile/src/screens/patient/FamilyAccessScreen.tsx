@@ -3,7 +3,9 @@ import { Pressable, Share, View } from 'react-native';
 import { Icon, type IconName } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Avatar, Card, haptic, SectionRow, Screen, Switch, TopBar } from '../../components/ui';
+import { useMyProfile } from '../../hooks/useBackend';
 import { useT } from '../../i18n';
+import { initials } from '../../services/backend';
 import { useTheme } from '../../theme/ThemeContext';
 
 /** Stylised QR code (.qr-code) */
@@ -23,10 +25,10 @@ export function FamilyAccessScreen() {
   const { c } = useTheme();
   const { t, list } = useT();
   const [sharing, setSharing] = useState([true, true, true, true, true]);
-  const [members, setMembers] = useState([
-    { name: 'Ahmed Khan', rel: 'partner', bg: c.sky },
-    { name: 'Emma Lee', rel: 'sister', bg: c.pink },
-  ]);
+  const { data: profile } = useMyProfile();
+  const members = profile?.family_members ?? [];
+  const code = profile?.link_code ?? '······';
+  const tones = [c.sky, c.pink, c.yellow, c.lavender];
   const icons: IconName[] = ['sensor', 'camera', 'checkin', 'pill', 'activity'];
   const items = list('access.items');
 
@@ -43,12 +45,12 @@ export function FamilyAccessScreen() {
             </View>
             <View>
               <T size={5.5} spacing={0.7}>{t('access.code')}</T>
-              <T size={19} w={800} spacing={3} style={{ marginTop: 2 }}>482 916</T>
+              <T size={19} w={800} spacing={3} style={{ marginTop: 2 }}>{`${code.slice(0, 3)} ${code.slice(3)}`}</T>
             </View>
           </View>
           <QrMark />
         </View>
-        <Pressable onPress={() => { haptic(); Share.share({ message: t('access.shareMsg') }); }}
+        <Pressable onPress={() => { haptic(); if (profile) Share.share({ message: t('access.shareMsg', { code: profile.link_code }) }); }}
           style={({ pressed }) => ({ height: 35, marginTop: 8, borderWidth: 1.2, borderColor: c.ink, borderRadius: 10, backgroundColor: c.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: pressed ? 0.7 : 1 })}>
           <Icon name="upload" size={15} /><T size={8} w={800}>{t('access.share')}</T>
         </Pressable>
@@ -56,13 +58,14 @@ export function FamilyAccessScreen() {
 
       <SectionRow title={t('access.linked')} right={t('access.people', { n: members.length })} style={{ marginTop: 12, marginBottom: 6 }} />
       <Card radius={15}>
+        {members.length === 0 && <T size={8} color={c.muted} style={{ padding: 10 }}>{t('access.none')}</T>}
         {members.map((m, i) => (
-          <View key={m.name} style={{ height: 48, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: i < members.length - 1 ? 1 : 0, borderBottomColor: c.line }}>
-            <Avatar initials={m.name.split(' ').map(x => x[0]).join('')} size={31} bg={m.bg} />
-            <View style={{ flex: 1 }}><T size={8} w={800}>{m.name}</T><T size={6} color={c.muted} style={{ marginTop: 2 }}>{t(`people.${m.rel}`)} · {t('access.viewOnly')}</T></View>
-            <Pressable onPress={() => { haptic(); setMembers(v => v.filter(x => x.name !== m.name)); }} style={{ borderWidth: 1, borderColor: c.ink, borderRadius: 99, paddingVertical: 4, paddingHorizontal: 8 }}>
-              <T size={6} w={800}>{t('common.remove')}</T>
-            </Pressable>
+          <View key={m.family_member_id} style={{ height: 48, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: i < members.length - 1 ? 1 : 0, borderBottomColor: c.line }}>
+            <Avatar initials={initials(m.full_name)} size={31} bg={tones[i % tones.length]} />
+            <View style={{ flex: 1 }}>
+              <T size={8} w={800}>{m.full_name}</T>
+              <T size={6} color={c.muted} style={{ marginTop: 2 }}>{m.relationship} · {m.is_primary_contact ? t('access.primary') : t('access.viewOnly')}{m.whatsapp_opt_in ? ' · WhatsApp' : ''}</T>
+            </View>
           </View>
         ))}
       </Card>

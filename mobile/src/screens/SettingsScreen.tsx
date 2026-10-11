@@ -14,8 +14,9 @@ function Label({ children }: { children: string }) {
 export function SettingsScreen() {
   const { c, isDark, setDark } = useTheme();
   const { t, lang } = useT();
-  const { resetRole, apiUrl, setApiUrl } = useAppState();
+  const { resetRole, apiUrl, setApiUrl, accountUrl, setAccountUrl } = useAppState();
   const [url, setUrl] = useState(apiUrl);
+  const [account, setAccount] = useState(accountUrl);
 
   const langs: [Lang, string][] = [['en', 'English'], ['fr', 'Français']];
 
@@ -41,6 +42,9 @@ export function SettingsScreen() {
       <Card radius={17} style={{ padding: 10 }}>
         <T size={7} color={c.muted} style={{ marginBottom: 6 }}>{t('settings.serverSub')}</T>
         <TextInput value={url} onChangeText={setUrl} onEndEditing={() => setApiUrl(url.trim())} autoCapitalize="none" autoCorrect={false} keyboardType="url"
+          style={{ height: 44, borderWidth: 1.2, borderColor: c.ink, borderRadius: 12, paddingHorizontal: 12, color: c.text, fontFamily: fonts[600], backgroundColor: c.bg }} />
+        <T size={7} color={c.muted} style={{ marginTop: 10, marginBottom: 6 }}>{t('settings.accountServerSub')}</T>
+        <TextInput value={account} onChangeText={setAccount} onEndEditing={() => setAccountUrl(account.trim())} autoCapitalize="none" autoCorrect={false} keyboardType="url"
           style={{ height: 44, borderWidth: 1.2, borderColor: c.ink, borderRadius: 12, paddingHorizontal: 12, color: c.text, fontFamily: fonts[600], backgroundColor: c.bg }} />
       </Card>
 

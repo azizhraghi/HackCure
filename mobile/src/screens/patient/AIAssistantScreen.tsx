@@ -5,10 +5,10 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Icon } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Card, Chip, haptic, IconBadge, TopBar } from '../../components/ui';
-import { useAppState } from '../../context/AppState';
+import { useApi } from '../../context/AppState';
 import { useT } from '../../i18n';
 import type { RootScreen } from '../../navigation/types';
-import { sendChat, type ChatMessage } from '../../services/api';
+import type { ChatMessage } from '../../services/backend';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, fs } from '../../theme/tokens';
 
@@ -17,7 +17,7 @@ type Bubble = ChatMessage & { error?: boolean; escalate?: boolean };
 export function AIAssistantScreen({ navigation, route }: RootScreen<'AIAssistant'>) {
   const { c } = useTheme();
   const { t, list, lang } = useT();
-  const { apiUrl } = useAppState();
+  const api = useApi();
   const [messages, setMessages] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export function AIAssistantScreen({ navigation, route }: RootScreen<'AIAssistant
     setInput('');
     setBusy(true);
     try {
-      const res = await sendChat(apiUrl, history.map(({ role, content }) => ({ role, content })), lang);
+      const res = await api.chat(history.map(({ role, content }) => ({ role, content })), lang);
       setMessages(m => [...m, { role: 'assistant', content: res.reply, escalate: res.escalate }]);
     } catch {
       setMessages(m => [...m, { role: 'assistant', content: t('ai.error'), error: true }]);
