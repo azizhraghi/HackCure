@@ -1,4 +1,4 @@
-"""A2 Investigation Agent: resumable LLM tool-calling loop.
+"""A2 Investigation Agent: durable tools and lifecycle for LangGraph orchestration.
 
 Lifecycle: running -> (waiting_patient <-> running)* -> finished | incomplete | aborted_urgent
 
@@ -71,14 +71,17 @@ def _lenient_json(text: str) -> tuple[dict | None, str | None]:
 def _missing_required(messages: list) -> list[str]:
     called = set()
     for msg in messages:
-        for tc in msg.get("tool_calls") or []:
-            name = tc["function"]["name"]
-            try:
-                args = json.loads(tc["function"]["arguments"] or "{}")
-            except json.JSONDecodeError:
-                args = {}
-            called.add((name, args.get("metric")))
-            called.add((name, None))
+        if msg.get("role") != "tool":
+            continue
+        try:
+            result = json.loads(msg.get("content") or "{}")
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(result, dict) or result.get("error"):
+            continue
+        name = msg.get("name")
+        called.add((name, result.get("metric")))
+        called.add((name, None))
     return [f"{n}({k})" if k else n for n, k in REQUIRED if (n, k) not in called]
 
 
@@ -107,7 +110,7 @@ def run(inv_id: str) -> None:
 
 
 def _save(repo: Repo, inv: m.Investigation, messages: list, pending: dict | None = None) -> None:
-    inv.state = {"messages": list(messages), "pending": pending}
+    inv.state = {**(inv.state or {}), "messages": list(messages), "pending": pending}
     repo.add(inv)
 
 
@@ -210,98 +213,9 @@ def recover(repo: Repo) -> list[str]:
 
 
 def _loop(repo: Repo, inv: m.Investigation) -> None:
-    messages = list(inv.state.get("messages") or [])
-    if not messages:
-        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": context_message(repo, inv)}]
-        audit.log(repo, inv.patient_id, AGENT, "agent.start", {"trigger": inv.trigger, "llm_mode": llm.mode()},
-                  "investigation", inv.id)
-    nudges = 0
-    p = repo.patient(inv.patient_id)
-    llm_ctx = {"flags": inv.trigger.get("test_flags", []), "patient_id": inv.patient_id,
-               "first_name": p.first_name if p else "the patient"}
-
-    while True:
-        if not _can_continue(repo, inv):
-            return
-        force_finish = inv.tool_calls >= settings.max_tool_calls
-        try:
-            if force_finish:
-                messages.append({"role": "user", "content": "Tool budget used. Call finish_investigation now."})
-                reply = llm.chat_tools("investigation", messages, [tools.TOOLS[-1]], llm_ctx, tool_choice="any")
-            else:
-                reply = llm.chat_tools("investigation", messages, tools.TOOLS, llm_ctx)
-        except llm.LLMUnavailable as e:
-            if not _can_continue(repo, inv):
-                return
-            audit.log(repo, inv.patient_id, AGENT, "agent.llm_unavailable", {"error": str(e)}, "investigation", inv.id)
-            _save(repo, inv, messages)
-            complete(repo, inv, evidence.fallback(repo, inv, "AI unavailable"), status="incomplete")
-            return
-
-        # An urgent rule or deadline may have arrived during the provider call.
-        if not _can_continue(repo, inv):
-            return
-
-        reply.tool_calls = reply.tool_calls[:1]  # one tool at a time keeps the history consistent
-        messages.append(reply.message)
-        audit.log(repo, inv.patient_id, AGENT, "agent.step",
-                  {"thought": reply.content[:1000], "tool_calls": [{"name": c.name, "arguments": c.arguments}
-                                                                    for c in reply.tool_calls],
-                   "mode": reply.mode, "ms": reply.ms}, "investigation", inv.id)
-
-        if not reply.tool_calls:
-            nudges += 1
-            if nudges > 2:
-                _save(repo, inv, messages)
-                complete(repo, inv, evidence.fallback(repo, inv, "agent did not finish"), status="incomplete")
-                return
-            messages.append({"role": "user", "content": "Use a tool, or call finish_investigation when ready."})
-            continue
-
-        call = reply.tool_calls[0]
-        if call.name == "finish_investigation" and not force_finish and (todo := _missing_required(messages[:-1])):
-            inv.tool_calls += 1  # refusals use up budget, so a stubborn model still ends via the forced finish
-            audit.log(repo, inv.patient_id, AGENT, "agent.finish_refused", {"missing_tools": todo},
-                      "investigation", inv.id)
-            messages.append(llm.tool_message(call, {"error": "not finished: look at this evidence first",
-                                                    "call_these_tools": todo}))
-            _save(repo, inv, messages)
-            continue
-
-        if call.name == "finish_investigation":
-            findings = call.arguments.get("findings", call.arguments)
-            if isinstance(findings, str):  # some models send the object as a (sometimes malformed) JSON string
-                findings, parse_error = _lenient_json(findings)
-                summary, errors = (None, [f"findings must be a JSON object; your JSON is invalid: {parse_error}"]) \
-                    if parse_error else evidence.validate(repo, inv.patient_id, findings)
-            else:
-                summary, errors = evidence.validate(repo, inv.patient_id, findings)
-            audit.log(repo, inv.patient_id, AGENT, "evidence.validated", {"ok": not errors, "errors": errors},
-                      "investigation", inv.id)
-            if summary:
-                _save(repo, inv, messages)
-                complete(repo, inv, summary, status="finished", mode=reply.mode)
-                return
-            if inv.evidence_retries >= 1:
-                _save(repo, inv, messages)
-                complete(repo, inv, evidence.fallback(repo, inv, "AI summary failed validation"), status="incomplete")
-                return
-            inv.evidence_retries += 1
-            messages.append(llm.tool_message(call, {"error": "rejected", "fix": errors,
-                                                    "hint": "Cite only observation_ids returned by tools."}))
-            _save(repo, inv, messages)
-            continue
-
-        if force_finish:  # the model ignored the forced finish
-            _save(repo, inv, messages[:-1])
-            complete(repo, inv, evidence.fallback(repo, inv, "tool budget exhausted"), status="incomplete")
-            return
-
-        inv.tool_calls += 1
-        _save(repo, inv, messages, {"phase": "executing", "tool_call_id": call.id,
-                                   "tool": call.name, "arguments": call.arguments})
-        if not _execute_tool(repo, inv, messages, call):
-            return
+    """Compatibility entry point; all orchestration now runs through LangGraph."""
+    from .investigation_graph import run as run_graph
+    run_graph(repo, inv)
 
 
 def resume(repo: Repo, req: m.PatientRequest, result: dict) -> None:
@@ -373,6 +287,12 @@ def _complete(repo: Repo, inv: m.Investigation, summary: m.EvidenceSummary, stat
     data = summary.model_dump(mode="json")
     data["evidence_status"] = "complete" if status == "finished" else "incomplete"
     data["generated_by"] = mode if status == "finished" else "rules (fallback)"
+    context = (inv.state or {}).get("context") or {}
+    data["context_sources"] = context.get("sources", [])
+    data["supplementary_findings"] = context.get("d1_findings", [])
+    if context.get("d1_status") == "unknown":
+        data["missing_or_conflicting"].append("D1 rehabilitation / movement findings: no recorded results available.")
+    data["orchestrator"] = "langgraph" if (inv.state or {}).get("workflow", {}).get("engine") == "langgraph" else "legacy"
     inv.summary = data
     pid = inv.patient_id
     obs_ids = [c.observation_id for c in summary.patient_reported] + [c.observation_id for c in summary.device_measured]
@@ -383,6 +303,9 @@ def _complete(repo: Repo, inv: m.Investigation, summary: m.EvidenceSummary, stat
                           patient_text=summary.messages.patient)
     inv.alert_id = alert.id
     repo.add(inv)
+    if data["orchestrator"] == "langgraph":
+        from .investigation_workflow import mark
+        mark(repo, inv, "await_clinician" if status == "finished" else "incomplete")
     audit.log(repo, pid, AGENT, "agent.finished", {"status": status, "alert_id": alert.id,
                                                    "evidence_status": data["evidence_status"]},
               "investigation", inv.id)

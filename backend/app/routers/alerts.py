@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import alerts, notifications
+from .. import alerts, clock, notifications
 from .. import models as m
 from ..db import Repo, get_repo
 
@@ -33,9 +33,13 @@ def get_alert(alert_id: str, repo: Repo = Depends(get_repo)):
     action_at = next((h["at"] for h in reversed(a.history) if h["event"] == "action_taken"), None)
     if action_at:
         from datetime import datetime
+        action_time = datetime.fromisoformat(action_at)
+        now = clock.now()
         out["followup_observations"] = [o.model_dump() for o in repo.observations(a.patient_id,
-                                       since=datetime.fromisoformat(action_at), limit=50)
-                                       if o.source != "ai" and o.quality == "good"]
+                                       since=action_time, limit=50)
+                                       if o.source in ("patient", "caregiver_on_behalf", "device")
+                                       and o.quality == "good" and o.received_at >= action_time
+                                       and o.measured_at <= now]
     else:
         out["followup_observations"] = []
     if a.investigation_id:

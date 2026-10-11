@@ -140,6 +140,7 @@
   </section>
 </main>
 
+<script src="/agent-demo/workflow.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -222,11 +223,11 @@ async function expectedLoop() {
 function renderInv(inv) {
   const s = inv.summary || {};
   const reqs = (inv.requests || []).map(r => `<li>${esc(r.kind)}: ${esc(r.prompt)} · <b>${esc(r.status)}</b></li>`).join('');
-  return `<div class="grid2">
+  return renderInvestigationWorkflow(inv) + `<div class="grid2">
     <div class="card"><h3>Investigation · ${esc(inv.status)} · ${esc(inv.mode || '')}</h3>
       ${s.what_changed ? `<div><b>What changed:</b> ${esc(s.what_changed)}</div>` : '<div class="muted">collecting evidence…</div>'}
       ${s.messages?.clinician ? `<div style="margin-top:4px"><b>For the clinician:</b> ${esc(s.messages.clinician)}</div>` : ''}
-      ${s.missing?.length ? `<div class="muted">Missing: ${esc(s.missing.join('; '))}</div>` : ''}
+      ${s.missing_or_conflicting?.length ? `<div class="muted">Missing: ${esc(s.missing_or_conflicting.join('; '))}</div>` : ''}
       <ul>${reqs}</ul></div>
     <div class="card"><h3>Steps</h3><ul>${(inv.steps || []).slice(-10).map(st => `<li><span class="muted">${esc(st.actor)}</span> ${esc(st.kind)}</li>`).join('')}</ul></div>
   </div>${raw(inv)}`;

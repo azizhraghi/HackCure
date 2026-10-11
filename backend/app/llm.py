@@ -235,6 +235,12 @@ def _openai_complete(provider: str, model: str, **kwargs):
         raise LLMUnavailable(f"{key_attr.upper()} is not set")
     # Groq counts max_tokens against the per-minute token limit up front, so keep it modest there.
     body = {"model": model, "temperature": 0.2, "max_tokens": 1000 if provider == "groq" else 2000, **kwargs}
+    # Laguna supports tools, but not OpenRouter response_format. Keep our JSON
+    # parsing/schema validation and retry; request JSON in the prompt instead.
+    if provider == "openrouter" and model == "poolside/laguna-s-2.1:free" and body.get("response_format"):
+        body.pop("response_format")
+        body["messages"] = [*body["messages"], {"role": "user", "content":
+            "Return only one valid JSON object matching the requested schema. No Markdown fences or commentary."}]
     if body.get("tool_choice") == "any":  # Mistral's "must call a tool" == OpenAI's "required"
         body["tool_choice"] = "required"
     if provider == "groq" and model.startswith("openai/gpt-oss"):

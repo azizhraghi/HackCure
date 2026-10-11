@@ -1,8 +1,10 @@
 # Investigation restart recovery
 
-The main investigation loop resumes from SQLite on server startup. The periodic sweep also requeues
+The main LangGraph investigation resumes from SQLite on server startup. The periodic sweep also requeues
 work whose dispatch was interrupted. This covers the main `/patients` investigation workflow;
 the older `/v1/demo` LangGraph workflow remains separate.
+
+See [LANGGRAPH_INVESTIGATION.md](LANGGRAPH_INVESTIGATION.md) for graph stages and the clinician follow-up boundary.
 
 ## Recovery behavior
 

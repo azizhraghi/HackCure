@@ -90,6 +90,41 @@ TOOLS = [
 
 # ------------------------------------------------------------------ read tools
 
+def recovery_context(ctx: Ctx) -> dict:
+    """Fixed graph input: care-plan provenance and recorded D1 results only.
+
+    Never initiate a new camera test, forecast or LLM call to populate context.
+    D1 assessments remain supplementary outputs, separate from patient/device facts.
+    """
+    plan_row = ctx.repo.first(m.SurveillancePlan, m.SurveillancePlan.patient_id == ctx.pid,
+                              order=m.SurveillancePlan.created_at.desc())
+    plan = plan_row.plan if plan_row else {}
+    sources = ([{"kind": "care_plan", "id": plan_row.id, "at": plan_row.created_at.isoformat(),
+                 "version": plan.get("version"), "approval": plan.get("approval", "not recorded")}]
+               if plan_row else [])
+    findings = []
+    for kind in ("rehab_session", "motor"):
+        for obs in ctx.repo.observations(ctx.pid, kind, since=clock.now() - timedelta(hours=72),
+                                          until=clock.now(), newest_first=True, limit=3):
+            finding = {"kind": kind, "observation_id": obs.id, "at": obs.measured_at.isoformat(),
+                       "simulated": obs.simulated, "quality": obs.quality,
+                       "assessment": {k: v for k, v in obs.value.items() if k not in ("frames", "landmarks")},
+                       "note": "Supplementary D1 assessment; not a diagnosis or direct device measurement."}
+            if kind == "rehab_session":
+                finding["summary"] = f"Rehabilitation session: {obs.value.get('status', 'unknown')}. " \
+                                     f"Patient-reported pain: {obs.value.get('pain_eva', 'unknown')}/10."
+            else:
+                result = obs.value.get("result") or {}
+                finding["summary"] = f"Guided movement test {obs.value.get('test', 'unknown')}: " \
+                                     f"{result.get('status', 'unknown')}. " + "; ".join(result.get("observations", [])[:6])
+            findings.append(finding)
+            sources.append({"kind": kind, "id": obs.id, "at": obs.measured_at.isoformat()})
+    return {"collected_at": clock.now().isoformat(), "sources": sources,
+            "care_plan": {k: plan[k] for k in ("version", "clinical_profile", "allowed_tests", "thresholds",
+                                               "clinician_restrictions", "doctor_notes", "followup_visits") if k in plan},
+            "wound_collection": wound_photos.eligibility(ctx.repo, ctx.pid),
+            "d1_status": "available" if findings else "unknown", "d1_findings": findings}
+
 def get_vitals_trend(ctx: Ctx, metric: str, hours: int = 24) -> dict:
     if metric not in METRICS:
         return {"error": f"unknown metric {metric}"}

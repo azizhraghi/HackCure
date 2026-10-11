@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { MiniBars, MiniLine, ScoreRing } from '../../components/charts';
 import { Icon, type IconName } from '../../components/Icon';
 import { T } from '../../components/T';
+import { InvestigationProgress } from '../../components/InvestigationProgress';
 import { Avatar, Card, haptic, IconBadge, PageTitle, RoundButton, Screen, SectionRow, SimulatedTag } from '../../components/ui';
 import { metrics, patient } from '../../data/mock';
 import { useT } from '../../i18n';
@@ -59,6 +60,7 @@ export function HomeScreen() {
     <Screen>
       <HomeHeader greeting={t('home.welcome')} name={`${patient.first} 👋`} avatar={patient.initials} />
       <PageTitle>{t('home.title')}</PageTitle>
+      <InvestigationProgress progress={today?.investigation_progress} />
 
       {pending.length > 0 && (
         <Pressable onPress={() => nav.navigate('Requests')}>

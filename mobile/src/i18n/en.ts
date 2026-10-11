@@ -154,6 +154,16 @@ const en = {
     server: 'AI SERVER', serverSub: 'Backend URL used by the recovery assistant',
     about: 'SurgiGuard AI · HackCure prototype', disclaimer: 'Fictional patient data. Simulated measurements are labeled.',
   },
+  investigation: {
+    title: 'YOUR CARE TEAM’S REVIEW',
+    context: 'Checking your recovery plan and recent information.',
+    evidence: 'Checking the evidence. Please answer any requests below when you can.',
+    followup: 'A report is ready for your care team. Follow-up is still open.',
+    closed: 'Your care team has verified and completed this follow-up.',
+    urgent: 'An urgent alert takes priority. Follow the instructions from your care team.',
+    incomplete: 'Some information is missing. Your care team can review the available evidence.',
+    step_context: 'Context', step_evidence: 'Evidence checks', step_report: 'Report ready', step_followup: 'Follow-up complete',
+  },
   req: {
     photoTiming: 'DRESSING-CHANGE SCHEDULE', photoConfirm: 'I am changing my dressing now, as permitted by my care plan.',
     failed: 'Your answer was not saved. Please try again.',

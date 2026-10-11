@@ -141,6 +141,8 @@
   <div class="head"><span class="num">6</span><h2>L'équipe soignante boucle la boucle</h2><span class="who ai">IA D3</span></div>
   <p class="story">Alerte → prise en compte → patiente contactée → décision → <b>vérification avec des mesures prises après la décision</b> → clôture. Le bouton « vérifier » utilise les dernières mesures <b>réelles du boîtier</b> de bonne qualité (une simulation ne peut pas prouver qu'un suivi a eu lieu).</p>
   <div id="alerts"></div>
+  <h3>Investigation · LangGraph</h3>
+  <div id="investigationWorkflow" aria-live="polite"></div>
 </section>
 
 <section class="step" id="s7">
@@ -193,6 +195,7 @@
 </section>
 
 </main>
+<script src="/agent-demo/workflow.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -491,10 +494,16 @@ async function liveMotor(test, seconds, b) { busy(b, async () => {
 }); }
 
 /* ---------------- loop ---------------- */
-async function refreshAll() { await refreshStatus(); await Promise.allSettled([refreshLive(), refreshPlan(), refreshAlerts(), refreshFamily()]); }
+async function refreshInvestigation() {
+  try {
+    const rows = await j(`/patients/${PID}/investigations`);
+    $("investigationWorkflow").innerHTML = rows.length ? renderInvestigationWorkflow(rows[0]) : '<p class="muted">Aucune investigation. Un changement non urgent peut déclencher une collecte d’informations.</p>';
+  } catch (e) { $("investigationWorkflow").textContent = e.message; }
+}
+async function refreshAll() { await refreshStatus(); await Promise.allSettled([refreshLive(), refreshPlan(), refreshAlerts(), refreshFamily(), refreshInvestigation()]); }
 drawTabs(); drawChat(); refreshAll(); refreshD1(); refreshRehab(); refreshMotor();
 setInterval(refreshLive, 2000); setInterval(refreshStatus, 5000);
-setInterval(() => { refreshAlerts(); refreshFamily(); refreshMotor(); }, 6000); setInterval(refreshD1, 30000); setInterval(refreshPlan, 20000);
+setInterval(() => { refreshAlerts(); refreshFamily(); refreshMotor(); refreshInvestigation(); }, 6000); setInterval(refreshD1, 30000); setInterval(refreshPlan, 20000);
 </script>
 </body>
 </html>

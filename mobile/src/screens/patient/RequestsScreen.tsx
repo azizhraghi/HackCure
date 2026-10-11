@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { T } from '../../components/T';
+import { InvestigationProgress } from '../../components/InvestigationProgress';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, TopBar } from '../../components/ui';
 import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
@@ -44,6 +45,7 @@ export function RequestsScreen() {
       <TopBar title={t('req.top')} />
       <PageTitle style={{ marginTop: 6 }}>{t('req.title')}</PageTitle>
       <Muted>{t('req.sub')}</Muted>
+      <InvestigationProgress progress={today?.investigation_progress} />
       {today?.wound_photo && <Card bg={c.ice} radius={14} style={{ padding: 10, marginTop: 10 }}>
         <T size={8.5} w={700}>{t('req.photoTiming')}</T>
         <T size={8} lh={1.4} style={{ marginTop: 4 }}>{t(today.wound_photo.permitted ? 'req.photoConfirm' : 'home.photoWait')}</T>

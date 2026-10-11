@@ -54,8 +54,15 @@ export type Today = {
   pending_requests: PatientRequest[];
   open_alerts: number;
   next_step: Notification | null;
+  investigation_progress?: InvestigationProgress | null;
   wound_photo: { status: 'due' | 'completed' | 'not_due' | 'unconfigured' | 'blocked'; permitted: boolean;
     reason: string; next_window?: { starts_at: string; ends_at: string } | null };
+};
+
+export type InvestigationProgress = {
+  id: string; phase: 'context' | 'evidence' | 'followup' | 'closed' | 'urgent';
+  context_collected: boolean; report_ready: boolean; report_incomplete: boolean;
+  followup_state: string | null; closed: boolean;
 };
 
 export type CheckinResult =

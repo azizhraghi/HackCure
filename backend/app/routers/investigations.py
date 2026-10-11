@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from .. import audit, requests_service
 from .. import models as m
 from ..db import Repo, get_repo
+from ..agents.investigation_workflow import public as workflow_progress
 
 router = APIRouter(tags=["investigations"])
 
@@ -26,11 +27,12 @@ def answer_request(request_id: str, body: m.RequestAnswer, actor: str = Query("s
 
 @router.get("/investigations/{inv_id}")
 def get_investigation(inv_id: str, include_messages: bool = False, repo: Repo = Depends(get_repo)):
-    """Full investigation with the audit trail (for the 'show AI reasoning steps' panel)."""
+    """Investigation evidence, public workflow actions and clinician follow-up."""
     inv = repo.get(m.Investigation, inv_id)
     if inv is None:
         raise HTTPException(404, "unknown investigation")
     out = inv.model_dump(exclude={"state"})
+    out["workflow"] = workflow_progress(repo, inv)
     if include_messages:
         out["messages"] = (inv.state or {}).get("messages", [])
     out["requests"] = repo.all(m.PatientRequest, m.PatientRequest.investigation_id == inv_id,
@@ -42,7 +44,7 @@ def get_investigation(inv_id: str, include_messages: bool = False, repo: Repo = 
 
 @router.get("/patients/{patient_id}/investigations")
 def list_investigations(patient_id: str, repo: Repo = Depends(get_repo)):
-    return [i.model_dump(exclude={"state"}) for i in
+    return [{**i.model_dump(exclude={"state"}), "workflow": workflow_progress(repo, i)} for i in
             repo.all(m.Investigation, m.Investigation.patient_id == patient_id,
                      order=m.Investigation.started_at.desc(), limit=20)]
 

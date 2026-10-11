@@ -111,7 +111,8 @@ def hr_during(repo: Repo, patient_id: str, start: datetime, end: datetime) -> di
     return {"status": "ok", "mean": round(mean(vals)), "peak": max(vals), "samples": len(vals), "source": "ESP32"}
 
 
-def run_rehab_session(repo: Repo, patient_id: str, exercises: list[dict], pain_eva: int | None, difficulty: str | None) -> dict:
+def run_rehab_session(repo: Repo, patient_id: str, exercises: list[dict], pain_eva: int | None, difficulty: str | None,
+                      simulated: bool = False) -> dict:
     """exercises: [{exercise_id, frames: [{t_ms, landmarks}]}] (or frames already built, for the demo)."""
     _d1()
     from surgiguard_d1.rehab import RehabSessionRunner, format_analysis_payload
@@ -125,7 +126,7 @@ def run_rehab_session(repo: Repo, patient_id: str, exercises: list[dict], pain_e
     vitals = hr_during(repo, patient_id, clock.now() - timedelta(minutes=3), clock.now())
     out = {"session": result.model_dump(mode="json"), "analysis": analysis.model_dump(mode="json"), "heart_rate": vitals,
            "plan_id": plan.plan_id, "alerts": []}
-    obs = repo.add(m.Observation(patient_id=patient_id, type="rehab_session", source="patient", unit="",
+    obs = repo.add(m.Observation(patient_id=patient_id, type="rehab_session", source="patient", unit="", simulated=simulated,
                                  value={"session_id": result.session_id, "status": result.status, "pain_eva": pain_eva,
                                         "exercises": [{"id": e.exercise_id, "name": e.exercise_name, "completed": e.completed_reps,
                                                        "incomplete": e.incomplete_reps, "target_reps": e.target_reps,
@@ -219,7 +220,7 @@ def blocked_reason(repo: Repo, patient_id: str) -> str | None:
     return None
 
 
-def run_motor_test(repo: Repo, patient_id: str, rec, symptoms: dict | None = None) -> dict:
+def run_motor_test(repo: Repo, patient_id: str, rec, symptoms: dict | None = None, simulated: bool = False) -> dict:
     _d1()
     from surgiguard_d1.neuro import MotorResult, analyze, compare_with_previous
     result = analyze(rec)
@@ -229,7 +230,7 @@ def run_motor_test(repo: Repo, patient_id: str, rec, symptoms: dict | None = Non
             previous = MotorResult.model_validate(o.value["result"])
             break
     changes = [c.model_dump(mode="json") for c in compare_with_previous(result, previous)] if previous else []
-    obs = repo.add(m.Observation(patient_id=patient_id, type="motor", source="patient",
+    obs = repo.add(m.Observation(patient_id=patient_id, type="motor", source="patient", simulated=simulated,
                                  value={"test": rec.test, "result": result.model_dump(mode="json"), "changes": changes,
                                         "symptoms": symptoms or {}}))
     audit.log(repo, patient_id, ACTOR, "motor.test", {"test": rec.test, "status": result.status,

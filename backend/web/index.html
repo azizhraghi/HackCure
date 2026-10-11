@@ -192,6 +192,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="/agent-demo/workflow.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -479,6 +480,8 @@ $('#f-digest-refresh').addEventListener('click', () => loadDigest(true));
 let selected = null;
 let detailAlert = null;
 const verificationDrafts = {};
+const clinicalNotes = {};
+let activeClinicalForm = null;
 function renderClinic(alerts) {
   if (selected && !alerts.some(a => a.id === selected)) selected = null;
   if (!selected && alerts.length) selected = alerts[0].id;
@@ -499,14 +502,21 @@ async function renderDetail() {
   if (!selected) { render('#c-detail', null, () => ''); return; }
   const a = await api(`/alerts/${selected}`);
   detailAlert = a;
+  if (verificationDrafts[a.id]) {
+    const eligible = new Set(a.followup_observations.map(o => o.id));
+    verificationDrafts[a.id].ids = verificationDrafts[a.id].ids.filter(id => eligible.has(id));
+  }
   const inv = a.investigation_id ? await api(`/investigations/${a.investigation_id}`) : null;
-  render('#c-detail', { a, inv }, () => {
+  const formAct = activeClinicalForm?.alertId === a.id ? activeClinicalForm.act : null;
+  render('#c-detail', { a, inv, formAct }, () => {
     const s = a.evidence_summary;
     const acts = `<div class="row" style="flex-wrap:wrap;margin-top:10px">
       <button class="btn primary" data-act="ack" ${a.ack_at ? 'disabled' : ''}>Acknowledge</button>
       <button class="btn" data-act="contacted" ${a.state !== 'acknowledged' ? 'disabled' : ''}>Patient contacted</button>
       <button class="btn" data-act="action" ${a.state !== 'patient_contacted' ? 'disabled' : ''}>Record clinician action…</button>
       <button class="btn" data-act="resolve" ${a.state !== 'verified' ? 'disabled' : ''}>Resolve after verification…</button></div>`;
+    const noteLabel = formAct === 'contacted' ? 'Contact note' : formAct === 'action' ? 'Clinician action' : 'Resolution reason';
+    const noteForm = formAct ? `<div class="card" style="margin-top:10px"><label>${noteLabel} (fictional demo)<textarea data-clinical-note style="display:block;width:100%;margin-top:4px" placeholder="Enter a short demo note">${esc(clinicalNotes[a.id] || '')}</textarea></label><button class="btn primary" data-submit-act="${formAct}" style="margin-top:8px">Save ${formAct === 'contacted' ? 'contact record' : formAct === 'action' ? 'clinician action' : 'resolution'}</button><button class="btn" data-cancel-clinical>Cancel</button></div>` : '';
     const draft = verificationDrafts[a.id] || { summary: '', outcome: 'needs_review', ids: [] };
     const verification = a.state === 'action_taken' ? `<div class="card"><div class="kicker">Follow-up verification required</div>
       <p>Record follow-up evidence collected after the clinician action, then assess the outcome. Reading or acknowledging the alert does not close it.</p>
@@ -534,10 +544,10 @@ async function renderDetail() {
     }
     let steps = '';
     if (inv) {
-      steps = `<div class="card"><div class="kicker">AI reasoning steps · ${esc(inv.status)} · ${inv.tool_calls} tool calls · ${inv.patient_requests} patient requests</div><div class="steps">${inv.steps.map(st => {
+      steps = renderInvestigationWorkflow(inv) + `<div class="card"><div class="kicker">Evidence actions · ${esc(inv.status)} · ${inv.tool_calls} tool calls · ${inv.patient_requests} patient requests</div><div class="steps">${inv.steps.map(st => {
         const d = st.data || {};
         let txt = st.kind;
-        if (st.kind === 'agent.step') txt = (d.tool_calls || []).map(c => `→ <b>${esc(c.name)}</b> ${c.name === 'finish_investigation' ? '' : esc(JSON.stringify(c.arguments))}`).join('') || 'thinking';
+        if (st.kind === 'agent.step') txt = (d.tool_calls || []).map(c => `→ <b>${esc(c.name)}</b> ${c.name === 'finish_investigation' ? '' : esc(JSON.stringify(c.arguments))}`).join('') || 'No evidence tool selected';
         else if (st.kind === 'tool.call') txt = `<span class="muted">result of ${esc(d.tool)}: ${esc(JSON.stringify(d.result).slice(0, 160))}…</span>`;
         else if (st.kind === 'evidence.validated') txt = d.ok ? '✓ evidence validated' : `✗ evidence rejected: ${esc((d.errors || []).join('; '))}`;
         else txt = `<b>${esc(st.kind)}</b> <span class="muted">${esc(JSON.stringify(d).slice(0, 140))}</span>`;
@@ -545,29 +555,49 @@ async function renderDetail() {
       }).join('')}</div></div>`;
     }
     return `<div class="card"><div class="row" style="justify-content:space-between"><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span><span class="small muted">${esc(a.id)}</span></div>
-      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${hist}</div>${verification}${verHistory}${ev}${steps}`;
+      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${noteForm}${hist}</div>${verification}${verHistory}${ev}${steps}`;
   });
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-act]');
   if (!b || !selected) return;
   const act = b.dataset.act;
-  let body = { actor: 'dr_ruiz' };
-  if (act === 'contacted' || act === 'action') { const note = prompt(act === 'action' ? 'Clinician decision / action taken (required):' : 'Patient contact note:'); if (!note) return; body.note = note; }
-  if (act === 'resolve') {
-    const reason = prompt('Resolution reason (required):'); if (!reason) return;
-    body.reason = reason;
-    body.verification_id = [...(detailAlert?.history || [])].reverse().find(h => h.event === 'verified')?.verification_id;
+  if (act === 'contacted' || act === 'action' || act === 'resolve') {
+    activeClinicalForm = { alertId: selected, act };
+    renderDetail();
+    return;
   }
+  let body = { actor: 'dr_ruiz' };
   try { await api(`/alerts/${selected}/${act}`, body); toast(`Alert: ${act}`); } catch (err) { toast(err.message); }
   poll();
 });
 
 document.addEventListener('input', e => {
+  if (e.target.matches('[data-clinical-note]') && selected) clinicalNotes[selected] = e.target.value;
   if (!selected || (!e.target.dataset.verField && !e.target.dataset.verId)) return;
   const draft = verificationDrafts[selected] ||= { summary: '', outcome: 'needs_review', ids: [] };
   if (e.target.dataset.verField) draft[e.target.dataset.verField] = e.target.value;
   else { const id = e.target.dataset.verId; draft.ids = e.target.checked ? [...new Set([...draft.ids, id])] : draft.ids.filter(x => x !== id); }
+});
+
+document.addEventListener('click', async e => {
+  if (e.target.closest('[data-cancel-clinical]')) { activeClinicalForm = null; renderDetail(); return; }
+  const b = e.target.closest('[data-submit-act]');
+  if (!b || !selected) return;
+  const act = b.dataset.submitAct, note = (clinicalNotes[selected] || '').trim();
+  if (!note) { toast('Enter a short fictional demo note first.'); return; }
+  b.disabled = true;
+  const body = { actor: 'dr_ruiz' };
+  if (act === 'resolve') {
+    body.reason = note;
+    body.verification_id = [...(detailAlert?.history || [])].reverse().find(h => h.event === 'verified')?.verification_id;
+  } else body.note = note;
+  try {
+    await api(`/alerts/${selected}/${act}`, body);
+    delete clinicalNotes[selected]; activeClinicalForm = null;
+    toast(`Alert: ${act}`);
+    poll();
+  } catch (err) { b.disabled = false; toast(err.message); }
 });
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-verify], [data-followup-evidence]');
@@ -579,8 +609,11 @@ document.addEventListener('click', async e => {
       toast('Synthetic follow-up evidence added. Select it and record a verification assessment.');
     } else {
       const d = verificationDrafts[selected] || {};
-      if (!d.summary?.trim() || !d.ids?.length) throw new Error('Select follow-up evidence and enter the clinician assessment.');
-      await api(`/alerts/${selected}/verify`, { actor: 'dr_ruiz', summary: d.summary, outcome: d.outcome, observation_ids: d.ids });
+      // Submit exactly the checkboxes the clinician can see and has selected.
+      // A polling refresh may remove ineligible evidence from an older draft.
+      const ids = [...document.querySelectorAll('#c-detail [data-ver-id]:checked')].map(el => el.dataset.verId);
+      if (!d.summary?.trim() || !ids.length) throw new Error('Select follow-up evidence and enter the clinician assessment.');
+      await api(`/alerts/${selected}/verify`, { actor: 'dr_ruiz', summary: d.summary, outcome: d.outcome, observation_ids: ids });
       toast(d.outcome === 'resolved' ? 'Follow-up verified. You may now resolve the alert.' : 'Further review required. Alert stays open.');
     }
   } catch (err) { toast(err.message); }

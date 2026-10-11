@@ -56,6 +56,9 @@ def today(patient_id: str, repo: Repo = Depends(get_repo)):
 
     next_step = repo.first(m.Notification, m.Notification.member_id == patient_id,
                            m.Notification.kind.in_(["next_step", "alert"]), order=m.Notification.created_at.desc())
+    latest_inv = repo.first(m.Investigation, m.Investigation.patient_id == patient_id,
+                            order=m.Investigation.started_at.desc())
+    from ..agents.investigation_workflow import patient_progress
     return {
         "patient": {"id": p.id, "name": p.name, "first_name": p.first_name, "age": p.age, "surgery": p.surgery,
                     "day": day_number(p, now), "allergies": p.allergies},
@@ -66,6 +69,7 @@ def today(patient_id: str, repo: Repo = Depends(get_repo)):
         "open_alerts": len(repo.open_alerts(patient_id)),
         "next_step": next_step.model_dump() if next_step else None,
         "wound_photo": wound_photos.eligibility(repo, patient_id),
+        "investigation_progress": patient_progress(repo, latest_inv) if latest_inv else None,
     }
 
 
