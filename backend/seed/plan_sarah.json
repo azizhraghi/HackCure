@@ -35,7 +35,7 @@
     "stale_after_min": 240
   },
   "red_flags": {
-    "chips": ["shortness_of_breath", "calf_pain", "chest_pain", "fainting", "confusion", "heavy_bleeding"],
+    "chips": ["shortness_of_breath", "calf_pain", "chest_pain", "fainting", "confusion", "heavy_bleeding", "neuro_change"],
     "phrases": [
       "severe breathlessness", "shortness of breath", "short of breath", "breathless", "can't breathe",
       "cannot breathe", "can not breathe", "struggling to breathe", "hard to breathe", "difficulty breathing",

@@ -4,12 +4,17 @@ import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { MiniBars, MiniLine } from '../../components/charts';
 import { Icon } from '../../components/Icon';
+import { formatAgo, LiveVitalsCard } from '../../components/LiveVitals';
 import { T } from '../../components/T';
 import { Avatar, Card, haptic, IconBadge, RoundButton, Screen, SectionRow, SimulatedTag } from '../../components/ui';
 import { useAppState } from '../../context/AppState';
-import { caregiver, metrics, patient } from '../../data/mock';
+import { metrics } from '../../data/mock';
+import { useAlerts, useFollowedPatient } from '../../hooks/useBackend';
 import { useT } from '../../i18n';
 import { getCaregiverAlerts, getCaregiverTasks, getDigest, markTaskDone, usePoll } from '../../services/api';
+import { initials } from '../../services/backend';
+
+const ACTIVE_ALERT_WINDOW_MS = 6 * 3600 * 1000;
 import { useTheme } from '../../theme/ThemeContext';
 
 export function CaregiverBanner() {
@@ -34,14 +39,32 @@ export function FamilyHomeScreen() {
   const [help, setHelp] = useState([false, true, false]);
   const [observed, setObserved] = useState(false);
   const tasks = [[t('fam.h1'), t('fam.h1s')], [t('fam.h2'), t('fam.h2s')], [t('fam.h3'), t('fam.h3s')]];
-  const { apiUrl } = useAppState();
-  const alerts = usePoll(getCaregiverAlerts, 4000).data;
+  const { apiUrl, session } = useAppState();
+  const me = session?.user;
+  // AI backend: care-team alerts, digest and tasks (permission-filtered for the caregiver)
+  const aiAlerts = usePoll(getCaregiverAlerts, 4000).data;
   const apiTasks = usePoll(getCaregiverTasks, 4000);
   const digest = usePoll(getDigest, 30000).data;
-  const level = alerts?.some(a => a.level === 'urgent') ? 'urgent' : alerts?.some(a => a.level === 'attention') ? 'attention' : 'ok';
-  const statusBg = level === 'urgent' ? c.urgent : level === 'attention' ? c.amber : c.green;
-  const statusTitle = level === 'urgent' ? t('fam.stUrgent') : level === 'attention' ? t('fam.stAttention') : t('common.onTrack');
-  const statusSub = level === 'ok' ? t('fam.noUrgent') : alerts?.[0]?.title ?? '';
+  // SurgiGuard API (when signed in): the followed patient and the ESP32 alerts
+  const { patient } = useFollowedPatient();
+  const { data: deviceAlerts } = useAlerts(patient?.patient_id);
+  const device = (deviceAlerts ?? [])
+    .filter(a => a.status === 'OPEN' && Date.now() - Date.parse(a.created_at) < ACTIVE_ALERT_WINDOW_MS)
+    .sort((a, b) => b.severity - a.severity)[0];
+  const aiLevel = aiAlerts?.some(a => a.level === 'urgent') ? 2 : aiAlerts?.some(a => a.level === 'attention') ? 1 : 0;
+  const deviceLevel = !device ? 0 : device.severity >= 3 ? 2 : 1;
+  const level = Math.max(aiLevel, deviceLevel);
+  const status = level === 0
+    ? { bg: c.green, icon: 'check' as const, title: t('common.onTrack'), sub: t('fam.noUrgent') }
+    : { bg: level === 2 ? c.urgent : c.amber, icon: 'bell' as const,
+        title: level === 2 ? t('fam.stUrgent') : t('fam.stAttention'),
+        sub: deviceLevel >= aiLevel && device ? `${t(`alerts.${device.type}`)} · ${formatAgo(t, device.created_at)}` : aiAlerts?.[0]?.title ?? '' };
+  const openActive = () => {
+    if (level === 0) return;
+    if (deviceLevel >= aiLevel && device && device.severity >= 3) {
+      nav.navigate('FamilyUrgent', { title: `${t(`alerts.${device.type}`)} · ${patient?.full_name ?? ''}`, message: device.message });
+    } else nav.navigate(level === 2 ? 'FamilyUrgent' : 'FamilyAttention');
+  };
   const done = async (id: string) => {
     haptic('notificationSuccess');
     try { await markTaskDone(apiUrl, id); } catch { /* next poll shows the real state */ }
@@ -52,28 +75,29 @@ export function FamilyHomeScreen() {
     <Screen>
       <CaregiverBanner />
       <View style={{ height: 60, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Avatar initials={caregiver.initials} bg={c.sky} online />
-        <View style={{ flex: 1 }}><T size={9} color={c.muted}>{t('home.welcome')}</T><T size={14} w={800} style={{ marginTop: 2 }}>{t('fam.hi')}</T></View>
+        <Avatar initials={initials(me ? `${me.first_name} ${me.last_name}` : 'Ahmed')} bg={c.sky} online />
+        <View style={{ flex: 1 }}><T size={9} color={c.muted}>{t('home.welcome')}</T><T size={14} w={800} style={{ marginTop: 2 }}>{t('fam.hi', { name: me?.first_name ?? 'Ahmed' })}</T></View>
         <RoundButton icon="bell" size={35} onPress={() => nav.navigate('FamilyTabs', { screen: 'Updates' })} />
       </View>
 
       <View style={{ height: 72, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Avatar initials={patient.initials} size={47} />
+        <Avatar initials={initials(patient?.full_name ?? 'Sarah Miller')} size={47} />
         <View>
           <T size={5.5} spacing={0.7}>{t('fam.following')}</T>
-          <T size={13} w={800} style={{ marginVertical: 2 }}>{patient.name}</T>
-          <T size={6.5} color={c.muted}>{t('fam.surgery')}</T>
+          <T size={13} w={800} style={{ marginVertical: 2 }}>{patient?.full_name ?? (session ? t('fam.noPatient') : 'Sarah Miller')}</T>
+          <T size={6.5} color={c.muted}>{patient ? `${patient.relationship}${patient.device_id ? ` · ${patient.device_id}` : ''}` : ''}</T>
         </View>
       </View>
 
-      <Pressable disabled={level === 'ok'} onPress={() => nav.navigate(level === 'urgent' ? 'FamilyUrgent' : 'FamilyAttention')}>
-        <Card bg={statusBg} style={{ minHeight: 92, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 21, borderWidth: 1.3, borderColor: c.ink, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}><Icon name={level === 'ok' ? 'check' : 'bell'} size={20} /></View>
+      <Pressable onPress={openActive} disabled={level === 0}>
+        <Card bg={status.bg} style={{ minHeight: 92, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 21, borderWidth: 1.3, borderColor: c.ink, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}><Icon name={status.icon} size={20} /></View>
           <View style={{ flex: 1 }}>
             <T size={5.5} spacing={0.8}>{t('fam.status')}</T>
-            <T size={18} w={800} style={{ marginVertical: 2 }}>{statusTitle}</T>
-            <T size={6.5} numberOfLines={2}>{statusSub}</T>
+            <T size={18} w={800} style={{ marginVertical: 2 }}>{status.title}</T>
+            <T size={6.5} numberOfLines={2}>{status.sub}</T>
           </View>
+          {level > 0 && <T w={800}>›</T>}
         </Card>
       </Pressable>
 
@@ -83,6 +107,8 @@ export function FamilyHomeScreen() {
           <T size={9} lh={1.45} style={{ marginTop: 4 }}>{digest.digest.text}</T>
         </Card>
       )}
+
+      {session && <><View style={{ height: 10 }} /><LiveVitalsCard patientId={patient?.patient_id} /></>}
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
         <Card bg={c.pink} style={{ flex: 1, height: 130, padding: 12, overflow: 'hidden' }}>

@@ -3,24 +3,29 @@ import { Pressable, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { T } from '../../components/T';
 import { Avatar, Button, Card, Chip, IconBadge, ListRow, RoundButton, Screen, TopBar, toneColor } from '../../components/ui';
-import { familyMembers, patient } from '../../data/mock';
+import { useAppState } from '../../context/AppState';
+import { useMyProfile } from '../../hooks/useBackend';
 import { useT } from '../../i18n';
+import { initials } from '../../services/backend';
 import { useTheme } from '../../theme/ThemeContext';
 
 export function ProfileScreen() {
   const { c } = useTheme();
   const { t } = useT();
   const nav = useNavigation();
-  const badgeTone = { caregiver: 'blue', family: 'pink', viewOnly: 'yellow' } as const;
-  const badgeLabel = (b: string) => (b === 'viewOnly' ? t('access.viewOnly') : t(`people.${b}`));
+  const { session } = useAppState();
+  const { data: profile } = useMyProfile();
+  const name = session ? `${session.user.first_name} ${session.user.last_name}` : '';
+  const family = profile?.family_members ?? [];
+  const tones = ['sky', 'pink', 'yellow', 'lavender'] as const;
 
   return (
     <Screen>
       <TopBar title={t('profile.top')} back={false} action={<RoundButton icon="gear" onPress={() => nav.navigate('Settings')} />} />
       <View style={{ height: 78, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Avatar initials={patient.initials} size={50} />
+        <Avatar initials={initials(name)} size={50} />
         <View style={{ flex: 1 }}>
-          <T size={15} w={800}>{patient.name}</T>
+          <T size={15} w={800}>{name}</T>
           <T size={8} color={c.muted} style={{ marginTop: 3 }}>{t('profile.dayOf')}</T>
         </View>
         <Pressable onPress={() => nav.navigate('Settings')} style={{ borderWidth: 1, borderColor: c.ink, backgroundColor: c.surface, borderRadius: 99, paddingVertical: 7, paddingHorizontal: 11 }}>
@@ -35,11 +40,12 @@ export function ProfileScreen() {
             <T size={8} w={800} color="#fff">{t('profile.invite')}</T>
           </Pressable>
         </View>
-        {familyMembers.map(m => (
-          <View key={m.name} style={{ minHeight: 47, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: c.lineSoft }}>
-            <Avatar initials={m.initials} size={31} bg={toneColor(c, m.tone)} />
-            <View style={{ flex: 1 }}><T size={8.5} w={800}>{m.name}</T><T size={6.5} color={c.muted} style={{ marginTop: 2 }}>{t(`people.${m.relation}`)}</T></View>
-            <Chip tone={badgeTone[m.badge]}>{badgeLabel(m.badge)}</Chip>
+        {family.length === 0 && <T size={8} color={c.muted} style={{ paddingVertical: 8 }}>{t('access.none')}</T>}
+        {family.map((m, i) => (
+          <View key={m.family_member_id} style={{ minHeight: 47, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: c.lineSoft }}>
+            <Avatar initials={initials(m.full_name)} size={31} bg={toneColor(c, tones[i % tones.length])} />
+            <View style={{ flex: 1 }}><T size={8.5} w={800}>{m.full_name}</T><T size={6.5} color={c.muted} style={{ marginTop: 2 }}>{m.relationship}</T></View>
+            <Chip tone={m.is_primary_contact ? 'blue' : 'pink'}>{m.is_primary_contact ? t('access.primary') : t('people.family')}</Chip>
           </View>
         ))}
         <Pressable onPress={() => nav.navigate('FamilyAccess')} style={{ minHeight: 46, marginTop: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: c.ink, backgroundColor: c.surface, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 5 }}>

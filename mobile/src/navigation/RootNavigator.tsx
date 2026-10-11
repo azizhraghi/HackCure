@@ -1,15 +1,18 @@
-import { D3DemoScreen } from '../screens/patient/D3DemoScreen';
-import React from 'react';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Vibration, View } from 'react-native';
+import { AssistantFab } from '../components/Assistant';
+import { DarkTheme, DefaultTheme, NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppState } from '../context/AppState';
+import { useAlerts, useFollowedPatient } from '../hooks/useBackend';
 import { useT } from '../i18n';
 import { useTheme } from '../theme/ThemeContext';
 import { BottomNav } from './BottomNav';
 import type { FamilyTabParams, PatientTabParams, RootParams } from './types';
 
 import { RoleSelectionScreen } from '../screens/onboarding/RoleSelectionScreen';
+import { AuthScreen } from '../screens/onboarding/AuthScreen';
 import { WelcomeScreen } from '../screens/onboarding/WelcomeScreen';
 import { UploadScreen } from '../screens/onboarding/UploadScreen';
 import { ProtocolScreen } from '../screens/onboarding/ProtocolScreen';
@@ -22,6 +25,7 @@ import { TwinDetailScreen } from '../screens/patient/TwinDetailScreen';
 import { WoundScanScreen } from '../screens/patient/WoundScanScreen';
 import { SensingRequestScreen } from '../screens/patient/SensingRequestScreen';
 import { RequestsScreen } from '../screens/patient/RequestsScreen';
+import { D3DemoScreen } from '../screens/patient/D3DemoScreen';
 import { EscalationScreen } from '../screens/patient/EscalationScreen';
 import { RehabScreen } from '../screens/patient/RehabScreen';
 import { MedicationsScreen } from '../screens/patient/MedicationsScreen';
@@ -42,8 +46,10 @@ const FamilyTab = createBottomTabNavigator<FamilyTabParams>();
 
 function PatientTabs() {
   const { t } = useT();
+  const [tab, setTab] = useState('Home');
   return (
-    <PatientTab.Navigator screenOptions={{ headerShown: false }}
+    <View style={{ flex: 1 }}>
+    <PatientTab.Navigator screenOptions={{ headerShown: false }} screenListeners={{ focus: e => setTab(String(e.target).split('-')[0]) }}
       tabBar={props => <BottomNav {...props} icons={{ Home: 'home', CheckIn: 'checkin', Twin: 'twin', Reports: 'report', Profile: 'profile' }} />}>
       <PatientTab.Screen name="Home" component={HomeScreen} options={{ title: t('tabs.home') }} />
       <PatientTab.Screen name="CheckIn" component={CheckInScreen} options={{ title: t('tabs.checkin') }} />
@@ -51,12 +57,43 @@ function PatientTabs() {
       <PatientTab.Screen name="Reports" component={ReportsScreen} options={{ title: t('tabs.reports') }} />
       <PatientTab.Screen name="Profile" component={ProfileScreen} options={{ title: t('tabs.profile') }} />
     </PatientTab.Navigator>
+    {/* Recovery assistant always one tap away (Home has its own large entry) */}
+    {tab !== 'Home' && <AssistantFab />}
+    </View>
   );
+}
+
+/** Polls the followed patient's alerts: a new severity-3 alert vibrates and opens the urgent screen (in-app, no push needed). */
+function AlertWatcher() {
+  const { t } = useT();
+  const nav = useNavigation();
+  const { patient } = useFollowedPatient();
+  const { data } = useAlerts(patient?.patient_id, 8000);
+  const seen = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    if (seen.current === null) {
+      // Alerts that existed before the app opened are history, not new events
+      seen.current = new Set(data.map(a => a.id));
+      return;
+    }
+    const fresh = data.filter(a => !seen.current!.has(a.id));
+    fresh.forEach(a => seen.current!.add(a.id));
+    if (fresh.length === 0) return;
+    Vibration.vibrate([0, 400, 200, 400]);
+    const urgent = fresh.find(a => a.severity >= 3);
+    if (urgent) nav.navigate('FamilyUrgent', { title: `${t(`alerts.${urgent.type}`)} · ${patient?.full_name ?? ''}`, message: urgent.message });
+  }, [data, nav, patient, t]);
+
+  return null;
 }
 
 function FamilyTabs() {
   const { t } = useT();
   return (
+    <>
+    <AlertWatcher />
     <FamilyTab.Navigator screenOptions={{ headerShown: false }}
       tabBar={props => <BottomNav {...props} icons={{ FamHome: 'home', Updates: 'bell', FamRecovery: 'twin', FamProfile: 'profile' }} />}>
       <FamilyTab.Screen name="FamHome" component={FamilyHomeScreen} options={{ title: t('tabs.home') }} />
@@ -64,12 +101,16 @@ function FamilyTabs() {
       <FamilyTab.Screen name="FamRecovery" component={FamilyRecoveryScreen} options={{ title: t('tabs.recovery') }} />
       <FamilyTab.Screen name="FamProfile" component={FamilyProfileScreen} options={{ title: t('tabs.profile') }} />
     </FamilyTab.Navigator>
+    </>
   );
 }
 
 export function RootNavigator() {
   const { c, isDark } = useTheme();
-  const { role, onboarded } = useAppState();
+  const { role, onboarded: wasOnboarded, session, demo } = useAppState();
+  // Signed out: only role selection and sign-in are reachable (demo = no SurgiGuard API account)
+  const signedIn = !!session || demo;
+  const onboarded = signedIn && wasOnboarded;
   const base = isDark ? DarkTheme : DefaultTheme;
   const navTheme = { ...base, colors: { ...base.colors, background: c.bg, card: c.bg, text: c.text, primary: c.primary, border: c.navLine } };
 
@@ -78,7 +119,9 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: c.bg } }}>
         {role === null && <Stack.Screen name="Role" component={RoleSelectionScreen} options={{ animation: 'fade' }} />}
 
-        {role === 'patient' && !onboarded && (
+        {role !== null && !signedIn && <Stack.Screen name="Auth" component={AuthScreen} />}
+
+        {signedIn && role === 'patient' && !onboarded && (
           <Stack.Group>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Upload" component={UploadScreen} />
@@ -103,7 +146,7 @@ export function RootNavigator() {
           </Stack.Group>
         )}
 
-        {role === 'family' && !onboarded && <Stack.Screen name="Join" component={JoinPatientScreen} />}
+        {signedIn && role === 'family' && !onboarded && <Stack.Screen name="Join" component={JoinPatientScreen} />}
 
         {role === 'family' && onboarded && (
           <Stack.Group>

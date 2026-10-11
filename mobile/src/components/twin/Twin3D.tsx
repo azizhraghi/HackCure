@@ -15,13 +15,15 @@ type Props = {
   day: number;
   layer: string;
   highlighted: string | null;
+  /** Heart rate that drives the heartbeat animation */
+  hr?: number;
   onTapKnee?: () => void;
   loadingLabel: string;
   fallbackLabel: string;
 };
 
 /** WebGL (three.js) twin inside a WebView; falls back to the 2D glass SVG. */
-export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted, onTapKnee, loadingLabel, fallbackLabel }, ref) => {
+export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted, hr = 72, onTapKnee, loadingLabel, fallbackLabel }, ref) => {
   const web = useRef<WebViewHandle>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -31,8 +33,8 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
   useImperativeHandle(ref, () => ({ command: cmd => send({ type: 'cmd', cmd }) }));
 
   useEffect(() => {
-    if (ready) send({ type: 'state', day, layer, highlighted });
-  }, [ready, day, layer, highlighted]);
+    if (ready) send({ type: 'state', day, layer, highlighted, hr });
+  }, [ready, day, layer, highlighted, hr]);
 
   const onMessage = (e: WebViewMessageEvent) => {
     try {
@@ -73,8 +75,8 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
       />
       {!ready && (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', gap: 8 }]}>
-          <ActivityIndicator color="#1e88e5" />
-          <T size={8} w={700} color="#70809a">{loadingLabel}</T>
+          <ActivityIndicator color="#5fd8ff" />
+          <T size={8} w={700} color="#8fb3c9">{loadingLabel}</T>
         </View>
       )}
     </View>
