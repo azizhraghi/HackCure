@@ -3,7 +3,7 @@ import base64
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from .. import models as m
-from .. import clock, requests_service, wound_photos, wounds
+from .. import audit, clock, requests_service, wound_photos, wounds
 from ..db import Repo, get_repo
 
 router = APIRouter(tags=["wounds"])
@@ -20,10 +20,22 @@ async def upload_wound_photo(patient_id: str, file: UploadFile = File(...), acto
     data = await file.read(wounds.MAX_BYTES + 1)
     pending = next((r for r in repo.pending_requests(patient_id) if r.kind == "photo" and r.expires_at > clock.now()),
                    None)
-    if pending is None:  # no request yet: open the current window's request (refused outside a window)
+    if pending is None:  # no request yet: open the current window's request
         opened = wound_photos.request(repo, patient_id)
         if opened["status"] != "requested":
-            raise HTTPException(409, opened["reason"])
+            # Outside a planned window: the PATIENT is changing the dressing now (his decision, not a prompt from us).
+            # The photo is accepted and analysed the same way, flagged as patient-initiated so the care team sees it
+            # was not on the plan's schedule. The app never asks anyone to uncover a wound for a photo.
+            if not dressing_change_confirmed:
+                raise HTTPException(409, "Confirm that you are changing your dressing now. " + opened["reason"])
+            if len(data) > wounds.MAX_BYTES:
+                raise HTTPException(413, "photo larger than 12 MB")
+            obs = wounds.save_photo(repo, patient_id, data, "patient",
+                                    extra={"dressing_change_confirmed": True, "initiated_by": "patient",
+                                           "outside_planned_window": True, "planned_window": opened["reason"]})
+            audit.log(repo, patient_id, actor, "photo.patient_initiated_dressing_change",
+                      {"observation_id": obs.id, "planned_window": opened["reason"]}, "observation", obs.id)
+            return {**wounds.public(obs), "answered_request_id": None}
         pending = repo.get(m.PatientRequest, opened["request_id"])
     try:
         body = m.RequestAnswer(photo_base64=base64.b64encode(data).decode(),

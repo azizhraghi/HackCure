@@ -60,10 +60,23 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
     setBusy(true);
     setError(null);
     try {
+      // The camera always opens; the photo is only SENT after the patient confirms the dressing change (send()).
       const file = await photoOutput.capturePhotoToFile({ flashMode: torch ? 'on' : 'off' }, {});
-      const uri = file.filePath.startsWith('file://') ? file.filePath : `file://${file.filePath}`;
-      setLocalUri(uri);
-      const res = await uploadWoundPhoto(apiUrl, uri, confirmed);
+      setLocalUri(file.filePath.startsWith('file://') ? file.filePath : `file://${file.filePath}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const send = async () => {
+    if (!localUri || busy) return;
+    if (!confirmed) { setError(t('scan.confirm')); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await uploadWoundPhoto(apiUrl, localUri, confirmed);
       setResult(res);
       haptic(res.analysis?.problems?.length ? 'impactMedium' : 'notificationSuccess');
     } catch (e) {
@@ -86,7 +99,7 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
       <TopBar title={t('scan.top')} action={<RoundButton icon="close" onPress={() => navigation.goBack()} />} />
       <View style={{ height: 407, marginHorizontal: -16, backgroundColor: '#1b2533', overflow: 'hidden', alignItems: 'center' }}>
         {hasPermission && device ? (
-          localUri && (busy || result)
+          localUri
             ? <Image source={{ uri: localUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             : <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused && !result} outputs={[photoOutput]}
                 torchMode={torch ? 'on' : 'off'} resizeMode="cover" />
@@ -107,10 +120,10 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
         </Chip>
         <View style={{ position: 'absolute', left: 31, right: 31, bottom: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Pressable onPress={() => { setResult(null); setLocalUri(null); setError(null); }}>
-            <T size={8} color="#fff">{result ? t('scan.retake') : t('scan.auto')}</T>
+            <T size={8} color="#fff">{localUri ? t('scan.retake') : t('scan.auto')}</T>
           </Pressable>
-          <Pressable disabled={!hasPermission || !device || busy || !!result || !confirmed} onPress={capture}
-            style={({ pressed }) => ({ width: 61, height: 61, borderRadius: 31, borderWidth: 4, borderColor: '#fff', backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', opacity: !device || result || !confirmed ? 0.5 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
+          <Pressable disabled={!hasPermission || !device || busy || !!localUri} onPress={capture}
+            style={({ pressed }) => ({ width: 61, height: 61, borderRadius: 31, borderWidth: 4, borderColor: '#fff', backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', opacity: !device || localUri ? 0.5 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
             {busy ? <ActivityIndicator color="#fff" /> : <Icon name="camera" size={26} color="#fff" />}
           </Pressable>
           <Pressable onPress={() => setTorch(v => !v)}><T size={8} color="#fff">{torch ? t('scan.flashOn') : t('scan.flashOff')}</T></Pressable>
@@ -131,7 +144,7 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
         </View>
 
         {!result && window_ && !window_.permitted && (
-          <T size={8.5} w={700} color={c.reviewText} style={{ marginTop: 8 }}>{t('scan.notNow')} {window_.reason}</T>
+          <T size={8.5} w={700} color={c.muted} style={{ marginTop: 8 }}>{t('scan.outsideWindow')}</T>
         )}
         {!result && (
           <Pressable onPress={() => setConfirmed(v => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -140,6 +153,9 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
             </View>
             <T size={8.5} w={700} style={{ flex: 1 }}>{t('scan.confirm')}</T>
           </Pressable>
+        )}
+        {localUri && !result && (
+          <Button onPress={send} style={{ marginTop: 10, opacity: confirmed && !busy ? 1 : 0.5 }}>{busy ? t('scan.captured') : t('scan.analyse')}</Button>
         )}
         {error && <T size={8.5} color={c.urgentText} style={{ marginTop: 8 }}>{t('scan.failed')} ({error})</T>}
         {problems.length > 0 && <T size={8.5} w={700} color={c.reviewText} style={{ marginTop: 8 }}>⚠ {problems.join(' · ')}: {t('scan.retakeHint')}</T>}

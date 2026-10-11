@@ -51,14 +51,22 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
     getToday(apiUrl).then(r => setWindow(r.wound_photo)).catch(() => setWindow(null));
   }, [apiUrl]);
 
+  const [picked, setPicked] = useState<File | null>(null);
   const capture = async () => {
     const file = await pickImage();
     if (!file) return;
+    setError(null);
+    setResult(null);
+    setPicked(file);
+    setLocalUri(URL.createObjectURL(file));
+  };
+  const send = async () => {
+    if (!picked || busy) return;
+    if (!confirmed) { setError(t('scan.confirm')); return; }
     setBusy(true);
     setError(null);
-    setLocalUri(URL.createObjectURL(file));
     try {
-      setResult(await uploadWoundPhoto(apiUrl, file, confirmed));
+      setResult(await uploadWoundPhoto(apiUrl, picked, confirmed));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,8 +86,8 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
             <T size={9} color="#fff" center style={{ marginTop: 8 }}>{t('scan.align')}</T>
           </View>
         )}
-        <Pressable disabled={busy || !!result || !confirmed} onPress={capture}
-          style={{ position: 'absolute', bottom: 16, flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 99, borderWidth: 2, borderColor: '#fff', backgroundColor: c.primary, opacity: busy || result || !confirmed ? 0.5 : 1 }}>
+        <Pressable disabled={busy || !!result} onPress={capture}
+          style={{ position: 'absolute', bottom: 16, flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 99, borderWidth: 2, borderColor: '#fff', backgroundColor: c.primary, opacity: busy || result ? 0.5 : 1 }}>
           {busy ? <ActivityIndicator color="#fff" /> : <Icon name="camera" size={20} color="#fff" />}
           <T size={10} w={800} color="#fff">{busy ? t('scan.captured') : t('scan.pick')}</T>
         </Pressable>
@@ -87,7 +95,7 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
 
       <View style={{ backgroundColor: c.surface, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 10 }}>
         {!result && window_ && !window_.permitted && (
-          <T size={8.5} w={700} color={c.reviewText} style={{ marginBottom: 6 }}>{t('scan.notNow')} {window_.reason}</T>
+          <T size={8.5} w={700} color={c.muted} style={{ marginBottom: 6 }}>{t('scan.outsideWindow')}</T>
         )}
         {!result && (
           <Pressable onPress={() => setConfirmed(v => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 }}>
@@ -103,6 +111,9 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
           <PhotoHalf uri={abs(reference?.url)} label={t('scan.day1')} />
           <PhotoHalf uri={localUri ?? undefined} label={t('scan.today')} divider />
         </View>
+        {picked && !result && (
+          <Button onPress={send} style={{ marginTop: 10, opacity: confirmed && !busy ? 1 : 0.5 }}>{busy ? t('scan.captured') : t('scan.analyse')}</Button>
+        )}
         {error && <T size={8.5} color={c.urgentText} style={{ marginTop: 8 }}>{t('scan.failed')} ({error})</T>}
         {problems.length > 0 && <T size={8.5} w={700} color={c.reviewText} style={{ marginTop: 8 }}>⚠ {problems.join(' · ')}: {t('scan.retakeHint')}</T>}
         {result && (

@@ -27,13 +27,13 @@ def test_dressing_change_photo_gets_code_analysis_overlay_and_vision_reading(rep
     assert pub["d1"]["overlay_url"] and pub["vision_review"]["note"].endswith("Not a diagnosis.")
 
 
-def test_photos_still_only_inside_a_permitted_dressing_change(client):
+def test_patient_initiated_dressing_change_outside_the_window_needs_confirmation(client):
     from app import clock
-    clock.advance(6 * 3600)  # 21:30: the window closed at 20:00
-    with open(wounds.DEMO_DIR / "day3.jpg", "rb") as f:
-        r = client.post("/patients/sarah/wound-photos", files={"file": ("w.jpg", f, "image/jpeg")},
-                        data={"dressing_change_confirmed": "true"})
-    assert r.status_code == 409
+    clock.advance(6 * 3600)  # 21:30: the planned window closed at 20:00
+    photo = {"file": ("w.jpg", (wounds.DEMO_DIR / "day3.jpg").read_bytes(), "image/jpeg")}
+    assert client.post("/patients/sarah/wound-photos", files=photo).status_code == 409
+    r = client.post("/patients/sarah/wound-photos", files=photo, data={"dressing_change_confirmed": "true"}).json()
+    assert r["initiated_by"] == "patient" and r["outside_planned_window"] and r["d1"]["overlay_url"]
 
 
 def test_code_rule_raises_a_clinician_only_review_alert(repo):
