@@ -285,7 +285,7 @@ def _api_type(alert: m.Alert) -> str:
     return "OTHER"
 
 
-CLINICIAN_ONLY = ("motor_review_", "rehab_")
+CLINICIAN_ONLY = ("motor_review_", "rehab_", "wound_review")
 _SEVERITY = {"info": 1, "attention": 2, "urgent": 3}
 
 

@@ -10,6 +10,7 @@ import { useT } from '../../i18n';
 import type { RootScreen } from '../../navigation/types';
 import { getToday, getWoundPhotos, uploadWoundPhoto, type Today, type WoundPhoto } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import { WoundAnalysis } from '../../components/WoundAnalysis';
 
 import { Corners } from '../../components/Corners';
 export { Corners };
@@ -157,6 +158,7 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
             </Chip>
           </View>
         )}
+        {result && <WoundAnalysis apiUrl={apiUrl} photo={result} />}
         <T size={7} color={c.muted} style={{ marginVertical: 6 }}>{t('scan.disclaimer')}</T>
         <Button onPress={() => navigation.goBack()}>{result ? t('scan.saved') : t('common.close')}</Button>
       </View>

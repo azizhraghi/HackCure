@@ -9,6 +9,7 @@ dependencies = ["numpy", "pydantic>=2", "scikit-learn", "joblib"]
 dev = ["pytest"]
 llm = ["groq", "anthropic"]
 neuro = ["mediapipe", "opencv-python-headless"]
+wound = ["opencv-python-headless", "pillow"]
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -99,6 +99,10 @@ const fr: Dict = {
     noCamera: 'Aucune caméra trouvée ({{n}} détectée)', retry: 'Réessayer', captured: 'Photo prise · mesure…', measured: 'Photo mesurée',
     retake: 'Reprendre', retakeHint: 'reprenez la photo', failed: "La photo n'a pas pu être envoyée", confirm: 'Je change mon pansement maintenant, comme mon plan le permet', pick: 'Prendre / choisir une photo', notNow: 'Pas un moment de changement de pansement :',
     disclaimer: 'Mesuré par le code (rougeur comparée à la peau autour). Le cadrage et la lumière changent les chiffres. Pas un diagnostic.',
+    d1Title: 'CE QUI A ÉTÉ ANALYSÉ', d1Outlined: 'Entourée : la zone mesurée par le code. Vérifiez qu’elle couvre votre plaie.',
+    d1NotFound: 'Aucune zone de plaie trouvée', d1Quality: 'Photo', d1Reference: 'Première photo : elle devient votre référence',
+    d1Ai: 'Description par l’IA', d1AiPending: 'L’IA regarde la photo…', d1AiNothing: 'Rien de particulier décrit.',
+    d1Review: 'Votre équipe soignante a été invitée à regarder cette photo.', d1Received: 'Photo reçue. Votre équipe soignante peut la voir.',
   },
   sensing: {
     morning: 'Bonjour', activity: 'Activité de récupération', chip: 'CAPTEUR DU PANSEMENT',

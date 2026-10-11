@@ -188,6 +188,8 @@
     <div class="kicker">Open alerts</div>
     <div id="c-alerts"></div>
     <div id="c-detail"></div>
+    <div class="kicker" style="margin-top:14px">Wound photos · dressing changes (code + vision reading)</div>
+    <div id="c-wound"></div>
   </section>
 </div>
 <div class="toast" id="toast"></div>
@@ -351,6 +353,36 @@ function renderWound(w) {
     Demo photos: real, openly licensed photos of different patients (<a href="https://commons.wikimedia.org/wiki/File:Surgical_staples2.JPG" target="_blank" rel="noopener">Llywrch, CC BY-SA 2.5</a>,
     <a href="https://commons.wikimedia.org/wiki/File:Hip_replacement,_surgical_staples_01.JPG" target="_blank" rel="noopener">K.-H. Wellmann, CC BY 3.0</a>,
     <a href="https://commons.wikimedia.org/wiki/File:Knee_Replacement.jpg" target="_blank" rel="noopener">Ravedave, CC BY-SA 3.0</a>).</div>`;
+}
+
+// ---------------------------------------------------------------- clinic: wound photo series (D1-F: code + vision reading)
+function renderWoundClinic(w) {
+  const photos = (w.photos || []).filter(p => p.d1);
+  if (!photos.length) return '<div class="empty">No analysed dressing-change photo yet.</div>';
+  return photos.slice(0, 4).map(p => {
+    const d = p.d1, q = d.quality || {}, mm = d.measurements || {}, c = d.comparison || null, v = p.vision_review || {};
+    const row = (k, val) => val == null ? '' : `<tr><td class="muted">${k}</td><td>${esc(val)}</td></tr>`;
+    const comp = !c ? 'First photo: it is the reference.' : c.available ? `${esc(c.summary)} <span class="muted">(${c.registration.inliers} matching points, scale ${c.registration.scale})</span>`
+      : `Not compared: ${esc(c.reason)}`;
+    const vis = v.available ? `<div class="small" style="margin-top:6px"><b>Vision reading</b> <span class="badge" style="background:var(--readonly)">${esc(v.model)} · ${esc(v.mode)}</span>
+        <ul style="margin:4px 0;padding-left:18px">${(v.findings || []).map(f => `<li>${esc(f.finding)} <span class="muted">(${esc(f.aspect)}, ${esc(f.confidence)})</span></li>`).join('') || '<li class="muted">nothing specific described</li>'}</ul>
+        ${v.retake_advice ? `<div class="muted">Retake: ${esc(v.retake_advice)}</div>` : ''}
+        ${(v.removed_for_diagnosis_wording || []).length ? `<div class="muted">${v.removed_for_diagnosis_wording.length} sentence(s) removed for diagnosis wording</div>` : ''}
+        <div class="muted">${esc(v.uncertainty || '')}</div></div>`
+      : `<div class="small muted" style="margin-top:6px">Vision reading: ${esc(v.reason || 'pending…')}</div>`;
+    return `<div class="sec" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between"><b>${new Date(p.at).toLocaleString()}</b>
+        ${p.review_alert_id ? '<span class="badge" style="background:var(--review)">Review suggested → alert</span>' : '<span class="badge" style="background:var(--green)">No rule fired</span>'}</div>
+      <div class="row" style="gap:8px;margin-top:6px;align-items:flex-start">
+        <img src="${esc(d.overlay_url || p.url)}" alt="wound photo with the measured area outlined" style="width:58%;border-radius:10px;border:1.2px solid var(--ink)">
+        <table class="small" style="flex:1">${row('Photo quality', q.status + (q.problems?.length ? ' — ' + q.problems.join('; ') : ''))}
+          ${row('Redness vs own skin (Δa*)', mm.redness_mean_delta_a)}${row('Red share of area', mm.redness_area_pct != null ? mm.redness_area_pct + ' %' : null)}
+          ${row('Redness beyond edge (Δa*)', mm.redness_spread_ring_delta_a)}${row('Area (% of frame)', mm.wound_area_pct_of_frame)}
+          ${row('Staple-like bright marks', mm.closure_material?.staple_like_blobs)}${row('Dark / crust-coloured', mm.dark_crust_coloured_pct != null ? mm.dark_crust_coloured_pct + ' %' : null)}
+          ${row('Pale-yellow regions', mm.pale_yellow_pct != null ? mm.pale_yellow_pct + ' %' : null)}</table></div>
+      <div class="small" style="margin-top:6px"><b>Compared with the reference:</b> ${comp}</div>${vis}
+      <div class="small muted" style="margin-top:4px">${esc(d.method || '')}. Not measured from a photo: ${(d.not_measured || []).join(', ')}. Not a diagnosis.</div></div>`;
+  }).join('');
 }
 
 // chat
@@ -639,6 +671,7 @@ async function poll() {
     ]);
     renderPatient(today, twin);
     render('#p-wound', wound, renderWound);
+    render('#c-wound', wound, renderWoundClinic);
     renderFamily(famAlerts, tasks, famTwin);
     renderClinic(clinAlerts);
     await renderDetail();

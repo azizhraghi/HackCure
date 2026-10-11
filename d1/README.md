@@ -61,3 +61,26 @@ on patients.
   content has not been reviewed by a clinician.
 - The pretrained weights in `models/chronos-bolt-tiny/` are not committed
   (only used by the Patient Twin's pretrained forecaster); download `amazon/chronos-bolt-tiny` from Hugging Face.
+
+## Wound-photo analysis (D1-F)
+
+`src/surgiguard_d1/wound/` analyses a photo taken at a **permitted dressing change** (the backend enforces the windows).
+Classical OpenCV, nothing trained, every number explainable:
+
+1. Quality gate (blur, exposure, glare, skin in view) -> "retake", never a measurement.
+2. Incision found by **local** contrast (each channel against its own blurred background, so uneven light cancels):
+   local redness a*, local darkness L*, and a row of bright metal marks (staples) fitted with a smooth curve.
+   Purple marker ink and bruises are ignored. Output: an overlay image so a person can check what was measured.
+3. Measurements against the patient's **own** skin around the wound: redness (a* excess), redness beyond the edge,
+   area, colour spread, dark/crust-coloured and pale-yellow regions, staple-like marks.
+4. Comparison with the reference photo only after **ORB + RANSAC registration** says it is the same site; otherwise
+   "not compared" (a different framing or patient is never reported as a change).
+
+Swelling, drainage, depth, warmth and pain are listed as *not measured*. It never says infected / healed / safe.
+Tests: `tests/test_wound.py` (synthetic photos with drawn ground truth, light and dark skin, marker ink, bad photos,
+moved camera; plus the three openly licensed real photos in `backend/seed/photos`).
+
+Why no deep model: the public wound-segmentation checkpoints we looked at (e.g. TiSage on Hugging Face, FUSegNet)
+are trained on chronic ulcers, need a GPU or gated backbones, and none is validated on fresh surgical incisions.
+The backend adds a **vision-LLM second read** (Pixtral / Llama-4-Scout) that only describes what is visible, with a
+confidence per finding; diagnosis wording is filtered out.

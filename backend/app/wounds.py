@@ -46,7 +46,9 @@ def save_photo(repo: Repo, patient_id: str, data: bytes, source: str = "patient"
     audit.log(repo, patient_id, "code:wound_image", "wound_photo.measured",
               {"quality": analysis["quality"], "problems": analysis.get("problems"), "comparison": comparison},
               "observation", obs.id)
-    return obs
+    from .integrations import d1_wound  # D1-F: OpenCV analysis + overlay now, vision-LLM reading in the runner
+    d1_wound.process(repo, obs, data)
+    return repo.get(m.Observation, obs.id) or obs
 
 
 def demo_bytes(asset: str) -> bytes:
@@ -59,4 +61,6 @@ def public(o: m.Observation) -> dict:
     v = o.value
     return {"observation_id": o.id, "at": o.measured_at.isoformat(), "url": v.get("url"), "label": v.get("label"),
             "simulated": o.simulated, "quality": o.quality, "analysis": v.get("analysis"),
-            "comparison": v.get("comparison"), "reference_url": v.get("reference_url")}
+            "comparison": v.get("comparison"), "reference_url": v.get("reference_url"),
+            "d1": v.get("d1"), "vision_review": v.get("vision_review"), "review_alert_id": v.get("review_alert_id"),
+            "request_id": v.get("request_id"), "dressing_change_confirmed": v.get("dressing_change_confirmed")}

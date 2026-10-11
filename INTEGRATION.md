@@ -150,3 +150,18 @@ Both D1 branches are merged into `integration/esp32-story` and shown on `/story`
     prescription now converts (`180 - flexion`); the safety message now reports degrees of flexion.
 - Not done: no native phone UI for these two chapters (the React Native Rehab screen is still a static mock); no video upload
   endpoint (needs `mediapipe` + `scripts/fetch_neuro_models.sh`); motor/rehab results are not yet in the family digest or the D1 Twin.
+
+## D1-F wound photos at dressing changes (branch `feat/d1-wound-photos`)
+
+- Every photo accepted inside a permitted dressing-change window (unchanged rule, `app/wound_photos.py`) now gets:
+  OpenCV analysis + overlay (`d1/src/surgiguard_d1/wound`), a vision-LLM description (`app/integrations/d1_wound.py`,
+  `LLM_ROUTE_WOUND_VISION` or `WOUND_VISION_MODEL`, default Pixtral on Mistral / Llama-4-Scout on Groq), and a code rule:
+  clearly more or spreading redness, a larger area, or a live LLM reading of discharge / open edges / spreading redness
+  (medium+ confidence) -> "attention" alert `wound_review` for the clinician only (not sent to the family).
+- New endpoints: `GET /patients/{id}/wound-photos/{obs}`, `POST .../{obs}/review`, `GET /patients/{id}/wound-status`,
+  `/hub/wound/{api_patient_id}` (for the .NET relay). .NET: `WoundsController` (`/api/patients/me/wound`,
+  `/wound-photos`, `/wound-media`, patient JWT) relays to the AI backend.
+- Shown in: `/agent-demo` clinic column (overlay, measurements, comparison, vision reading), React Native Wound Scan
+  screen (`components/WoundAnalysis.tsx`, phone + web build), native Android Wound Scan screen (camera or gallery,
+  replaces the mock).
+- Not done: vision reading not yet run with a real key (stub mode restates the code numbers and says so).

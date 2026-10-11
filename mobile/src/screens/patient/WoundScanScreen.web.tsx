@@ -9,6 +9,7 @@ import { useT } from '../../i18n';
 import type { RootScreen } from '../../navigation/types';
 import { getToday, getWoundPhotos, uploadWoundPhoto, type Today, type WoundPhoto } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import { WoundAnalysis } from '../../components/WoundAnalysis';
 
 /** Browser build: the phone's camera opens through a file input (capture=environment); same backend measurement. */
 function pickImage(): Promise<File | null> {
@@ -112,6 +113,7 @@ export function WoundScanScreen({ navigation }: RootScreen<'WoundScan'>) {
             <Chip tone="white"><T size={8.5} w={800}>{t('scan.swelling')} · {t('scan.discharge')}: {t('scan.notMeasured')}</T></Chip>
           </View>
         )}
+        {result && <WoundAnalysis apiUrl={apiUrl} photo={result} />}
         <T size={7} color={c.muted} style={{ marginVertical: 6 }}>{t('scan.disclaimer')}</T>
         <Button onPress={() => navigation.goBack()}>{result ? t('scan.saved') : t('common.close')}</Button>
       </View>

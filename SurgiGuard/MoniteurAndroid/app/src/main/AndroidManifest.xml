@@ -42,6 +42,14 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".alarm.MedActionReceiver" android:exported="false" />
+        <!-- Photo de plaie : l'appareil photo écrit dans le cache de l'app (aucune permission caméra nécessaire) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

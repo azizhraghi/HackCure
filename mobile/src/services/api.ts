@@ -92,7 +92,26 @@ export type WoundPhoto = {
   observation_id: string; at: string; url: string; label: string; simulated: boolean; quality: string;
   analysis?: { quality: string; problems?: string[]; redness_area_pct?: number };
   comparison?: WoundComparison; reference_url?: string | null; answered_request_id?: string | null;
+  d1?: WoundD1 | null; vision_review?: WoundVision | null; review_alert_id?: string | null;
 };
+
+/** D1-F: OpenCV analysis of the photo (outlined area, quality, comparison only if it is the same site). */
+export type WoundD1 = {
+  version: string; method?: string; overlay_url?: string | null; not_measured: string[];
+  quality: { status: 'good' | 'questionable' | 'unusable'; problems?: string[] };
+  segmentation: { found: boolean; reason?: string; method?: string };
+  measurements?: Record<string, unknown> | null;
+  comparison?: { available: boolean; reason?: string; trend?: 'more_red' | 'less_red' | 'stable_colour'; summary?: string } | null;
+};
+/** Vision-LLM description of the visible wound (descriptive only; diagnosis wording is filtered on the server). */
+export type WoundVision = {
+  available: boolean; reason?: string; mode?: string; model?: string; uncertainty?: string;
+  findings: { aspect: string; finding: string; confidence: 'low' | 'medium' | 'high' }[];
+  review_suggested?: boolean;
+};
+
+export const getWoundPhoto = (apiUrl: string, id: string) =>
+  call<WoundPhoto>(apiUrl, `/patients/${PATIENT_ID}/wound-photos/${id}`);
 
 export const getWoundPhotos = (apiUrl: string) =>
   call<{ reference: WoundPhoto | null; photos: WoundPhoto[] }>(apiUrl, `/patients/${PATIENT_ID}/wound-photos`);

@@ -148,4 +148,63 @@ class Api(
         val o = JSONObject(request("/chat", "POST", JSONObject().put("messages", arr).put("lang", lang), 30000)!!)
         return ChatReply(o.optString("reply"), o.optBoolean("escalate"))
     }
+
+    // ------------------------------------------------------------ photos de plaie (relayées vers le backend IA)
+
+    /** { status: {status, permitted, reason, ...}, photos: [ ...analyse D1 + lecture IA ] } */
+    suspend fun wound(): JSONObject = JSONObject(request("/api/patients/me/wound", timeoutMs = 20000)!!)
+
+    /** Envoie la photo prise au changement de pansement (multipart). Renvoie la photo analysée. */
+    suspend fun uploadWoundPhoto(jpeg: ByteArray, dressingChangeConfirmed: Boolean): JSONObject = withContext(Dispatchers.IO) {
+        val boundary = "----sg" + System.nanoTime()
+        val conn = URL(baseUrl.trim().trimEnd('/') + "/api/patients/me/wound-photos").openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 20000
+            conn.readTimeout = 60000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            conn.setRequestProperty("ngrok-skip-browser-warning", "true")
+            if (token != null) conn.setRequestProperty("Authorization", "Bearer $token")
+            conn.outputStream.use { out ->
+                fun line(s: String) = out.write((s + "\r\n").toByteArray())
+                line("--$boundary")
+                line("Content-Disposition: form-data; name=\"dressing_change_confirmed\"")
+                line("")
+                line(if (dressingChangeConfirmed) "true" else "false")
+                line("--$boundary")
+                line("Content-Disposition: form-data; name=\"file\"; filename=\"wound.jpg\"")
+                line("Content-Type: image/jpeg")
+                line("")
+                out.write(jpeg)
+                line("")
+                line("--$boundary--")
+            }
+            val code = conn.responseCode
+            val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader()?.use { it.readText() }
+            if (code == 401) onUnauthorized?.invoke()
+            if (code !in 200..299) throw ApiError(runCatching { JSONObject(text ?: "").optString("detail").ifBlank { null } }.getOrNull()
+                ?: errorMessage(text, code), code)
+            JSONObject(text!!)
+        } catch (e: ApiError) {
+            throw e
+        } catch (e: Exception) {
+            throw ApiError("network", 0)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** Octets d'une image du backend IA (photo ou contour calculé), via l'API (JWT). */
+    suspend fun woundMedia(path: String): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching {
+            val conn = URL(baseUrl.trim().trimEnd('/') + "/api/patients/me/wound-media?path=" + java.net.URLEncoder.encode(path, "UTF-8"))
+                .openConnection() as HttpURLConnection
+            conn.setRequestProperty("ngrok-skip-browser-warning", "true")
+            if (token != null) conn.setRequestProperty("Authorization", "Bearer $token")
+            conn.connectTimeout = 15000
+            conn.readTimeout = 20000
+            try { if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null } finally { conn.disconnect() }
+        }.getOrNull()
+    }
 }
