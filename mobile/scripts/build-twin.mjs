@@ -22,7 +22,7 @@ const glb = readFileSync(resolve(root, 'assets/twin/body.glb')).toString('base64
 
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<style>html,body{margin:0;height:100%;overflow:hidden;background:transparent;touch-action:none}canvas{display:block}</style>
+<style>html{color-scheme:only light}html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#0f3550,#071a2b 54%,#02060c);touch-action:none}canvas{display:block}</style>
 </head><body><script>window.__GLB=${JSON.stringify(glb)};</script><script>${js}</script></body></html>`;
 
 writeFileSync(

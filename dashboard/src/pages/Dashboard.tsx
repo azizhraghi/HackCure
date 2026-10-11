@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Search, FileText, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 

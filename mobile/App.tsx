@@ -8,7 +8,8 @@
 import React from 'react';
 import { StatusBar, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeToggle } from './src/components/ThemeToggle';
 import './src/i18n';
 import { AppStateProvider, useAppState } from './src/context/AppState';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -20,7 +21,10 @@ function Root() {
   return (
     <>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      {ready ? <RootNavigator /> : <View style={{ flex: 1, backgroundColor: c.bg }} />}
+      <SafeAreaView edges={['top']} style={{flex:1, backgroundColor:c.bg}}>
+        <ThemeToggle />
+        {ready ? <RootNavigator /> : <View style={{ flex: 1, backgroundColor: c.bg }} />}
+      </SafeAreaView>
     </>
   );
 }

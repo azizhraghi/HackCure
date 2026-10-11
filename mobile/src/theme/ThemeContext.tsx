@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { dark, light, type Palette } from './tokens';
 
 
@@ -13,7 +14,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY).then(v => v === '1' && setIsDark(true)).catch(() => {});
+    if (Platform.OS === 'web') {
+      const sync = () => setIsDark(document.documentElement.dataset.theme === 'dark');
+      sync();
+      window.addEventListener('sg-theme-change', sync);
+      return () => window.removeEventListener('sg-theme-change', sync);
+    }
+    AsyncStorage.getItem(KEY).then(v => setIsDark(v === '1')).catch(() => {});
   }, []);
 
   const value = useMemo<ThemeValue>(() => ({
@@ -22,6 +29,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setDark: (v: boolean) => {
       setIsDark(v);
       AsyncStorage.setItem(KEY, v ? '1' : '0').catch(() => {});
+      if (Platform.OS === 'web') {
+        document.documentElement.dataset.theme = v ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = v ? 'dark' : 'light';
+        window.dispatchEvent(new Event('sg-theme-change'));
+      }
     },
   }), [isDark]);
 

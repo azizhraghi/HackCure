@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Remap the existing design tokens so every portal page uses the selected theme. */
+:root[data-theme="dark"] {
+  --color-background:#0a1120; --color-foreground:#e6ecfa; --color-border:#26324d;
+  --color-white:#16213a;
+  --color-gray-50:#0e1628; --color-gray-100:#1b2741; --color-gray-200:#26324d;
+  --color-gray-300:#526789; --color-gray-400:#8fa3c9; --color-gray-500:#9aa8c2;
+  --color-gray-600:#b6c4dc; --color-gray-700:#d0dbed; --color-gray-800:#e6ecfa; --color-gray-900:#f1f5ff;
+  --color-blue-50:#14263f; --color-blue-100:#1d3253; --color-blue-200:#264669; --color-blue-700:#8ac9ff; --color-blue-800:#a5d5ff;
+  --color-indigo-50:#221d3d; --color-indigo-100:#372d5e; --color-indigo-700:#cdbbf6;
+  --color-green-50:#15302a; --color-green-100:#1a4637; --color-green-700:#6fe0b0; --color-green-800:#9bf1cb;
+  --color-red-50:#3a1c22; --color-red-100:#4a242b; --color-red-600:#ff8a84; --color-red-700:#ffa39f;
+  --color-yellow-50:#3a3013; --color-yellow-100:#4f431f; --color-yellow-700:#ffc070; --color-yellow-800:#fbe19b;
+}
+/* White labels on saturated action buttons remain white. */
+:root[data-theme="dark"] .text-white { color:#fff; }
+:root[data-theme="dark"] .text-blue-600 { color:#8ac9ff; }
+
 @theme {
   --color-background: hsl(0, 0%, 100%);
   --color-foreground: hsl(222.2, 84%, 4.9%);

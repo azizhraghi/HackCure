@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowLeft, Check, FileCheck2, Bot, AlertCircle } from 'lucide-react';
 
 export default function ProtocolReview() {
-  const { patientId } = useParams();
   const [approved, setApproved] = useState(false);
 
   return (

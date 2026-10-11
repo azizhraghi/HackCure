@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+<script src="/app/theme.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#e8edf5" />
@@ -27,6 +28,14 @@
         .home-indicator { bottom: max(5px, env(safe-area-inset-bottom)); }
       }
       @media (max-height: 650px) and (min-width: 521px) { .device { height: calc(100dvh - 64px); min-height: 0; } .browser-stage { padding: 10px; } }
+
+      :root[data-theme="dark"] body { background:radial-gradient(ellipse at 50% 35%, #16213a, #0a1120 70%); color:#e6ecfa; }
+      :root[data-theme="dark"] .preview-nav a { background:#16213a; color:#e6ecfa; }
+      :root[data-theme="dark"] .preview-nav a[aria-current] { background:#2f93ea; color:#fff; }
+      :root[data-theme="dark"] .device, :root[data-theme="dark"] .status-bar { background:#0e1628; color:#e6ecfa; }
+      :root[data-theme="dark"] .home-indicator { background:#e6ecfa; }
+      .preview-nav { gap:6px; font-size:12px; }
+      @media (max-width:420px) { .preview-nav a { padding:6px; font-size:10px; } }
     </style>
   </head>
   <body>

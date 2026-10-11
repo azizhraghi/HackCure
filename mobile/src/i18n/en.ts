@@ -108,7 +108,7 @@ const en = {
     liveReading: 'Live reading · updated 2 min ago', expVsActual: 'EXPECTED VS ACTUAL', ahead: "You're 2 days ahead",
     kneeAngle: 'Knee angle', goal: 'Goal 110°', signal: '▮▮▮ Signal · 82% battery', moisture: 'Moisture 42%',
     low: 'Low', moderate: 'Moderate', active: 'Active', tapKnee: 'Tap the knee to explore',
-    loading: 'Loading 3D twin…', fallback: '2D view (3D unavailable)', drag: 'Drag to rotate · pinch to zoom',
+    retry: 'Retry 3D', loading: 'Loading 3D twin…', fallback: '2D view (3D unavailable)', drag: 'Drag to rotate · pinch to zoom',
   },
   twinDetail: {
     top: 'Right knee', healing: 'Healing well ✓', kicker: 'BODY PART DETAIL', temperature: 'Temperature',

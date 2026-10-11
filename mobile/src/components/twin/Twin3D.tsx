@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { WebView as RNWebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
 
 // react-native-webview's class typings don't resolve against RN 0.87 types; re-type the component.
@@ -8,6 +8,7 @@ const WebView = RNWebView as unknown as React.ComponentType<WebViewProps & { ref
 import { GlassTwin } from '../figures';
 import { T } from '../T';
 import twinHtml from './twinHtml';
+import { useT } from '../../i18n';
 
 export type Twin3DHandle = { command: (cmd: 'rotate' | 'zoom' | 'reset') => void };
 
@@ -27,6 +28,14 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
   const web = useRef<WebViewHandle>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const { t } = useT();
+
+  useEffect(() => {
+    if (ready || failed) return;
+    const timer = setTimeout(() => setFailed(true), 20000);
+    return () => clearTimeout(timer);
+  }, [ready, failed, attempt]);
 
   const send = (msg: object) => web.current?.postMessage(JSON.stringify(msg));
 
@@ -52,6 +61,9 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
           <GlassTwin day={day} layer={layer} />
         </View>
         <T size={6} w={700} color="#70809a" center style={{ position: 'absolute', bottom: 62, left: 0, right: 0 }}>{fallbackLabel}</T>
+        <Pressable accessibilityRole="button" onPress={() => { setReady(false); setFailed(false); setAttempt(x => x + 1); }} style={{ position:'absolute', top:78, alignSelf:'center', padding:10, borderRadius:12, backgroundColor:'#16334c' }}>
+          <T size={8} color="#e6f7ff">{t('twin.retry')}</T>
+        </Pressable>
       </View>
     );
   }
@@ -59,6 +71,7 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
   return (
     <View style={StyleSheet.absoluteFill}>
       <WebView
+        key={attempt}
         ref={web}
         source={{ html: twinHtml, baseUrl: '' }}
         originWhitelist={['*']}
@@ -67,7 +80,7 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
         scrollEnabled={false}
         bounces={false}
         overScrollMode="never"
-        style={{ backgroundColor: 'transparent' }}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         containerStyle={{ backgroundColor: 'transparent' }}
         androidLayerType="hardware"
         onError={() => setFailed(true)}

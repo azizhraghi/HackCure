@@ -174,7 +174,7 @@ export function SimulatedTag({ style }: { style?: StyleProp<ViewStyle> }) {
 }
 
 /** Standard screen: safe area + scroll + 16px gutter */
-export function Screen({ children, scroll = true, style, bg, padded = true, edges = ['top'] }: {
+export function Screen({ children, scroll = true, style, bg, padded = true, edges = [] }: {
   children: ReactNode; scroll?: boolean; style?: StyleProp<ViewStyle>; bg?: string; padded?: boolean; edges?: ('top' | 'bottom')[];
 }) {
   const { c } = useTheme();

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script src="/app/theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f7fb">
@@ -78,11 +79,24 @@
     footer { text-align:center; color:#8192a5; font-size:11px; margin:20px 0 0 }
     @media(max-width:760px) { .shell { padding:18px 13px 32px } header { align-items:flex-start } .grid { grid-template-columns:1fr } .outputs { grid-template-columns:1fr } .output.wide { grid-column:auto } .badge { white-space:normal; text-align:center; max-width:145px } }
     @media(max-width:420px) { h1 { font-size:19px } .two { grid-template-columns:1fr } .card { padding:15px } }
+
+  .theme-toggle { font:inherit; font-size:12px; font-weight:700; padding:8px 13px; min-height:36px; border:1px solid var(--ink); border-radius:99px; background:var(--surface, var(--paper)); color:var(--text, var(--ink)); cursor:pointer; flex-shrink:0; }
+  .theme-toggle:focus-visible { outline:3px solid var(--primary, var(--blue)); outline-offset:3px; }
+  input,select,textarea { background-color:var(--surface, var(--paper)); }
+
+
+    :root[data-theme="dark"] { --ink:#e6ecfa; --muted:#9aa8c2; --line:#2a3a5c; --blue:#2f93ea; --blue2:#1d3253; --green:#218d65; --paper:#16213a; --bg:#0a1120; --amber:#ffc070; }
+    :root[data-theme="dark"] :is(.output,.result-hero,.notice,.developer-note,.step,.button.ghost) { background:var(--paper); border-color:var(--line); color:var(--ink); }
+    :root[data-theme="dark"] :is(pre,label,.result-body,.result-hero strong,.result-hero span,.notice strong,.button.secondary,.empty) { color:var(--ink); }
+    :root[data-theme="dark"] :is(input,select) { color:var(--ink); background:var(--paper); }
+    :root[data-theme="dark"] :is(.pill,.step.active) { background:#15302a; color:#6fe0b0; }
+    :root[data-theme="dark"] .badge { background:#3a3013; color:#ffc070; border-color:#6e571f; }
   </style>
 </head>
 <body>
   <main class="shell">
     <header>
+  <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch color theme">☾ Dark mode</button>
       <div class="brand"><div class="logo" aria-hidden="true">S</div><div><h1>SurgiGuard</h1><p class="subtitle">Developer 3 · Safety and follow-up demo</p></div></div>
       <span class="badge">SYNTHETIC DATA ONLY</span>
     </header>

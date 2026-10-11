@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
+<script src="/app/theme.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SurgiGuard Story</title>
@@ -72,10 +73,16 @@
   svg { width: 100%; height: 120px; display: block; }
   details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
   pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; max-height: 220px; overflow: auto; margin: 4px 0 0; }
+
+  .theme-toggle { font:inherit; font-size:12px; font-weight:700; padding:8px 13px; min-height:36px; border:1px solid var(--ink); border-radius:99px; background:var(--surface, var(--paper)); color:var(--text, var(--ink)); cursor:pointer; flex-shrink:0; }
+  .theme-toggle:focus-visible { outline:3px solid var(--primary, var(--blue)); outline-offset:3px; }
+  input,select,textarea { background-color:var(--surface, var(--paper)); }
+
 </style>
 </head>
 <body>
 <header>
+  <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch color theme">☾ Dark mode</button>
   <h1>SurgiGuard — l'histoire complète</h1>
   <p>Du boîtier ESP32 à l'équipe soignante : <b>l'API SurgiGuard (.NET + MongoDB)</b> porte les données, les <b>agents IA</b> les analysent, la famille est prévenue par l'API. Patiente fictive, pas un dispositif médical.</p>
   <div class="row" id="chips"></div>

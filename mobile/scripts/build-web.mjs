@@ -11,6 +11,7 @@ const shim = (name) => path.join(root, 'src', 'web', 'shims', name);
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 await cp(path.join(root, 'web', 'index.html'), path.join(out, 'index.html'));
+await cp(path.join(root, 'web', 'theme.js'), path.join(out, 'theme.js'));
 
 await build({
   absWorkingDir: root,

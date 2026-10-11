@@ -1,10 +1,11 @@
 /// <reference lib="dom" />
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { GlassTwin } from '../figures';
 import { T } from '../T';
 import type { Twin3DHandle } from './Twin3D';
 import twinHtml from './twinHtml';
+import { useT } from '../../i18n';
 
 type Props = { day: number; layer: string; highlighted: string | null; hr?: number; onTapKnee?: () => void; loadingLabel: string; fallbackLabel: string };
 
@@ -17,6 +18,13 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
   const frame = useRef<HTMLIFrameElement | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const { t } = useT();
+  useEffect(() => {
+    if (ready || failed) return;
+    const timer = setTimeout(() => setFailed(true), 20000);
+    return () => clearTimeout(timer);
+  }, [ready, failed, attempt]);
   const send = (msg: object) => frame.current?.contentWindow?.postMessage(JSON.stringify(msg), '*');
 
   useImperativeHandle(ref, () => ({ command: cmd => send({ type: 'cmd', cmd }) }));
@@ -43,10 +51,13 @@ export const Twin3D = forwardRef<Twin3DHandle, Props>(({ day, layer, highlighted
     return <View style={StyleSheet.absoluteFill}>
       <View style={{ position: 'absolute', left: 92, right: 92, top: 35, bottom: 68 }}><GlassTwin day={day} layer={layer} /></View>
       <T size={6} w={700} color="#8fb3c9" center style={{ position: 'absolute', bottom: 50, left: 0, right: 0 }}>{fallbackLabel}</T>
+      <Pressable accessibilityRole="button" onPress={() => { setReady(false); setFailed(false); setAttempt(x => x + 1); }} style={{ position:'absolute', top:78, alignSelf:'center', padding:10, borderRadius:12, backgroundColor:'#16334c' }}>
+        <T size={8} color="#e6f7ff">{t('twin.retry')}</T>
+      </Pressable>
     </View>;
   }
   return <View style={StyleSheet.absoluteFill}>
-    <iframe ref={frame} title="3D recovery twin" srcDoc={srcDoc}
+    <iframe key={attempt} ref={frame} title="3D recovery twin" srcDoc={srcDoc} onError={() => setFailed(true)}
       style={{ border: 0, width: '100%', height: '100%', background: 'transparent', display: 'block' }} />
     {!ready && (
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', gap: 8 }]}>

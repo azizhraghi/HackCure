@@ -6,11 +6,17 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const post = msg => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+// Report asynchronous model/shader failures too, so the host can show its 2D fallback.
+window.addEventListener('error', e => post({ type: 'error', reason: e.message || 'render_error' }));
+window.addEventListener('unhandledrejection', () => post({ type: 'error', reason: 'render_rejection' }));
 
 function hasWebGL() {
   try {
     const c = document.createElement('canvas');
-    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+    const context = c.getContext('webgl2'); // Current Three.js requires WebGL 2.
+    if (!context) return false;
+    context.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
   } catch (e) {
     return false;
   }
@@ -147,6 +153,7 @@ function init() {
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('webglcontextlost', () => post({ type: 'error', reason: 'context_lost' }));
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(28, window.innerWidth / window.innerHeight, 0.01, 100);

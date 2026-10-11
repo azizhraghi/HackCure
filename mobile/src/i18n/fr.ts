@@ -110,7 +110,7 @@ const fr: Dict = {
     liveReading: 'Mesure en direct · il y a 2 min', expVsActual: 'PRÉVU VS RÉEL', ahead: "Vous avez 2 jours d'avance",
     kneeAngle: 'Angle du genou', goal: 'Objectif 110°', signal: '▮▮▮ Signal · batterie 82 %', moisture: 'Humidité 42 %',
     low: 'Faible', moderate: 'Modéré', active: 'Actif', tapKnee: 'Touchez le genou pour explorer',
-    loading: 'Chargement du jumeau 3D…', fallback: 'Vue 2D (3D indisponible)', drag: 'Glissez pour pivoter · pincez pour zoomer',
+    loading: 'Chargement du jumeau 3D…', retry: 'Réessayer la 3D', fallback: 'Vue 2D (3D indisponible)', drag: 'Glissez pour pivoter · pincez pour zoomer',
   },
   twinDetail: {
     top: 'Genou droit', healing: 'Bonne cicatrisation ✓', kicker: 'DÉTAIL DE LA ZONE', temperature: 'Température',

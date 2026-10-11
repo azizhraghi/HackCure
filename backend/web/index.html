@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script src="/app/theme.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SurgiGuard Demo</title>
@@ -202,6 +203,11 @@
   @media (max-width:900px) { body.clinic-only .clinic-nav { width:66px; padding:24px 8px; } .clinic-nav .nav-label, .clinic-nav .nav-caption, .clinic-nav-footer { display:none; } .clinic-brand { padding:0 8px; } .clinic-nav button, .clinic-nav a { justify-content:center; padding:12px 8px; margin-top:12px; } body.clinic-only .bar { margin-left:66px; padding:10px 16px; } body.clinic-only .grid { margin-left:66px; padding:18px 16px; } .clinic-workspace { grid-template-columns:195px minmax(0,1fr); gap:12px; } .clinic-heading h2 { font-size:23px; } }
   @media (max-width:1000px) { .clinic-detail-grid { grid-template-columns:1fr; } .clinic-detail-grid > aside { order:-1; } }
   @media (max-width:700px) { body.clinic-only .clinic-nav { display:none; } body.clinic-only .bar, body.clinic-only .grid { margin-left:0; } .clinic { padding:14px; } .clinic-workspace { grid-template-columns:1fr; } .clinic-heading { align-items:start; flex-direction:column; } .clinic-heading h2 { font-size:21px; } .clinic-stats { display:grid; grid-template-columns:1fr 1fr; } .clinic-stat { min-width:0; padding:10px; } .reading-strip { gap:6px; } .reading-mini { padding:9px; } .reading-mini .reading-value { font-size:18px; } }
+
+  .theme-toggle { font:inherit; font-size:12px; font-weight:700; padding:8px 13px; min-height:36px; border:1px solid var(--ink); border-radius:99px; background:var(--surface, var(--paper)); color:var(--text, var(--ink)); cursor:pointer; flex-shrink:0; }
+  .theme-toggle:focus-visible { outline:3px solid var(--primary, var(--blue)); outline-offset:3px; }
+  input,select,textarea { background-color:var(--surface, var(--paper)); }
+
 </style>
 <style>
   .family-welcome { display:none; }
@@ -266,6 +272,7 @@
 <body>
 <nav class="clinic-nav" aria-label="Clinic navigation"><div class="clinic-brand"><span class="clinic-brand-mark" aria-hidden="true">+</span><span class="nav-label">SurgiGuard</span></div><div class="nav-caption">Clinical workspace</div><button class="active" data-queue-filter="all" aria-label="Overview"><span class="nav-symbol" aria-hidden="true">▦</span><span class="nav-label">Overview</span></button><button data-queue-filter="review" aria-label="Cases awaiting care"><span class="nav-symbol" aria-hidden="true">☷</span><span class="nav-label">Awaiting care</span></button><button data-queue-filter="urgent" aria-label="Urgent alerts"><span class="nav-symbol" aria-hidden="true">!</span><span class="nav-label">Urgent alerts</span></button><button data-queue-filter="followup" aria-label="Follow-up cases"><span class="nav-symbol" aria-hidden="true">◷</span><span class="nav-label">Follow-up</span></button><div class="nav-caption">Connected views</div><a href="/app/" aria-label="Patient platform"><span class="nav-symbol" aria-hidden="true">♡</span><span class="nav-label">Patient platform ↗</span></a><a href="/agent-demo/?view=family#family" aria-label="Family demo"><span class="nav-symbol" aria-hidden="true">♧</span><span class="nav-label">Family demo ↗</span></a><div class="clinic-nav-footer"><strong>Fictional demo</strong>Local care workflow<br>External delivery is off</div></nav>
 <div class="bar">
+  <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch color theme">☾ Dark mode</button>
   <span class="clinic-sync" id="c-sync" role="status">Connecting to local demo…</span>
   <h1>SurgiGuard demo</h1>
   <a class="btn" href="/app/">Patient app</a>

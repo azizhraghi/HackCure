@@ -13,7 +13,7 @@ export function ProfileScreen() {
   const { c } = useTheme();
   const { t } = useT();
   const nav = useNavigation();
-  const { session } = useAppState();
+  const { session, resetRole } = useAppState();
   const { data: profile } = useMyProfile();
   const name = session ? `${session.user.first_name} ${session.user.last_name}` : '';
   const family = profile?.family_members ?? [];
@@ -22,6 +22,11 @@ export function ProfileScreen() {
   return (
     <Screen>
       <TopBar title={t('profile.top')} back={false} action={<RoundButton icon="gear" onPress={() => nav.navigate('Settings')} />} />
+      <Pressable accessibilityRole="button" accessibilityLabel={`${t('settings.switchRole')} — ${t('settings.switchRoleSub')}`} onPress={resetRole}
+        style={{ paddingVertical:10, paddingHorizontal:12, borderWidth:1, borderColor:c.ink, borderRadius:12, backgroundColor:c.surface, flexDirection:'row', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+        <T size={10} w={700}>{t('settings.switchRole')}</T>
+        <T size={8} color={c.muted}>{t('settings.switchRoleSub')} ↗</T>
+      </Pressable>
       <View style={{ height: 78, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Avatar initials={initials(name)} size={50} />
         <View style={{ flex: 1 }}>

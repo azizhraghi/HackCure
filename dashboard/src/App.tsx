@@ -1,10 +1,27 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ProtocolReview from './pages/ProtocolReview';
-import { Activity, Bell, Settings, User } from 'lucide-react';
+import { Activity, Bell, Settings, User, Sun, Moon } from 'lucide-react';
 
 function App() {
+  const [dark, setDark] = useState(() => {
+    try { const saved = localStorage.getItem('sg.darkMode'); return saved === '1' || (saved !== '0' && matchMedia('(prefers-color-scheme: dark)').matches); }
+    catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  }, [dark]);
+  useEffect(() => {
+    const sync = (event: StorageEvent) => { if (event.key === 'sg.darkMode') setDark(event.newValue === '1'); };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
+  const toggle = () => {
+    const next = !dark; setDark(next);
+    try { localStorage.setItem('sg.darkMode', next ? '1' : '0'); } catch {}
+  };
   return (
     <BrowserRouter>
       <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
@@ -51,6 +68,10 @@ function App() {
           <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
             <h2 className="text-lg font-semibold text-gray-800">Department Overview</h2>
             <div className="flex items-center space-x-4">
+              <button onClick={toggle} aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold border border-gray-200 rounded-full text-gray-700 bg-white">
+                {dark ? <Sun size={16} /> : <Moon size={16} />}{dark ? 'Light mode' : 'Dark mode'}
+              </button>
               <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
                 <Bell className="w-5 h-5" />
               </button>
