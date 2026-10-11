@@ -6,6 +6,7 @@ Limits are enforced here in code, not in the prompt.
 """
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -238,6 +239,19 @@ def _can_request(ctx: Ctx, test: str) -> str | None:
 def _create_request(ctx: Ctx, kind: str, prompt: str, reason: str, options=None, metric=None,
                     call_id: str | None = None) -> dict:
     now = clock.now()
+    normalize = lambda text: re.sub(r"\W+", " ", text.lower()).strip()
+    for previous in ctx.repo.all(m.PatientRequest, m.PatientRequest.patient_id == ctx.pid,
+                                  m.PatientRequest.created_at >= now - timedelta(hours=24)):
+        reusable = (previous.investigation_id == ctx.inv.id or previous.status == "pending"
+                    or (previous.answered_at and previous.answered_at >= now - timedelta(minutes=15)))
+        duplicate = (kind == previous.kind and (
+            metric == previous.metric if kind == "measurement" else
+            normalize(prompt) == normalize(previous.prompt)
+            and [normalize(o) for o in (options or [])] == [normalize(o) for o in previous.options]))
+        if reusable and duplicate and previous.status in ("pending", "answered"):
+            return {"status": "already_available", "request_id": previous.id,
+                    "answer": previous.answer, "observation_id": previous.answer_observation_id,
+                    "note": "Do not repeat this request. Use the existing answer or continue with uncertainty."}
     req = ctx.repo.add(m.PatientRequest(patient_id=ctx.pid, investigation_id=ctx.inv.id, kind=kind, prompt=prompt,
                                         reason=reason, options=list(options or []), metric=metric,
                                         expires_at=now + timedelta(seconds=settings.request_timeout_s),
@@ -254,6 +268,12 @@ def request_measurement(ctx: Ctx, metric: str, reason: str = "", call_id=None) -
         return {"error": f"unknown metric {metric}"}
     if err := _can_request(ctx, metric):
         return {"error": err}
+    rows = ctx.repo.observations(ctx.pid, metric, since=clock.now() - timedelta(minutes=15), until=clock.now())
+    good = [o for o in rows if o.quality == "good"]
+    if good:
+        obs = good[-1]
+        return {"status": "already_available", "observation_id": obs.id, "value": obs.value,
+                "at": obs.measured_at.isoformat(), "note": "A usable reading was collected within 15 minutes."}
     labels = {"hr": "heart rate", "spo2": "oxygen level", "temp": "temperature", "bp": "blood pressure"}
     return _create_request(ctx, "measurement", f"Please measure your {labels[metric]} now.", reason, metric=metric,
                            call_id=call_id)

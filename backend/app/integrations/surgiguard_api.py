@@ -255,7 +255,7 @@ def sync_doses_from_api(repo: Repo, now: datetime | None = None) -> int:
         if prev is not None and prev.value.get("status") == status:
             continue
         try:
-            medication.record_dose(repo, DEMO_PATIENT_ID, med["id"], ts, status, actor="surgiguard-api")
+            medication.record_dose(repo, DEMO_PATIENT_ID, med["id"], ts, status, actor="surgiguard-api", trusted_import=True)
             imported += 1
         except ValueError:
             continue

@@ -18,6 +18,7 @@ LABELS = {
     "request_evidence": "Request permitted evidence",
     "waiting_patient": "Waiting for patient evidence",
     "validate_report": "Validate clinician report",
+    "review_evidence": "Review source values and evidence quality",
     "await_clinician": "Waiting for clinician review",
     "incomplete": "Incomplete evidence sent for review",
     "aborted_urgent": "Urgent alert takes precedence",

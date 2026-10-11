@@ -25,6 +25,8 @@ def answer(repo: Repo, request_id: str, body: m.RequestAnswer, actor: str = "sar
     if clock.now() >= req.expires_at:
         raise RequestError("request has expired")
     member = repo.member(actor)
+    if member is None or member.patient_id != req.patient_id or member.role not in ("patient", "caregiver"):
+        raise RequestError("answer actor must belong to this patient's care team", 403)
     source = "caregiver_on_behalf" if member and member.role == "caregiver" else "patient"
     pid = req.patient_id
 

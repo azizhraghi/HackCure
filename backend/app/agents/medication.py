@@ -8,6 +8,8 @@
 """
 
 from datetime import datetime, time, timedelta
+import hashlib
+import json
 
 from .. import audit, clock
 from .. import models as m
@@ -25,6 +27,18 @@ def plan_med(plan: dict, med_id: str) -> dict | None:
     return next((x for x in plan.get("medications", []) if x["id"] == med_id), None)
 
 
+def medication_key(med: dict) -> str:
+    return hashlib.sha256(json.dumps([med.get(k, "") for k in ("id", "name", "dose", "route")]).encode()).hexdigest()
+
+
+def photo(repo: Repo, patient_id: str, med: dict) -> dict | None:
+    for obs in repo.observations(patient_id, "medication_photo", newest_first=True):
+        if obs.value.get("medication_key") == medication_key(med):
+            return {"url": obs.value["data_url"], "at": obs.measured_at.isoformat(),
+                    "note": "Patient-provided package photo; not medicine identification or proof a dose was taken."}
+    return None
+
+
 def dose_answers(repo: Repo, patient_id: str, since: datetime) -> dict[tuple[str, str], m.Observation]:
     """Latest answer per (med_id, scheduled_for iso)."""
     out: dict[tuple[str, str], m.Observation] = {}
@@ -38,6 +52,17 @@ def slots(plan: dict, start: datetime, end: datetime) -> list[tuple[dict, dateti
     day = datetime.combine(start.date(), time(0, 0))
     while day <= end:
         for med in plan.get("medications", []):
+            if med.get("as_needed"):
+                continue
+            starts = med.get("start_date") or plan.get("document_info", {}).get("discharge_date")
+            if starts:
+                try:
+                    first = datetime.fromisoformat(starts).date()
+                    duration = med.get("duration_days")
+                    if day.date() < first or (duration and day.date() >= first + timedelta(days=duration)):
+                        continue
+                except ValueError:
+                    continue  # ambiguous start date does not create scheduled doses
             for hhmm in med.get("times", []):
                 ts = slot_time(day, hhmm)
                 if start <= ts <= end:
@@ -67,7 +92,8 @@ def day_schedule(repo: Repo, patient_id: str, now: datetime | None = None) -> li
     for med, ts in slots(plan, start, end):
         ans = answers.get((med["id"], ts.isoformat()))
         out.append({"med_id": med["id"], "name": med["name"], "dose": med["dose"], "purpose": med["purpose"],
-                    "scheduled_for": ts.isoformat(), "status": dose_status(plan, ans, ts, now)})
+                    "scheduled_for": ts.isoformat(), "status": dose_status(plan, ans, ts, now),
+                    "photo": photo(repo, patient_id, med)})
     return out
 
 
@@ -100,11 +126,25 @@ def send_due_reminders(repo: Repo, patient_id: str, now: datetime | None = None)
 
 
 def record_dose(repo: Repo, patient_id: str, med_id: str, scheduled_for: datetime, status: str,
-                actor: str = "patient") -> dict:
+                actor: str = "patient", *, trusted_import: bool = False) -> dict:
+    if actor == "patient":
+        actor = patient_id
     plan = repo.plan(patient_id)
     med = plan_med(plan, med_id)
     if med is None:
         raise ValueError(f"{med_id} is not in the care plan")
+    if not any(x[0]["id"] == med_id for x in slots(plan, scheduled_for, scheduled_for)):
+        raise ValueError("this dose is outside the medication's active schedule")
+    if scheduled_for > clock.now():
+        raise ValueError("cannot record a dose before its scheduled time")
+    member = repo.member(actor)
+    service_import = trusted_import and actor == "surgiguard-api"
+    if not service_import and (member is None or member.patient_id != patient_id or member.role not in ("patient", "caregiver")):
+        raise ValueError("dose actor must be this patient or an authorized caregiver")
+    if member and member.role == "caregiver":
+        from ..notifications import caregiver_allowed
+        if not caregiver_allowed(plan, actor, "medications"):
+            raise ValueError("medication sharing is not enabled for this caregiver")
     if scheduled_for.strftime("%H:%M") not in med["times"]:
         raise ValueError(f"{med['name']} is not scheduled at {scheduled_for:%H:%M}")
     member = repo.member(actor)

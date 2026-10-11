@@ -16,7 +16,7 @@ from ..config import settings
 from ..db import Repo
 from .. import models as m
 from ..tools import investigation_tools as tools
-from . import evidence, investigation as agent
+from . import evidence, evidence_review, investigation as agent
 from . import investigation_workflow as workflow
 
 
@@ -26,6 +26,7 @@ class State(TypedDict, total=False):
     force_finish: bool
     route: str
     nudges: int
+    summary: m.EvidenceSummary
 
 
 def build_graph(repo: Repo, inv: m.Investigation):
@@ -144,8 +145,7 @@ def build_graph(repo: Repo, inv: m.Investigation):
                   "investigation", inv.id)
         agent._save(repo, inv, messages)
         if summary:
-            agent.complete(repo, inv, summary, "finished", mode=reply.mode)
-            return {"route": "handover"}
+            return {"summary": summary, "route": "review"}
         if inv.evidence_retries >= 1:
             agent.complete(repo, inv, evidence.fallback(repo, inv, "AI summary failed validation"), "incomplete")
             return {"route": "stop"}
@@ -154,6 +154,17 @@ def build_graph(repo: Repo, inv: m.Investigation):
                                                "hint": "Cite only observation_ids returned by tools."}))
         agent._save(repo, inv, messages)
         return {"messages": messages, "route": "continue"}
+
+    def review_evidence(state: State) -> dict:
+        if not agent._can_continue(repo, inv):
+            return {"route": "stop"}
+        workflow.mark(repo, inv, "review_evidence")
+        summary = state["summary"]
+        summary.evidence_review = evidence_review.review(repo, inv.patient_id, summary)
+        audit.log(repo, inv.patient_id, "agent:evidence_review", "evidence.reviewed",
+                  summary.evidence_review, "investigation", inv.id)
+        agent.complete(repo, inv, summary, "finished", mode=state["reply"].mode)
+        return {"route": "handover"}
 
     def await_clinician(state: State) -> dict:
         # The report is finished; the case remains open in the clinician-only alert workflow.
@@ -165,7 +176,7 @@ def build_graph(repo: Repo, inv: m.Investigation):
     for name, node in (("collect_context", collect_context), ("safety_gate", safety_gate),
                        ("assess_evidence", assess_evidence), ("read_evidence", execute),
                        ("request_evidence", execute), ("validate_report", validate_report),
-                       ("await_clinician", await_clinician)):
+                       ("review_evidence", review_evidence), ("await_clinician", await_clinician)):
         graph.add_node(name, node)
     graph.add_edge(START, "collect_context")
     graph.add_conditional_edges("collect_context", lambda s: s["route"], {"continue": "safety_gate", "stop": END})
@@ -176,7 +187,8 @@ def build_graph(repo: Repo, inv: m.Investigation):
     for node in ("read_evidence", "request_evidence"):
         graph.add_conditional_edges(node, lambda s: s["route"], {"continue": "safety_gate", "stop": END})
     graph.add_conditional_edges("validate_report", lambda s: s["route"],
-                                {"continue": "safety_gate", "handover": "await_clinician", "stop": END})
+                                {"continue": "safety_gate", "review": "review_evidence", "stop": END})
+    graph.add_conditional_edges("review_evidence", lambda s: s["route"], {"handover": "await_clinician", "stop": END})
     graph.add_edge("await_clinician", END)
     return graph.compile()
 

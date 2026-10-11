@@ -61,7 +61,7 @@ def today(patient_id: str, repo: Repo = Depends(get_repo)):
     from ..agents.investigation_workflow import patient_progress
     return {
         "patient": {"id": p.id, "name": p.name, "first_name": p.first_name, "age": p.age, "surgery": p.surgery,
-                    "day": day_number(p, now), "allergies": p.allergies},
+                    "day": day_number(p, now) if p.surgery != "Not yet supplied" else None, "allergies": p.allergies},
         "now": now.isoformat(),
         "tasks": tasks,
         "appointments": appointments,

@@ -39,6 +39,9 @@ Rules you must follow:
 - Call one tool at a time. You have at most 8 tool calls before finishing. Before finishing you MUST have called:
   get_vitals_trend for hr, get_vitals_trend for temp, get_symptom_checkins and get_medication_context.
 - Only list data as missing if a tool actually showed it missing (status "unknown" / no readings).
+- Choose the unanswered question most likely to clarify the trigger or a documented conflict.
+  Read answered_questions before asking. Never repeat a question or request a fresh measurement
+  already returned by a tool. If evidence is unavailable or the patient does not answer, report uncertainty.
 - Wound photos are collected during dressing changes permitted by the care plan, not every day.
   Check get_wound_photos before requesting another photo. A request must wait for a permitted dressing
   change; never ask the patient to remove a dressing for the app. Compare available photos when useful.
@@ -282,6 +285,11 @@ def complete(repo: Repo, inv: m.Investigation, summary: m.EvidenceSummary, statu
 
 
 def _complete(repo: Repo, inv: m.Investigation, summary: m.EvidenceSummary, status: str, mode: str) -> None:
+    if not summary.evidence_review:
+        from . import evidence_review
+        summary.evidence_review = evidence_review.review(repo, inv.patient_id, summary)
+        audit.log(repo, inv.patient_id, "agent:evidence_review", "evidence.reviewed",
+                  summary.evidence_review, "investigation", inv.id)
     inv.status = status
     inv.finished_at = clock.now()
     data = summary.model_dump(mode="json")

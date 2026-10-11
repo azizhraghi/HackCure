@@ -120,6 +120,21 @@ public sealed class AuthController(MongoDbContext db, TokenService tokens, IOpti
         return NoContent();
     }
 
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> Me(CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var user = await db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync(ct);
+        if (user is null) return Unauthorized();
+        string? profileId = null;
+        if (user.Role == UserRole.Patient)
+            profileId = (await db.Patients.Find(p => p.UserId == userId).FirstOrDefaultAsync(ct))?.Id;
+        else if (user.Role == UserRole.FamilyMember)
+            profileId = (await db.FamilyMembers.Find(p => p.UserId == userId).FirstOrDefaultAsync(ct))?.Id;
+        return Ok(new { user = user.ToDto(), profile_id = profileId });
+    }
+
     private AuthResponse BuildResponse(User user, string? profileId)
     {
         var (token, expiresAt) = tokens.CreateToken(user);

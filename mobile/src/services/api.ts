@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppState } from '../context/AppState';
+import { aiRequest } from './aiIdentity';
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -10,13 +11,14 @@ export const PATIENT_ID = 'sarah';
 export const CAREGIVER_ID = 'ahmed';
 
 async function call<T>(apiUrl: string, path: string, init?: { method?: string; body?: unknown }, timeoutMs = 15000): Promise<T> {
+  const scoped = await aiRequest(path, init?.body);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, {
+    const res = await fetch(`${apiUrl.replace(/\/$/, '')}${scoped.path}`, {
       method: init?.method ?? 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+      headers: { 'Content-Type': 'application/json', ...scoped.headers },
+      body: scoped.body === undefined ? undefined : JSON.stringify(scoped.body),
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -51,6 +53,7 @@ export type Notification = { id: string; kind: string; title: string; body: stri
 
 export type Today = {
   patient: { id: string; name: string; first_name: string; day: number };
+  appointments: { title: string; at: string }[];
   pending_requests: PatientRequest[];
   open_alerts: number;
   next_step: Notification | null;
@@ -118,10 +121,11 @@ export async function uploadWoundPhoto(apiUrl: string, file: string | Blob, dres
 }
 
 async function postForm<T>(apiUrl: string, path: string, form: FormData, timeoutMs: number): Promise<T> {
+  const scoped = await aiRequest(path);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, { method: 'POST', body: form, signal: controller.signal });
+    const res = await fetch(`${apiUrl.replace(/\/$/, '')}${scoped.path}`, { method: 'POST', headers: scoped.headers, body: form, signal: controller.signal });
     if (!res.ok) {
       const error = await res.json().catch(() => null);
       throw new Error(typeof error?.detail === 'string' ? error.detail : `HTTP ${res.status}`);
@@ -139,6 +143,7 @@ export type DraftWarning = { level: 'high' | 'medium' | 'low'; item: string; mes
 export type PlanMedication = { id: string; name: string; dose: string; route: string; purpose: string; times: string[]; as_needed: boolean; duration_days: number | null; times_inferred: boolean };
 export type PlanDraft = {
   id: string; status: 'analyzing' | 'ready' | 'failed' | 'confirmed'; mode: string; error: string | null; warnings: DraftWarning[];
+  clarifications?: { id: string; question: string; reason: string; sources: { document_id: string; filename: string }[]; status: string }[];
   plan: null | {
     pathway: string; medications: PlanMedication[]; rehab: { name: string; times: string[] }[];
     appointments: { title: string; day_offset?: number; time: string; date?: string }[];
@@ -166,6 +171,28 @@ export const getPlanDraft = (apiUrl: string, id: string) => call<PlanDraft>(apiU
 
 export const confirmPlanDraft = (apiUrl: string, id: string) =>
   call<{ ok: boolean; plan_id: string }>(apiUrl, `/plan-drafts/${id}/confirm`, { method: 'POST', body: { actor: PATIENT_ID } });
+
+export const requestPlanClarification = (apiUrl: string, id: string) =>
+  call<{ status: string; delivery: string; notification_ids: string[] }>(apiUrl, `/plan-drafts/${id}/clarification-request`, { method: 'POST', body: { actor: PATIENT_ID } });
+
+export type MedicationPhoto = { url: string; at: string; note: string };
+export type ScheduledDose = { med_id: string; name: string; dose: string; purpose: string; scheduled_for: string;
+  status: 'taken' | 'not_taken' | 'postponed' | 'unknown' | 'due' | 'upcoming'; photo: MedicationPhoto | null };
+export const getMedications = (apiUrl: string) => call<{ today: ScheduledDose[]; now: string; plan: PlanMedication[] }>(apiUrl, `/patients/${PATIENT_ID}/medications`);
+export const recordDose = (apiUrl: string, dose: ScheduledDose, status: 'taken' | 'not_taken' | 'postponed') =>
+  call<{ status: string; missed_dose_text?: string }>(apiUrl, '/medications/dose', { method: 'POST', body: {
+    patient_id: PATIENT_ID, actor: PATIENT_ID, med_id: dose.med_id, scheduled_for: dose.scheduled_for, status,
+  } });
+export const uploadMedicationPhoto = (apiUrl: string, medId: string, file: File) => {
+  const form = new FormData(); form.append('file', file);
+  return postForm<MedicationPhoto>(apiUrl, `/patients/${PATIENT_ID}/medications/${medId}/photo`, form, 30000);
+};
+export type FollowupTask = { id: string; instruction: string; due_at: string; status: string; evidence_types: string[]; observation_ids: string[] };
+export const getFollowupTasks = (apiUrl: string) => call<FollowupTask[]>(apiUrl, `/patients/${PATIENT_ID}/followup-tasks`);
+export type SharedMember = { id: string; name: string; relation: string; categories: Record<string, boolean> };
+export const getSharing = (apiUrl: string) => call<SharedMember[]>(apiUrl, `/patients/${PATIENT_ID}/sharing`);
+export const updateSharing = (apiUrl: string, member: SharedMember, category: string) => call(apiUrl,
+  `/patients/${PATIENT_ID}/sharing/${member.id}`, { method: 'PUT', body: { categories: { ...member.categories, [category]: !member.categories[category] } } });
 
 // ---------------------------------------------------------------- Developer 1: expected recovery + Patient Twin
 
@@ -197,20 +224,30 @@ export const getCaregiverAlerts = (apiUrl: string) =>
 
 /** Polls `fn` every `ms` while mounted. `data` stays null (=> screens keep their mock content) if the backend is unreachable. */
 export function usePoll<T>(fn: (apiUrl: string) => Promise<T>, ms = 4000) {
-  const { apiUrl } = useAppState();
+  const { apiUrl, session, demo } = useAppState();
   const [data, setData] = useState<T | null>(null);
   const [online, setOnline] = useState<boolean | null>(null);
   const fnRef = useRef(fn);
+  const dataIdentity = useRef('');
+  const identityKey = `${apiUrl}:${session?.user.id ?? ''}:${demo}`;
+  const identityRef = useRef(identityKey);
+  identityRef.current = identityKey;
   fnRef.current = fn;
 
   const refresh = useCallback(async () => {
+    const requestedIdentity = identityKey;
     try {
-      setData(await fnRef.current(apiUrl));
+      const result = await fnRef.current(apiUrl);
+      if (identityRef.current !== requestedIdentity) return;
+      dataIdentity.current = requestedIdentity;
+      setData(result);
       setOnline(true);
     } catch {
+      if (identityRef.current !== requestedIdentity) return;
+      setData(null);
       setOnline(false);
     }
-  }, [apiUrl]);
+  }, [apiUrl, session?.token, demo, identityKey]);
 
   useEffect(() => {
     refresh();
@@ -218,7 +255,7 @@ export function usePoll<T>(fn: (apiUrl: string) => Promise<T>, ms = 4000) {
     return () => clearInterval(id);
   }, [refresh, ms]);
 
-  return { data, online, refresh };
+  return { data: dataIdentity.current === identityKey ? data : null, online, refresh };
 }
 
 export type DemoEventResponse = {

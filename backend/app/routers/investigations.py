@@ -8,6 +8,30 @@ from ..agents.investigation_workflow import public as workflow_progress
 router = APIRouter(tags=["investigations"])
 
 
+@router.get("/patients/{patient_id}/agent-metrics")
+def agent_metrics(patient_id: str, repo: Repo = Depends(get_repo)):
+    """Operational evaluation, separated by execution mode; not medical accuracy."""
+    rows = repo.all(m.Investigation, m.Investigation.patient_id == patient_id,
+                    order=m.Investigation.started_at.desc(), limit=100)
+    modes = {}
+    for inv in rows:
+        mode = (inv.summary or {}).get("generated_by", "pending")
+        group = modes.setdefault(mode, {"cases": 0, "finished": 0, "incomplete": 0,
+                                       "tool_calls": 0, "patient_requests": 0, "validation_retries": 0,
+                                       "review_issues": 0, "elapsed_seconds": []})
+        group["cases"] += 1
+        group["finished"] += inv.status == "finished"
+        group["incomplete"] += inv.status == "incomplete"
+        group["tool_calls"] += inv.tool_calls
+        group["patient_requests"] += inv.patient_requests
+        group["validation_retries"] += inv.evidence_retries
+        group["review_issues"] += len((inv.summary or {}).get("evidence_review", {}).get("issues", []))
+        if inv.finished_at:
+            group["elapsed_seconds"].append(max(0, (inv.finished_at - inv.started_at).total_seconds()))
+    return {"sample_size": len(rows), "by_mode": modes,
+            "note": "Elapsed time includes patient waits and the demo clock. Source-review issues are not an accuracy score."}
+
+
 @router.get("/patients/{patient_id}/requests")
 def list_requests(patient_id: str, include_closed: bool = False, repo: Repo = Depends(get_repo)):
     if include_closed:

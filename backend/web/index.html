@@ -480,6 +480,7 @@ $('#f-digest-refresh').addEventListener('click', () => loadDigest(true));
 let selected = null;
 let detailAlert = null;
 const verificationDrafts = {};
+const followupDrafts = {};
 const clinicalNotes = {};
 let activeClinicalForm = null;
 function renderClinic(alerts) {
@@ -518,6 +519,14 @@ async function renderDetail() {
     const noteLabel = formAct === 'contacted' ? 'Contact note' : formAct === 'action' ? 'Clinician action' : 'Resolution reason';
     const noteForm = formAct ? `<div class="card" style="margin-top:10px"><label>${noteLabel} (fictional demo)<textarea data-clinical-note style="display:block;width:100%;margin-top:4px" placeholder="Enter a short demo note">${esc(clinicalNotes[a.id] || '')}</textarea></label><button class="btn primary" data-submit-act="${formAct}" style="margin-top:8px">Save ${formAct === 'contacted' ? 'contact record' : formAct === 'action' ? 'clinician action' : 'resolution'}</button><button class="btn" data-cancel-clinical>Cancel</button></div>` : '';
     const draft = verificationDrafts[a.id] || { summary: '', outcome: 'needs_review', ids: [] };
+    const fd = followupDrafts[a.id] || { instruction: '', due_at: '', evidence_types: '' };
+    const coordination = a.state === 'action_taken' ? `<div class="card"><div class="kicker">Schedule patient follow-up</div>
+      <p>Record the clinician's instruction, deadline and required evidence. Evidence collection keeps the alert open for assessment.</p>
+      <label>Patient instruction<textarea data-followup-field="instruction" style="display:block;width:100%">${esc(fd.instruction)}</textarea></label>
+      <label>Due time <input type="datetime-local" data-followup-field="due_at" value="${esc(fd.due_at)}"></label>
+      <label>Evidence types (comma separated: checkin, hr, temp, spo2, bp, photo, med_dose)<input data-followup-field="evidence_types" value="${esc(fd.evidence_types)}" style="display:block;width:100%"></label>
+      <button class="btn primary" data-schedule-followup>Schedule follow-up</button>
+      ${(a.followup_tasks || []).map(t => `<p>${esc(t.instruction)} · due ${esc(t.due_at)} · ${esc(t.status)}<br><span class="oid">${esc(t.evidence_types.join(', '))}</span></p>`).join('')}</div>` : '';
     const verification = a.state === 'action_taken' ? `<div class="card"><div class="kicker">Follow-up verification required</div>
       <p>Record follow-up evidence collected after the clinician action, then assess the outcome. Reading or acknowledging the alert does not close it.</p>
       <button class="btn" data-followup-evidence>Add synthetic follow-up evidence (demo)</button>
@@ -537,7 +546,8 @@ async function renderDetail() {
           <div class="sec" style="background:var(--lavender)"><div class="kicker">Patient-reported</div>${li(s.patient_reported, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)}</span></li>`)}</div>
           <div class="sec" style="background:var(--sky)"><div class="kicker">Device-measured <span class="sim">SIM</span></div>${li(s.device_measured, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)} · ${esc(c.quality)}</span></li>`)}</div>
         </div>
-        <div class="sec" style="background:var(--amber);margin-top:10px"><div class="kicker">AI interpretation</div><div>${esc(s.ai_interpretation)}</div></div>
+        <div class="sec" style="background:var(--amber);margin-top:10px"><div class="kicker">AI interpretation · clinician review required</div><div>${esc(s.ai_interpretation)}</div></div>
+        ${s.evidence_review?.status ? `<div class="sec" style="margin-top:10px"><div class="kicker">Independent evidence review · ${esc(s.evidence_review.status)}</div><p>Cited facts above are rendered from stored values. ${esc(s.evidence_review.interpretation_status)}</p>${li(s.evidence_review.issues || [], x => `<li>${esc(x)}</li>`)}</div>` : ''}
         <div class="sec" style="background:var(--readonly);margin-top:10px"><div class="kicker">Missing or conflicting</div>${li(s.missing_or_conflicting, x => `<li>${esc(x)}</li>`)}</div>
         <div class="sec" style="margin-top:10px"><div class="kicker">Handover</div><div>${esc(s.messages.clinician)}</div>
           <div class="small muted" style="margin-top:4px">To Sarah: “${esc(s.messages.patient)}” · To Ahmed: “${esc(s.messages.caregiver)}”</div></div></div>`;
@@ -555,7 +565,7 @@ async function renderDetail() {
       }).join('')}</div></div>`;
     }
     return `<div class="card"><div class="row" style="justify-content:space-between"><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span><span class="small muted">${esc(a.id)}</span></div>
-      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${noteForm}${hist}</div>${verification}${verHistory}${ev}${steps}`;
+      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${noteForm}${hist}</div>${coordination}${verification}${verHistory}${ev}${steps}`;
   });
 }
 document.addEventListener('click', async e => {
@@ -573,11 +583,26 @@ document.addEventListener('click', async e => {
 });
 
 document.addEventListener('input', e => {
+  if (selected && e.target.dataset.followupField) (followupDrafts[selected] ||= { instruction: '', due_at: '', evidence_types: '' })[e.target.dataset.followupField] = e.target.value;
   if (e.target.matches('[data-clinical-note]') && selected) clinicalNotes[selected] = e.target.value;
   if (!selected || (!e.target.dataset.verField && !e.target.dataset.verId)) return;
   const draft = verificationDrafts[selected] ||= { summary: '', outcome: 'needs_review', ids: [] };
   if (e.target.dataset.verField) draft[e.target.dataset.verField] = e.target.value;
   else { const id = e.target.dataset.verId; draft.ids = e.target.checked ? [...new Set([...draft.ids, id])] : draft.ids.filter(x => x !== id); }
+});
+
+document.addEventListener('click', async e => {
+  const button = e.target.closest('[data-schedule-followup]');
+  if (!button || !selected) return;
+  const draft = followupDrafts[selected] || {};
+  button.disabled = true;
+  try {
+    if (!draft.instruction?.trim() || !draft.due_at || !draft.evidence_types?.trim()) throw new Error('Enter the instruction, due time and evidence types.');
+    await api(`/alerts/${selected}/followup`, { actor: 'dr_ruiz', instruction: draft.instruction.trim(), due_at: draft.due_at,
+      evidence_types: draft.evidence_types.split(',').map(x => x.trim()).filter(Boolean) });
+    delete followupDrafts[selected]; toast('Follow-up scheduled. The alert remains open.'); poll();
+  } catch (err) { toast(err.message); }
+  finally { button.disabled = false; }
 });
 
 document.addEventListener('click', async e => {
