@@ -40,9 +40,13 @@ def to_scale5(raw: int) -> int:
 def submit(repo: Repo, body: m.CheckinIn) -> dict:
     pid = body.patient_id
     plan = repo.plan(pid)
+    changed = sorted(k for k, v in (body.neuro or {}).items() if v == "different")
+    if changed and "neuro_change" not in body.chips:  # decided here, not by the app
+        body.chips = [*body.chips, "neuro_change"]
     value = {"items": {k: {"raw": v, "scale5": to_scale5(v)} for k, v in
                        (("pain", body.pain), ("fatigue", body.fatigue), ("mobility", body.mobility))},
-             "chips": body.chips, "comment": body.comment}
+             "chips": body.chips, "comment": body.comment, "mood": body.mood, "neuro": body.neuro,
+             "neuro_changed": changed}
     obs = repo.add(m.Observation(patient_id=pid, type="checkin", source=body.submitted_by, value=value))
     audit.log(repo, pid, AGENT, "checkin.received", {"scores": {k: v["scale5"] for k, v in value["items"].items()},
                                                      "chips": body.chips}, "observation", obs.id)

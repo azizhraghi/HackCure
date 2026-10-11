@@ -70,7 +70,10 @@ export const getToday = (apiUrl: string) => call<Today>(apiUrl, `/patients/${PAT
 
 export const getRequests = (apiUrl: string) => call<PatientRequest[]>(apiUrl, `/patients/${PATIENT_ID}/requests`);
 
-export const submitCheckin = (apiUrl: string, body: { pain: number; fatigue: number; mobility: number; chips: string[]; comment?: string }) =>
+export type Mood = 'very_good' | 'good' | 'okay' | 'unwell' | 'very_unwell';
+export type NeuroAnswer = 'normal' | 'different' | 'skipped';
+
+export const submitCheckin = (apiUrl: string, body: { pain: number; fatigue: number; mobility: number; chips: string[]; comment?: string; mood?: Mood; neuro?: Record<string, NeuroAnswer> }) =>
   call<CheckinResult>(apiUrl, '/checkin', { method: 'POST', body: { patient_id: PATIENT_ID, ...body } }, 30000);
 
 export type AnswerBody = { option_index?: number; text?: string; value?: number; photo_asset?: string; photo_base64?: string; dressing_change_confirmed?: boolean };
@@ -290,3 +293,13 @@ export function acknowledgeDemoFollowup(apiUrl: string, followupId: string, vers
     actor_id: 'pt_demo_001', expected_version: version,
   });
 }
+
+// ---------------------------------------------------------------- medicines: what you may notice today
+
+export type MedicationGuide = {
+  items: { medication: string; times: string[]; known: boolean; common: string[]; call_if: string[] }[];
+  reassurance: string; note: string; source: string;
+};
+
+export const getMedicationGuide = (apiUrl: string, lang: string) =>
+  call<MedicationGuide>(apiUrl, `/patients/${PATIENT_ID}/medication-guide?lang=${lang}`);

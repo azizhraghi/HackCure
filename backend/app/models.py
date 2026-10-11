@@ -287,6 +287,10 @@ class CheckinIn(BaseModel):
     chips: list[str] = []
     comment: str | None = PField(default=None, max_length=1000)
     submitted_by: Literal["patient", "caregiver_on_behalf"] = "patient"
+    # 😄 🙂 😐 😣 😫 (D2 mood codes). A mood is not an urgency level or a pain score.
+    mood: Literal["very_good", "good", "okay", "unwell", "very_unwell"] | None = None
+    # Daily neurological self-check: item -> "normal" | "different" | "skipped". Any "different" is a red flag.
+    neuro: dict[str, Literal["normal", "different", "skipped"]] | None = None
 
 
 class RequestAnswer(BaseModel):

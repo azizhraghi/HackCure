@@ -1,25 +1,53 @@
-import React, { useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { CameraPreview } from '../../components/CameraPreview';
 import { Icon } from '../../components/Icon';
 import { T } from '../../components/T';
-import { Button, haptic, Muted, PageTitle, Screen, TopBar } from '../../components/ui';
-import { useAppState } from '../../context/AppState';
-import { patient } from '../../data/mock';
+import { Button, haptic, Muted, PageTitle, Screen, Toggle, TopBar } from '../../components/ui';
+import { useApi, useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
+import { ApiError, type FollowedPatient } from '../../services/backend';
 import { useTheme } from '../../theme/ThemeContext';
 import { Corners } from '../patient/WoundScanScreen';
 
 export function JoinPatientScreen() {
   const { c } = useTheme();
-  const { t } = useT();
-  const { completeOnboarding, resetRole } = useAppState();
+  const { t, list } = useT();
+  const api = useApi();
+  const { session, completeOnboarding, resetRole } = useAppState();
+  const relations = list('join.relations');
+  const [relation, setRelation] = useState(relations[0]!);
   const [code, setCode] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [joined, setJoined] = useState<FollowedPatient | null>(null);
   const input = useRef<React.ComponentRef<typeof TextInput>>(null);
-  const joined = code === patient.inviteCode;
-  const wrong = code.length === 6 && !joined;
+
+  const link = async (value: string) => {
+    setLinking(true);
+    setError(null);
+    try {
+      // WhatsApp alerts only if the account has a number (the API refuses opt-in otherwise)
+      setJoined(await api.linkPatient(value, relation, !!session?.user.whatsapp_number));
+      haptic('notificationSuccess');
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        // Already linked: just show the patient
+        setJoined((await api.followedPatients())[0] ?? null);
+      } else {
+        setError(e instanceof ApiError && e.status !== 0 ? e.message : t('auth.network'));
+      }
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (code.length === 6 && !joined && !linking) link(code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
   const onQr = (value: string) => {
     const match = value.replace(/\D/g, '').match(/\d{6}/);
@@ -29,6 +57,8 @@ export function JoinPatientScreen() {
       setScanning(false);
     }
   };
+
+  const wrong = !!error;
 
   return (
     <Screen>
@@ -63,6 +93,9 @@ export function JoinPatientScreen() {
         )}
       </Pressable>
 
+      <T size={7} w={800} spacing={0.8} style={{ marginTop: 14, marginBottom: 6 }}>{t('join.relation')}</T>
+      <Toggle options={relations} value={relation} onChange={setRelation} />
+
       <View style={{ height: 37, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
         <View style={{ flex: 1, borderTopWidth: 1, borderColor: '#ccd3de' }} />
         <T size={6.5} color={c.muted}>{t('join.or')}</T>
@@ -76,21 +109,23 @@ export function JoinPatientScreen() {
           </View>
         ))}
       </Pressable>
-      <TextInput ref={input} value={code} onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6}
+      <TextInput ref={input} value={code} editable={!joined && !linking}
+        onChangeText={v => { setError(null); setCode(v.replace(/\D/g, '').slice(0, 6)); }} keyboardType="number-pad" maxLength={6}
         style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }} />
-      {wrong && <T size={8} w={700} color={c.urgentText} style={{ marginTop: 6 }}>{t('join.invalid')}</T>}
+      {linking && <ActivityIndicator color={c.primary} style={{ marginTop: 10 }} />}
+      {wrong && <T size={8} w={700} color={c.urgentText} style={{ marginTop: 6 }}>{error}</T>}
 
       {joined && (
         <Animated.View entering={FadeInDown} style={{ minHeight: 96, marginTop: 12, borderWidth: 1.4, borderColor: c.ink, borderRadius: 18, backgroundColor: c.green, padding: 11, flexDirection: 'row', gap: 10 }}>
           <View style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.ink, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={22} /></View>
           <View style={{ flex: 1 }}>
             <T size={5.5} spacing={0.7}>{t('join.connected')}</T>
-            <T size={10} w={800} style={{ marginVertical: 3 }}>{t('join.following')}</T>
+            <T size={10} w={800} style={{ marginVertical: 3 }}>{t('join.following', { name: joined.full_name })}</T>
             <T size={6.5} lh={1.4}>{t('join.followingSub')}</T>
           </View>
         </Animated.View>
       )}
-      <Button style={{ marginTop: 12, opacity: joined ? 1 : 0.5 }} onPress={() => joined ? completeOnboarding() : input.current?.focus()}>{t('join.go')}  →</Button>
+      <Button style={{ marginTop: 12, opacity: joined ? 1 : 0.5 }} onPress={() => (joined ? completeOnboarding() : input.current?.focus())}>{t('join.go')}  →</Button>
     </Screen>
   );
 }
