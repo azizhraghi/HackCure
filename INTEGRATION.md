@@ -1,6 +1,6 @@
 # SurgiGuard AI: integrated prototype (D1 + D2 + D3)
 
-Branch **`integration/prototype`** puts the three developers' work on one backend and one app.
+`main` (merged from **`integration/prototype`**, 2026-10-11) puts the three developers' work on one backend and one app.
 Fictional patient only (Sarah Miller, 64, right total knee replacement). Not a medical device.
 
 ## What was merged
@@ -12,6 +12,7 @@ Fictional patient only (Sarah Miller, 64, right total knee replacement). Not a m
 | `dev/d2-unified` | D2 (Ines) | OCR, 20+ field extraction, safety graph, RAG assistant, `/v1/*` API | Routers mounted at `/v1`; one shared config and LLM keys |
 | `dev/d2b-assistant` | D2 (Wassila) | Hybrid keyword ranking (missing from d2-unified) | Merged into the retriever together with the patient filter |
 | `dev/d1-recovery` | D1 (Elaa) | Expected recovery (trajectory_prediction), Patient Twin, physiology | `backend/app/integrations/d1_bridge.py` |
+| `feat/esp32-mqtt-medications-android` | Karoui | ESP32 MQTT firmware, native Android monitor, Node/Mongo API, medication alarms, another app copy | In `SurgiGuard/` only: **not connected** to `backend/` yet (next step: MQTT readings → `POST /observations`) |
 
 ## Run it
 
