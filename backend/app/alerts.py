@@ -154,6 +154,12 @@ def verify(repo: Repo, alert_id: str, body: m.VerificationIn) -> m.FollowupVerif
             raise AlertError("verification requires usable patient-reported or measured evidence", 422)
         if obs.measured_at < action_at or obs.received_at < action_at or obs.measured_at > clock.now():
             raise AlertError("verification evidence must be collected after the clinician action", 422)
+    if body.outcome == "resolved":
+        selected = [repo.get(m.Observation, oid) for oid in ids]
+        for task in repo.all(m.FollowupTask, m.FollowupTask.alert_id == alert.id, m.FollowupTask.status != "completed"):
+            available = {o.type for o in selected if o.measured_at >= task.created_at and o.received_at >= task.created_at}
+            if not set(task.evidence_types) <= available:
+                raise AlertError("verification must include every evidence type requested in the clinician follow-up", 422)
     verification = repo.add(m.FollowupVerification(patient_id=alert.patient_id, alert_id=alert.id,
                             actor=body.actor, summary=body.summary.strip(), outcome=body.outcome, observation_ids=ids))
     if body.outcome == "resolved":

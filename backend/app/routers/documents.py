@@ -68,7 +68,20 @@ def get_draft(draft_id: str, repo: Repo = Depends(get_repo)):
     draft = repo.get(m.PlanDraft, draft_id)
     if draft is None:
         raise HTTPException(404, "unknown draft")
-    return protocol.summary(draft)
+    from ..agents.plan_clarification import prepare
+    return {**protocol.summary(draft), "clarifications": prepare(repo, draft)}
+
+
+@router.post("/plan-drafts/{draft_id}/clarification-request")
+def request_clarification(draft_id: str, body: m.ActorBody, repo: Repo = Depends(get_repo)):
+    from ..agents.plan_clarification import request_review
+    draft = repo.get(m.PlanDraft, draft_id)
+    if draft is None:
+        raise HTTPException(404, "unknown draft")
+    try:
+        return request_review(repo, draft, body.actor)
+    except ValueError as exc:
+        raise HTTPException(403, str(exc)) from exc
 
 
 @router.post("/plan-drafts/{draft_id}/confirm")

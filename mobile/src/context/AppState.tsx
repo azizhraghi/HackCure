@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, type Re
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createApi, type Api, type Session } from '../services/backend';
+import { configureAiIdentity } from '../services/aiIdentity';
 
 export type Role = 'patient' | 'family';
 
@@ -13,7 +14,8 @@ export const DEFAULT_API_URL = Platform.OS === 'web' && webOrigin ? webOrigin
 
 /** SurgiGuard API (.NET + MongoDB: accounts, ESP32 telemetry, device alerts) through a public ngrok tunnel.
  * Free tunnels change URL on restart: edit it in Settings or on the sign-in screen. */
-export const DEFAULT_ACCOUNT_URL = 'https://03f9-196-176-231-29.ngrok-free.app';
+const localPreview = Platform.OS === 'web' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(webOrigin ?? '');
+export const DEFAULT_ACCOUNT_URL = localPreview ? 'http://localhost:8080' : 'https://03f9-196-176-231-29.ngrok-free.app';
 
 type Persisted = {
   role: Role | null; onboardedRoles: Role[]; apiUrl: string; accountUrl: string; session: Session | null;
@@ -55,6 +57,7 @@ const Ctx = createContext<AppStateValue | null>(null);
 function restore(raw: string): Persisted {
   const saved: Persisted = { ...initial, ...JSON.parse(raw) };
   if (Platform.OS === 'web') saved.apiUrl = DEFAULT_API_URL; // the page's own server
+  if (localPreview && saved.accountUrl === 'https://03f9-196-176-231-29.ngrok-free.app') saved.accountUrl = DEFAULT_ACCOUNT_URL;
   if (saved.session && Date.parse(saved.session.expiresAt) <= Date.now()) saved.session = null;
   return saved;
 }
@@ -103,6 +106,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [state, ready, familyAck]);
 
+  configureAiIdentity({ apiUrl: state.apiUrl, token: state.session?.token, demo: state.demo });
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

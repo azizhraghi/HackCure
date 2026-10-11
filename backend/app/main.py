@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from . import db, scheduler
 from .agents import digest, investigation, protocol  # noqa: F401  (registers the runner jobs)
 from .config import settings
-from .routers import (alerts, caregiver, chat, checkin, demo, documents, integration, investigations, medications,
+from .routers import (account_context, alerts, caregiver, chat, checkin, demo, documents, integration, investigations, medications,
                       observations, patients, wounds, hub, motor)
 from d3_demo import router as d3_demo_router
 from .api.v1 import router as d2_router  # Developer 2: documents (D2A), RAG assistant (D2B), check-in rules
@@ -28,6 +28,8 @@ async def lifespan(_: FastAPI):
         if repo.patient("sarah") is None:
             from seed.demo_seed import load
             load(repo)
+        recovered = investigation.recover(repo)
+        logging.getLogger("surgiguard.recovery").info("Requeued %d persisted investigations", len(recovered))
     scheduler.start()
     yield
     scheduler.stop()
@@ -36,6 +38,8 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="SurgiGuard AI backend", version="0.2.0", lifespan=lifespan,
               description="Agentic post-operative surveillance prototype (FICTIONAL data, not a medical device).")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+from .account_scope import guard
+app.middleware("http")(guard)
 app.mount("/static/photos", StaticFiles(directory=BACKEND_DIR / "seed" / "photos"), name="photos")
 (BACKEND_DIR / "uploads").mkdir(exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=BACKEND_DIR / "uploads"), name="uploads")
@@ -69,7 +73,7 @@ def d3_demo_page():
 def root():
     return RedirectResponse("/app/")
 
-for r in (chat, patients, documents, wounds, observations, checkin, investigations, alerts, medications, caregiver,
+for r in (account_context, chat, patients, documents, wounds, observations, checkin, investigations, alerts, medications, caregiver,
           demo, integration, hub, motor):
     app.include_router(r.router)
 

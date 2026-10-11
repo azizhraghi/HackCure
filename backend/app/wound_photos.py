@@ -49,7 +49,7 @@ def eligibility(repo: Repo, pid: str) -> dict:
             "reason": "Wait for the next dressing change permitted by your care plan."}
 
 
-def request(repo: Repo, pid: str, investigation_id: str | None = None, reason: str = "") -> dict:
+def request(repo: Repo, pid: str, investigation_id: str | None = None, reason: str = "", call_id: str | None = None) -> dict:
     with _lock:
         if any(a.level == "urgent" for a in repo.open_alerts(pid)):
             return {"status": "deferred", "reason": "Urgent care takes precedence over wound-photo requests."}
@@ -65,6 +65,7 @@ def request(repo: Repo, pid: str, investigation_id: str | None = None, reason: s
                     return {"status": "deferred", "reason": "Another investigation is awaiting this photo."}
                 if investigation_id and not req.investigation_id:
                     req.investigation_id = investigation_id
+                    req.tool_call_id = call_id
                     repo.add(req)
                 return {"status": "requested", "request_id": req.id, "window": window}
             return {"status": "deferred", "reason": "This window's photo request has already been processed."}
@@ -73,7 +74,8 @@ def request(repo: Repo, pid: str, investigation_id: str | None = None, reason: s
                            starts_at=datetime.fromisoformat(window["starts_at"]),
                            ends_at=datetime.fromisoformat(window["ends_at"])))
         req = repo.add(m.PatientRequest(patient_id=pid, investigation_id=investigation_id, kind="photo",
-                       prompt=PROMPT, reason=reason or "Scheduled dressing-change photo (care plan)", expires_at=slot.ends_at))
+                       prompt=PROMPT, reason=reason or "Scheduled dressing-change photo (care plan)",
+                       expires_at=slot.ends_at, tool_call_id=call_id))
         slot.request_id = req.id
         repo.add(slot)
         notify(repo, pid, pid, "request", "Dressing-change photo", PROMPT, "request", req.id)

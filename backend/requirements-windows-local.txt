@@ -1,0 +1,5 @@
+# Constraints for this Windows machine's application-control-compatible wheels.
+# Usage: pip install -r requirements.txt -c requirements-windows-local.txt
+numpy==2.3.5
+scipy==1.16.3
+scikit-learn==1.7.2

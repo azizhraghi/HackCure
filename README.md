@@ -106,6 +106,18 @@ python SurgiGuard/Backend/scripts/simulate_esp32.py --api http://localhost:8080 
 
 This writes to the same endpoint as the board (`/api/telemetry/ingest`): use it on a throw-away database only.
 
+## This Windows workspace
+
+Once the local runtimes are installed in `backend/.cache/tools`, start the demo from the repository root:
+
+```powershell
+./scripts/start-local.ps1
+```
+
+This starts MongoDB bound to localhost, the .NET API on 8080 using `DB_story`, and the AI backend on 8000. It creates the fictional story accounts and opens `/story`. The patient app is at `/app/`. MQTT, WhatsApp and Firebase are disabled; AI starts in stub mode. Existing healthy services are reused. Logs and demo database files are under the ignored `backend/.cache` directory.
+
+On this machine, compatible Python wheel constraints are recorded in `backend/requirements-windows-local.txt`. Windows application control may reject unsigned portable MongoDB binaries; use MongoDB's official signed installer in that case.
+
 ## ESP32 firmware
 
 ```bash

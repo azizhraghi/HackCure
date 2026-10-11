@@ -1,6 +1,8 @@
 # SurgiGuard AI: backend (FastAPI)
 
-This is the agentic backend for the SurgiGuard prototype: safety rules, the Monitor, the alert lifecycle, five agents, and the REST API used by the mobile app and the clinician dashboard. The LLM is **Mistral**. All patient data is **fictional** and all device data is **simulated**. This is not a medical device, and the thresholds are demo values, not clinical advice.
+See [Agent refinements and connected patient UI](AGENT_REFINEMENTS.md) for the current LangGraph review step, clinician-defined follow-up, account isolation, medication package photos, and saved family-sharing permissions.
+
+This is the agentic backend for the SurgiGuard prototype: safety rules, monitoring, the alert lifecycle, LangGraph investigations, evidence review, follow-up coordination and the REST API used by the patient app and clinician dashboard. The LLM provider is configurable (Mistral, OpenRouter or Groq). Use fictional patient data with the demo configuration. This is not a medical device, and the seeded thresholds are demo values, not clinical advice.
 
 ## Setup
 
@@ -25,7 +27,7 @@ Run `npm run build:web` from `mobile`, then start this backend. Open:
 - `http://localhost:8000/agent-demo/`: the agent dashboard from `agentic-backend`, with patient, family and clinic views.
 - `http://localhost:8000/demo`: the earlier synthetic Developer 3 workflow panel, using `/v1/demo`.
 
-For offline development, set `$env:LLM_MODE='stub'` in the server terminal before launching Uvicorn. The new agents use a persisted custom tool loop; the earlier `/v1/demo` investigation uses LangGraph. These are separate workflows. Wound-photo requests are worded for dressing changes permitted by the care plan. Photo requests and uploads now require a permitted care-plan dressing window and dressing-change confirmation. Seeded windows, photos and comparisons are fictional. D2 plan ingestion and D1 image analysis remain to be connected. The patient app navigation opens the agent workspace and clinic.
+For offline development, set `$env:LLM_MODE='stub'` in the server terminal before launching Uvicorn. The current investigation runs in LangGraph with persisted domain checkpoints and an independent evidence-review node. The earlier `/v1/demo` remains a separate synthetic workflow. Wound-photo requests and uploads require a permitted care-plan dressing window and dressing-change confirmation. Seeded windows, photos and comparisons are fictional. The patient UI now calls D2 plan ingestion and the existing wound-analysis routes; clinician-defined follow-up and medication package photos are described in [AGENT_REFINEMENTS.md](AGENT_REFINEMENTS.md).
 
 If Windows application control blocks a SQLAlchemy DLL, install its [supported pure Python build](https://docs.sqlalchemy.org/en/21/intro.html#building-the-cython-extensions) in the backend environment:
 

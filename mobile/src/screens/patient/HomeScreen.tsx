@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -12,7 +12,7 @@ import { patient as demoPatient } from '../../data/mock';
 import { useLatestTelemetry } from '../../hooks/useBackend';
 import { useT } from '../../i18n';
 import { initials } from '../../services/backend';
-import { getExpectedRecovery, getToday, getTwin, usePoll } from '../../services/api';
+import { getExpectedRecovery, getToday, getTwin, getMedications, usePoll } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 const TOTAL_DAYS = 42;
@@ -129,16 +129,18 @@ export function HomeScreen() {
   const { c } = useTheme();
   const { t, list } = useT();
   const nav = useNavigation();
-  const { session } = useAppState();
+  const { session, demo } = useAppState();
   const user = session?.user;
   const today = usePoll(getToday, 5000).data;
+  const medications = usePoll(getMedications, 10000).data;
+  const dueDose = medications?.today.find(d => d.status === 'due');
   const twin = usePoll(getTwin, 10000).data;
   const expected = usePoll(getExpectedRecovery, 20000).data; // Developer 1: what is normal today
   const telemetry = useLatestTelemetry(session?.profileId).data; // ESP32 through the SurgiGuard API (signed in)
 
-  const day = today?.patient.day ?? demoPatient.day;
-  const firstName = user?.first_name ?? today?.patient.first_name ?? demoPatient.first;
-  const fullName = user ? `${user.first_name} ${user.last_name}` : today?.patient.name ?? demoPatient.name;
+  const day = today?.patient.day ?? (demo ? demoPatient.day : 0);
+  const firstName = user?.first_name ?? today?.patient.first_name ?? (demo ? demoPatient.first : '');
+  const fullName = user ? `${user.first_name} ${user.last_name}` : today?.patient.name ?? (demo ? demoPatient.name : '');
   const pending = today?.pending_requests ?? [];
   const careTeamBusy = (today?.open_alerts ?? 0) > 0;
 
@@ -178,7 +180,7 @@ export function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <T size={7} w={800} spacing={1} color="#0e4f3c">{t('home.journey')}</T>
                 <T size={16} w={800} lh={1.25} color="#08362a" style={{ marginTop: 4 }}>
-                  {careTeamBusy ? t('home.careTeamOnIt') : t(`home.phase_${phase}`)}
+                  {day === 0 ? 'Add your medical reports to prepare your plan.' : careTeamBusy ? t('home.careTeamOnIt') : t(`home.phase_${phase}`)}
                 </T>
                 {next && <T size={8} w={700} color="#0e4f3c" style={{ marginTop: 6 }}>{t('home.nextMilestone', { what: t(`home.ms_${next.key}`), n: next.day - day })}</T>}
               </View>
@@ -196,6 +198,13 @@ export function HomeScreen() {
 
       {/* Recovery assistant: big and easy to find */}
       <AssistantBar />
+      {day === 0 && <Pressable onPress={() => nav.navigate('Upload')}><Card bg={c.sky} radius={18} style={{ marginTop: 12, padding: 12 }}><T size={11} w={800}>Add your medical reports ›</T></Card></Pressable>}
+      {dueDose && <Pressable onPress={() => nav.navigate('Medications')}>
+        <Card bg={c.sky} radius={18} style={{ marginTop: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          {dueDose.photo ? <Image source={{ uri: dueDose.photo.url }} resizeMode="contain" style={{ width: 64, height: 64 }} /> : <Icon name="pill" size={26} />}
+          <View style={{ flex: 1 }}><T size={8} w={800}>MEDICATION REMINDER · {dueDose.scheduled_for.slice(11, 16)}</T><T size={11} w={800} style={{ marginTop: 3 }}>{dueDose.name} {dueDose.dose}</T><T size={8} style={{ marginTop: 3 }}>Open to record your answer ›</T></View>
+        </Card>
+      </Pressable>}
 
       {/* Daily affirmation (replaces the task card) */}
       <Pressable onPress={() => { haptic('selection'); setAffOffset(o => o + 1); }}>
@@ -220,6 +229,7 @@ export function HomeScreen() {
             <View style={{ flex: 1 }}>
               <T size={6.5} w={800} spacing={0.8} color={c.muted}>{t('home.fromCareTeam')}</T>
               <T size={9.5} w={800} lh={1.35} style={{ marginTop: 2 }} numberOfLines={2}>{pending[0]?.prompt ?? today?.next_step?.body}</T>
+              {today?.investigation_progress && <T size={7.5} color={c.muted} lh={1.4} style={{ marginTop: 4 }}>{t(`investigation.${today.investigation_progress.phase}`)}</T>}
             </View>
             <T w={800}>›</T>
           </Card>
@@ -238,7 +248,7 @@ export function HomeScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-        <Shortcut icon="pill" title={t('home.meds')} sub={t('home.medsSub')} bg={c.lavender} onPress={() => nav.navigate('Medications')} />
+        <Shortcut icon="pill" title={t('home.meds')} sub={medications?.today.find(d => ['due', 'upcoming'].includes(d.status))?.scheduled_for.slice(11, 16) ?? 'View your schedule'} bg={c.lavender} onPress={() => nav.navigate('Medications')} />
         <Shortcut icon="activity" title={t('checkin.rehab')} sub={t('checkin.rehabSub')} bg={c.mint} onPress={() => nav.navigate('Rehab')} />
       </View>
 
@@ -246,8 +256,8 @@ export function HomeScreen() {
         <IconBadge icon="calendar" bg={c.blue} size={32} radius={10} />
         <View style={{ flex: 1 }}>
           <T size={6.5} w={800} spacing={0.8} color={c.muted}>{t('home.appt')}</T>
-          <T size={10} w={800} style={{ marginTop: 2 }}>{t('home.apptTitle')}</T>
-          <T size={7.5} color={c.muted} style={{ marginTop: 1 }}>{t('home.apptSub')}</T>
+          <T size={10} w={800} style={{ marginTop: 2 }}>{today?.appointments[0]?.title ?? 'No upcoming appointment recorded'}</T>
+          {!!today?.appointments[0]?.at && <T size={7.5} color={c.muted} style={{ marginTop: 1 }}>{new Date(today.appointments[0].at).toLocaleString()}</T>}
         </View>
       </Card>
     </Screen>

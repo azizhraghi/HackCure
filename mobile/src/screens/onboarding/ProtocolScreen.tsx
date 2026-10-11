@@ -7,7 +7,7 @@ import { Button, Card, Chip, Muted, PageTitle, Screen, TopBar } from '../../comp
 import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
 import type { RootScreen } from '../../navigation/types';
-import { confirmPlanDraft, getPlanDraft, type PlanDraft } from '../../services/api';
+import { confirmPlanDraft, getPlanDraft, requestPlanClarification, type PlanDraft } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 /** Review of the plan drafted from the patient's documents (Developer 2 compiler + code grounding). */
@@ -17,6 +17,7 @@ function DraftReview({ draft, onBack, onConfirmed }: { draft: PlanDraft; onBack:
   const { apiUrl } = useAppState();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clarification, setClarification] = useState<string | null>(null);
   const plan = draft.plan;
   const info = plan?.document_info;
   const profile = plan?.clinical_profile ?? {};
@@ -80,6 +81,18 @@ function DraftReview({ draft, onBack, onConfirmed }: { draft: PlanDraft; onBack:
           <T size={8} style={{ marginTop: 2 }}>{w.message}</T>
         </View>
       ))}
+      {!!draft.clarifications?.length && <Card bg={c.ice} radius={14} style={{ padding: 10, marginTop: 8 }}>
+        <T size={9} w={800}>Questions for your care team</T>
+        {draft.clarifications.map(q => <View key={q.id} style={{ marginTop: 7 }}>
+          <T size={8.5}>{q.question}</T>
+          <T size={7} color={c.muted}>{q.sources.map(s => s.filename).join(' · ')} · {q.status}</T>
+        </View>)}
+        <Button secondary style={{ marginTop: 9 }} onPress={async () => {
+          try { const res = await requestPlanClarification(apiUrl, draft.id); setClarification(res.notification_ids.length ? 'Request saved to your care team’s local inbox.' : 'Request saved. No new care-team notification was delivered.'); }
+          catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+        }}>Ask care team to clarify</Button>
+        {clarification && <T size={8} style={{ marginTop: 6 }}>{clarification}</T>}
+      </Card>}
 
       {error && <T size={8.5} color={c.urgentText} style={{ marginTop: 6 }}>{error}</T>}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
@@ -100,7 +113,19 @@ export function ProtocolScreen({ navigation, route }: RootScreen<'Protocol'>) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (draftId) getPlanDraft(apiUrl, draftId).then(setDraft).catch(e => setLoadError(String(e.message ?? e)));
+    if (!draftId) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const result = await getPlanDraft(apiUrl, draftId);
+        if (!active) return;
+        setDraft(result);
+        if (result.status === 'analyzing') timer = setTimeout(poll, 2000);
+      } catch (e) { if (active) setLoadError(e instanceof Error ? e.message : String(e)); }
+    };
+    poll();
+    return () => { active = false; clearTimeout(timer); };
   }, [apiUrl, draftId]);
 
   const cards = [
@@ -111,7 +136,7 @@ export function ProtocolScreen({ navigation, route }: RootScreen<'Protocol'>) {
     return (
       <Screen>
         <TopBar title={t('protocol.top')} />
-        {!draft && !loadError && <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator color={c.text} /><T size={9} style={{ marginTop: 8 }}>{t('protocol.loading')}</T></View>}
+        {(!draft || draft.status === 'analyzing') && !loadError && <View style={{ padding: 40, alignItems: 'center' }}><ActivityIndicator color={c.text} /><T size={9} style={{ marginTop: 8 }}>{t('protocol.loading')}</T></View>}
         {(loadError || draft?.status === 'failed') && (
           <Card bg={c.warnBg} style={{ padding: 12 }}>
             <T size={11} w={800}>{t('protocol.failed')}</T>
@@ -119,7 +144,7 @@ export function ProtocolScreen({ navigation, route }: RootScreen<'Protocol'>) {
             <Button secondary style={{ marginTop: 10 }} onPress={() => navigation.goBack()}>{t('protocol.back')}</Button>
           </Card>
         )}
-        {draft && draft.status !== 'failed' && (
+        {draft && ['ready', 'confirmed'].includes(draft.status) && (
           <DraftReview draft={draft} onBack={() => navigation.goBack()} onConfirmed={completeOnboarding} />
         )}
       </Screen>

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import alerts, notifications
+from .. import alerts, clock, notifications
 from .. import models as m
 from ..db import Repo, get_repo
 
@@ -28,14 +28,19 @@ def list_alerts(role: str = Query("clinician", pattern="^(patient|caregiver|clin
 def get_alert(alert_id: str, repo: Repo = Depends(get_repo)):
     a = _run(alerts.get, repo, alert_id)
     out = alerts.public(a)
+    out["followup_tasks"] = [t.model_dump(mode="json") for t in repo.all(m.FollowupTask, m.FollowupTask.alert_id == a.id)]
     out["verifications"] = [v.model_dump() for v in repo.all(m.FollowupVerification,
                             m.FollowupVerification.alert_id == a.id, order=m.FollowupVerification.created_at)]
     action_at = next((h["at"] for h in reversed(a.history) if h["event"] == "action_taken"), None)
     if action_at:
         from datetime import datetime
+        action_time = datetime.fromisoformat(action_at)
+        now = clock.now()
         out["followup_observations"] = [o.model_dump() for o in repo.observations(a.patient_id,
-                                       since=datetime.fromisoformat(action_at), limit=50)
-                                       if o.source != "ai" and o.quality == "good"]
+                                       since=action_time, limit=50)
+                                       if o.source in ("patient", "caregiver_on_behalf", "device")
+                                       and o.quality == "good" and o.received_at >= action_time
+                                       and o.measured_at <= now]
     else:
         out["followup_observations"] = []
     if a.investigation_id:
@@ -67,6 +72,20 @@ def resolve(alert_id: str, body: m.ResolveBody, repo: Repo = Depends(get_repo)):
 @router.post("/alerts/{alert_id}/verify")
 def verify(alert_id: str, body: m.VerificationIn, repo: Repo = Depends(get_repo)):
     return _run(alerts.verify, repo, alert_id, body).model_dump()
+
+
+@router.post("/alerts/{alert_id}/followup")
+def schedule_followup(alert_id: str, body: m.FollowupTaskIn, repo: Repo = Depends(get_repo)):
+    from ..agents import followup
+    return _run(followup.create, repo, alert_id, body).model_dump()
+
+
+@router.get("/patients/{patient_id}/followup-tasks")
+def followup_tasks(patient_id: str, repo: Repo = Depends(get_repo)):
+    from ..agents import followup
+    followup.sweep(repo)
+    return repo.all(m.FollowupTask, m.FollowupTask.patient_id == patient_id,
+                    m.FollowupTask.status != "completed", order=m.FollowupTask.due_at)
 
 
 @router.get("/notifications")

@@ -154,6 +154,20 @@ class FollowupVerification(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=clock.now)
 
 
+class FollowupTask(SQLModel, table=True):
+    """Explicit clinician request; evidence collection never closes an alert."""
+    id: str = Field(default_factory=lambda: new_id("fup"), primary_key=True)
+    patient_id: str = Field(index=True)
+    alert_id: str = Field(index=True)
+    actor: str
+    instruction: str
+    due_at: NaiveDatetime
+    evidence_types: list = _json(list)
+    status: str = "waiting"
+    observation_ids: list = _json(list)
+    created_at: NaiveDatetime = Field(default_factory=clock.now)
+
+
 class CaregiverTask(SQLModel, table=True):
     id: str = Field(default_factory=lambda: new_id("task"), primary_key=True)
     patient_id: str = Field(index=True)
@@ -262,6 +276,7 @@ class EvidenceSummary(BaseModel):
     missing_or_conflicting: list[str] = []
     suggested_priority: Literal["attention", "urgent_review"]
     messages: SummaryMessages
+    evidence_review: dict = PField(default_factory=dict)
 
 
 InvestigationFindings = EvidenceSummary
@@ -322,10 +337,17 @@ class VerificationIn(BaseModel):
     observation_ids: list[str] = PField(min_length=1, max_length=20)
 
 
+class FollowupTaskIn(BaseModel):
+    actor: str
+    instruction: str = PField(min_length=3, max_length=1000)
+    due_at: NaiveDatetime
+    evidence_types: list[Literal["checkin", "hr", "temp", "spo2", "bp", "photo", "med_dose"]] = PField(min_length=1, max_length=7)
+
+
 class DoseIn(BaseModel):
     patient_id: str = "sarah"
     med_id: str
-    scheduled_for: datetime
+    scheduled_for: NaiveDatetime
     status: Literal["taken", "not_taken", "postponed", "unknown"]
     actor: str = "sarah"
 

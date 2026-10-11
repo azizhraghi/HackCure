@@ -87,8 +87,13 @@ def _investigate(messages, ctx):
               ("get_medication_context", {}),
               ("get_wound_photos", {"n": 2}),
               ("request_wound_photo", {"reason": "Check the incision for spreading redness"})]
-    if len(done) < len(script):
-        return _call(*script[len(done)])
+    if ctx.get("force_finish"):
+        new_photo_id = ((_last(res, "request_wound_photo") or {}).get("answer") or {}).get("observation_id")
+        return _call("finish_investigation", {"findings": _findings(res, ctx, new_photo_id)})
+    for tool, args in script:
+        if not any(n == tool and (tool != "get_vitals_trend" or r.get("metric") == args["metric"])
+                   for n, r in res):
+            return _call(tool, args)
     photos = _last(res, "get_wound_photos") or {"photos": []}
     new_photo_id = ((_last(res, "request_wound_photo") or {}).get("answer") or {}).get("observation_id")
     if "compare_wound_photos" not in done and photos["photos"]:
@@ -150,7 +155,9 @@ def _findings(res, ctx, new_photo_id):
         patient.append({"text": "Invented claim", "observation_id": "obs_doesnotexist"})
 
     redness = (cmp.get("comparison") or {}).get("redness_area_change_pct") if cmp.get("available") else None
-    wound_txt = f", wound redness area {redness:+}% vs the day-1 photo (measured by code)" if redness is not None else ""
+    if redness is None:
+        missing.append("Wound comparison unavailable: " + str(cmp.get("reason") or "no comparable measurement available"))
+    wound_txt = f", wound redness area {redness:+}% between the compared photos (measured by code)" if redness is not None else ""
     hr_last = hr_rows[-1]["value"].get("value") if hr_rows else "unknown"
     temp_last = temp_rows[-1]["value"].get("value") if temp_rows else "unknown"
     n_missed = len(meds.get("not_taken", []))

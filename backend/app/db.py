@@ -44,11 +44,29 @@ def drop_all():
 class Repo:
     def __init__(self, session: Session):
         self.s = session
+        self._atomic_depth = 0
+
+    @contextmanager
+    def atomic(self):
+        """Commit related local effects together (nested blocks join the outer unit)."""
+        self._atomic_depth += 1
+        try:
+            yield
+            if self._atomic_depth == 1:
+                self.s.commit()
+        except BaseException:
+            self.s.rollback()
+            raise
+        finally:
+            self._atomic_depth -= 1
 
     # -- generic
     def add(self, obj: T) -> T:
         self.s.add(obj)
-        self.s.commit()
+        if self._atomic_depth:
+            self.s.flush()
+        else:
+            self.s.commit()
         self.s.refresh(obj)
         return obj
 

@@ -62,7 +62,7 @@ def rehab_demo(patient_id: str, body: RehabDemoIn, repo: Repo = Depends(get_repo
     side = ex.target_side if ex.target_side in ("left", "right") else "right"
     out = d1.run_rehab_session(repo, patient_id, [{"exercise_id": ex.exercise_id, "built": True,
                                                    "frames": d1.demo_knee_frames(body.kind, side)}],
-                               body.pain_eva, body.difficulty)
+                               body.pain_eva, body.difficulty, simulated=True)
     out["synthetic"] = True
     return out
 
@@ -124,7 +124,7 @@ def motor_test(patient_id: str, test: str, body: MotorTestIn, repo: Repo = Depen
             rec = d1.recording_from_json(test, {"frames": body.frames})
         else:
             raise HTTPException(422, "send `frames` or `demo`")
-        out = d1.run_motor_test(repo, patient_id, rec, body.symptoms)
+        out = d1.run_motor_test(repo, patient_id, rec, body.symptoms, simulated=bool(body.demo))
     except (ValueError, KeyError) as e:
         raise HTTPException(422, str(e)) from e
     out["synthetic"] = bool(body.demo)

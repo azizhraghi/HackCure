@@ -6,6 +6,7 @@ Limits are enforced here in code, not in the prompt.
 """
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -89,6 +90,41 @@ TOOLS = [
 
 
 # ------------------------------------------------------------------ read tools
+
+def recovery_context(ctx: Ctx) -> dict:
+    """Fixed graph input: care-plan provenance and recorded D1 results only.
+
+    Never initiate a new camera test, forecast or LLM call to populate context.
+    D1 assessments remain supplementary outputs, separate from patient/device facts.
+    """
+    plan_row = ctx.repo.first(m.SurveillancePlan, m.SurveillancePlan.patient_id == ctx.pid,
+                              order=m.SurveillancePlan.created_at.desc())
+    plan = plan_row.plan if plan_row else {}
+    sources = ([{"kind": "care_plan", "id": plan_row.id, "at": plan_row.created_at.isoformat(),
+                 "version": plan.get("version"), "approval": plan.get("approval", "not recorded")}]
+               if plan_row else [])
+    findings = []
+    for kind in ("rehab_session", "motor"):
+        for obs in ctx.repo.observations(ctx.pid, kind, since=clock.now() - timedelta(hours=72),
+                                          until=clock.now(), newest_first=True, limit=3):
+            finding = {"kind": kind, "observation_id": obs.id, "at": obs.measured_at.isoformat(),
+                       "simulated": obs.simulated, "quality": obs.quality,
+                       "assessment": {k: v for k, v in obs.value.items() if k not in ("frames", "landmarks")},
+                       "note": "Supplementary D1 assessment; not a diagnosis or direct device measurement."}
+            if kind == "rehab_session":
+                finding["summary"] = f"Rehabilitation session: {obs.value.get('status', 'unknown')}. " \
+                                     f"Patient-reported pain: {obs.value.get('pain_eva', 'unknown')}/10."
+            else:
+                result = obs.value.get("result") or {}
+                finding["summary"] = f"Guided movement test {obs.value.get('test', 'unknown')}: " \
+                                     f"{result.get('status', 'unknown')}. " + "; ".join(result.get("observations", [])[:6])
+            findings.append(finding)
+            sources.append({"kind": kind, "id": obs.id, "at": obs.measured_at.isoformat()})
+    return {"collected_at": clock.now().isoformat(), "sources": sources,
+            "care_plan": {k: plan[k] for k in ("version", "clinical_profile", "allowed_tests", "thresholds",
+                                               "clinician_restrictions", "doctor_notes", "followup_visits") if k in plan},
+            "wound_collection": wound_photos.eligibility(ctx.repo, ctx.pid),
+            "d1_status": "available" if findings else "unknown", "d1_findings": findings}
 
 def get_vitals_trend(ctx: Ctx, metric: str, hours: int = 24) -> dict:
     if metric not in METRICS:
@@ -203,6 +239,19 @@ def _can_request(ctx: Ctx, test: str) -> str | None:
 def _create_request(ctx: Ctx, kind: str, prompt: str, reason: str, options=None, metric=None,
                     call_id: str | None = None) -> dict:
     now = clock.now()
+    normalize = lambda text: re.sub(r"\W+", " ", text.lower()).strip()
+    for previous in ctx.repo.all(m.PatientRequest, m.PatientRequest.patient_id == ctx.pid,
+                                  m.PatientRequest.created_at >= now - timedelta(hours=24)):
+        reusable = (previous.investigation_id == ctx.inv.id or previous.status == "pending"
+                    or (previous.answered_at and previous.answered_at >= now - timedelta(minutes=15)))
+        duplicate = (kind == previous.kind and (
+            metric == previous.metric if kind == "measurement" else
+            normalize(prompt) == normalize(previous.prompt)
+            and [normalize(o) for o in (options or [])] == [normalize(o) for o in previous.options]))
+        if reusable and duplicate and previous.status in ("pending", "answered"):
+            return {"status": "already_available", "request_id": previous.id,
+                    "answer": previous.answer, "observation_id": previous.answer_observation_id,
+                    "note": "Do not repeat this request. Use the existing answer or continue with uncertainty."}
     req = ctx.repo.add(m.PatientRequest(patient_id=ctx.pid, investigation_id=ctx.inv.id, kind=kind, prompt=prompt,
                                         reason=reason, options=list(options or []), metric=metric,
                                         expires_at=now + timedelta(seconds=settings.request_timeout_s),
@@ -219,6 +268,12 @@ def request_measurement(ctx: Ctx, metric: str, reason: str = "", call_id=None) -
         return {"error": f"unknown metric {metric}"}
     if err := _can_request(ctx, metric):
         return {"error": err}
+    rows = ctx.repo.observations(ctx.pid, metric, since=clock.now() - timedelta(minutes=15), until=clock.now())
+    good = [o for o in rows if o.quality == "good"]
+    if good:
+        obs = good[-1]
+        return {"status": "already_available", "observation_id": obs.id, "value": obs.value,
+                "at": obs.measured_at.isoformat(), "note": "A usable reading was collected within 15 minutes."}
     labels = {"hr": "heart rate", "spo2": "oxygen level", "temp": "temperature", "bp": "blood pressure"}
     return _create_request(ctx, "measurement", f"Please measure your {labels[metric]} now.", reason, metric=metric,
                            call_id=call_id)
@@ -239,7 +294,7 @@ def ask_followup_question(ctx: Ctx, text: str, options: list[str] | None = None,
 def request_wound_photo(ctx: Ctx, reason: str = "", call_id=None) -> dict:
     if err := _can_request(ctx, "wound_photo"):
         return {"error": err}
-    result = wound_photos.request(ctx.repo, ctx.pid, ctx.inv.id, reason)
+    result = wound_photos.request(ctx.repo, ctx.pid, ctx.inv.id, reason, call_id=call_id)
     if result.get("status") == "requested":
         ctx.inv.patient_requests += 1
         ctx.repo.add(ctx.inv)

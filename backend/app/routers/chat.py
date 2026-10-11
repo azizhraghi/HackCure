@@ -55,7 +55,7 @@ medications and exercises. Use ONLY the plan below and well-established general 
 Rules:
 - You do not diagnose, and you never change doses or the plan. Medical decisions stay with the care team.
 - Be warm, clear and short (max ~120 words). Use simple language. Use the patient's language: {{lang}}.
-- If the question mentions a WARNING SIGN, tell them to contact Dr. Ruiz's office today.
+- If the question mentions a WARNING SIGN, use the care-team instruction in this patient's plan.
 - If it mentions an EMERGENCY symptom, tell them to call emergency services now, first, before anything else.
 - If the answer is not in the plan, say so and suggest asking the care team.
 - When professional assessment is needed, end your answer with the exact tag [ESCALATE].
@@ -70,7 +70,7 @@ def plan_context(repo: Repo, patient_id: str) -> str:
     info = plan.get("document_info")
     p = repo.patient(patient_id)
     if not info or p is None:
-        return RECOVERY_PLAN
+        return RECOVERY_PLAN if patient_id == "sarah" else "No confirmed care plan is available. Ask the care team for the missing instructions."
     from .patients import day_number
     from .. import clock
     meds = [f"- {x['name']} {x['dose']}" + (f" at {', '.join(x['times'])}" if x.get("times") else " (as needed)")

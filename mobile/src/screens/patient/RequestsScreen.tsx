@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { T } from '../../components/T';
+import { InvestigationProgress } from '../../components/InvestigationProgress';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, TopBar } from '../../components/ui';
 import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
-import { answerRequest, getRequests, getToday, usePoll, type AnswerBody, type PatientRequest } from '../../services/api';
+import { answerRequest, getRequests, getToday, getFollowupTasks, usePoll, type AnswerBody, type PatientRequest } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, fs } from '../../theme/tokens';
 
@@ -16,6 +17,7 @@ export function RequestsScreen() {
   const { apiUrl } = useAppState();
   const { data, online, refresh } = usePoll(getRequests, 3000);
   const today = usePoll(getToday, 4000).data;
+  const followups = usePoll(getFollowupTasks, 5000).data;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [urgent, setUrgent] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -44,6 +46,13 @@ export function RequestsScreen() {
       <TopBar title={t('req.top')} />
       <PageTitle style={{ marginTop: 6 }}>{t('req.title')}</PageTitle>
       <Muted>{t('req.sub')}</Muted>
+      <InvestigationProgress progress={today?.investigation_progress} />
+      {followups?.map(task => <Card key={task.id} bg={c.ice} radius={14} style={{ padding: 12, marginTop: 10 }}>
+        <T size={8} w={800}>FOLLOW-UP FROM YOUR CARE TEAM</T>
+        <T size={10} w={700} style={{ marginTop: 5 }}>{task.instruction}</T>
+        <T size={8} color={c.muted} style={{ marginTop: 5 }}>Due {new Date(task.due_at).toLocaleString()} · {task.status.replace('_', ' ')}</T>
+        <T size={8} style={{ marginTop: 5 }}>Evidence requested: {task.evidence_types.join(', ')}. Your clinician reviews the outcome.</T>
+      </Card>)}
       {today?.wound_photo && <Card bg={c.ice} radius={14} style={{ padding: 10, marginTop: 10 }}>
         <T size={8.5} w={700}>{t('req.photoTiming')}</T>
         <T size={8} lh={1.4} style={{ marginTop: 4 }}>{t(today.wound_photo.permitted ? 'req.photoConfirm' : 'home.photoWait')}</T>

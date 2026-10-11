@@ -185,6 +185,16 @@ const fr: Dict = {
     server: 'SERVEUR', accountServerSub: 'API SurgiGuard (comptes, capteurs ESP32)', serverSub: 'Backend IA (plan de soins, suivi, assistant)',
     about: 'SurgiGuard AI · prototype HackCure', disclaimer: 'Données patient fictives. Les mesures simulées sont indiquées.',
   },
+  investigation: {
+    title: 'LE SUIVI PAR VOTRE ÉQUIPE',
+    context: 'Vérification de votre plan de récupération et des informations récentes.',
+    evidence: 'Vérification des informations. Répondez aux demandes ci-dessous quand vous le pouvez.',
+    followup: 'Un rapport est prêt pour votre équipe. Le suivi reste ouvert.',
+    closed: 'Votre équipe a vérifié et terminé ce suivi.',
+    urgent: 'Une alerte urgente est prioritaire. Suivez les instructions de votre équipe.',
+    incomplete: 'Certaines informations manquent. Votre équipe peut examiner les éléments disponibles.',
+    step_context: 'Contexte', step_evidence: 'Vérifications', step_report: 'Rapport prêt', step_followup: 'Suivi terminé',
+  },
   req: {
     photoTiming: 'CALENDRIER DE PANSEMENT', photoConfirm: 'Je change mon pansement maintenant, comme autorisé dans mon plan de soins.',
     failed: 'Votre réponse n’a pas été enregistrée. Réessayez.',

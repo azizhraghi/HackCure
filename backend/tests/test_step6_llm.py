@@ -128,6 +128,34 @@ def test_retry_after_parsed_from_groq_message():
     assert llm._retry_after({"retry-after": "3"}, "") == 3.0
 
 
+def test_laguna_json_uses_prompt_and_validates_output(monkeypatch):
+    import httpx
+    sent = []
+    messages = [{"role": "user", "content": "Return a fictional status object."}]
+
+    class Resp:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"choices": [{"message": {"content": 'not JSON' if len(sent) == 1 else '{"ok":true}'}}]}
+
+    def fake_post(url, json, timeout, headers):
+        sent.append(json)
+        return Resp()
+
+    monkeypatch.setattr(settings, "llm_mode", "live")
+    monkeypatch.setattr(settings, "llm_provider", "openrouter")
+    monkeypatch.setattr(settings, "openrouter_api_key", "test-placeholder")
+    monkeypatch.setattr(settings, "openrouter_model", "poolside/laguna-s-2.1:free")
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(llm, "_pace", lambda: None)
+    assert llm.chat_json("digest", messages) == {"ok": True}
+    assert len(sent) == 2 and all("response_format" not in body for body in sent)
+    assert "valid JSON object" in sent[0]["messages"][-1]["content"]
+    assert len(messages) == 1  # Caller history is not modified.
+
+
 def test_prefixed_tool_names_are_normalised(monkeypatch):
     from types import SimpleNamespace as NS
     msg = NS(content="", tool_calls=[NS(id="x1", function=NS(name="name=functions.finish_investigation",

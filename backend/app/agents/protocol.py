@@ -12,7 +12,7 @@ import copy
 import io
 import json
 import re
-from datetime import date
+from datetime import date, datetime, time
 
 from pydantic import ValidationError
 
@@ -258,10 +258,21 @@ def confirm(repo: Repo, draft_id: str, actor: str = "sarah") -> m.SurveillancePl
         raise LookupError("unknown draft")
     if draft.status != "ready":
         raise ValueError(f"draft is {draft.status}")
+    if actor != draft.patient_id:
+        raise ValueError("only this patient can confirm the draft")
+    from .plan_clarification import prepare
+    draft.plan = {**draft.plan, "unresolved_clarifications": prepare(repo, draft)}
     row = repo.add(m.SurveillancePlan(patient_id=draft.patient_id, plan=draft.plan))
     p = repo.patient(draft.patient_id)
     if p and draft.extracted:
         p.allergies = sorted({*p.allergies, *[a.split("(")[0].strip().lower() for a in draft.extracted.get("allergies", [])]})
+        info = draft.plan.get("document_info", {})
+        if info.get("surgery"):
+            p.surgery = info["surgery"]
+        for key in ("surgery_date", "discharge_date"):
+            value = _date(info.get(key))
+            if value:
+                setattr(p, key, datetime.combine(value, time()))
         repo.add(p)
     draft.status, draft.confirmed_at = "confirmed", clock.now()
     repo.add(draft)

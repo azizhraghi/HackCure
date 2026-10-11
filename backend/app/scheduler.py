@@ -36,7 +36,9 @@ def checkin_job(repo):
 
 @_safe
 def medication_job(repo):
-    medication.send_due_reminders(repo, DEMO_PATIENT_ID)
+    from .models import Patient
+    for patient in repo.all(Patient):
+        medication.send_due_reminders(repo, patient.id)
 
 
 @_safe
