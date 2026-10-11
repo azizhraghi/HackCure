@@ -59,7 +59,7 @@ const en = {
   home: {
     dressingPhoto: 'Photo at your permitted\ndressing change', rehabTask: 'Follow your planned\nrehabilitation exercises',
     photoWait: 'Wound photos follow your care team’s dressing-change schedule. Keep the dressing in place until then.',
-    normalToday: 'WHAT IS NORMAL TODAY', normalPain: 'Usual pain today: {{low}}-{{high}}/10', expectedComputing: 'Your expected recovery is being prepared…', expectedNote: 'Typical recovery, not a diagnosis. Tell your care team if you feel worse.',
+    normalToday: 'WHAT IS NORMAL TODAY', postOpDay: 'post-op day {{n}}', normalPain: 'Usual pain today: {{low}}-{{high}}/10', expectedComputing: 'Your expected recovery is being prepared…', expectedNote: 'Typical recovery, not a diagnosis. Tell your care team if you feel worse.',
     bodyTemp: 'TEMPERATURE', live: 'Latest reading', status_unknown: 'Unknown: no recent data', status_unreliable: 'Unreliable signal', status_questionable: 'Latest reading (questionable)',
     welcome: 'Welcome back', title: "Here's your recovery\nat a glance",
     task: "TODAY'S TASK", taskTitle: 'Take a wound photo\nand do 10 knee bends', about: 'About 5 min',

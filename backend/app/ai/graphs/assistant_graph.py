@@ -31,6 +31,7 @@ class AssistantState(TypedDict):
     reflection_notes: Optional[str]       # Notes from safety critic
     escalate: bool                        # Clinical escalation flag
     citations: List[str]                  # Citations [Source X]
+    lang: str                             # Patient's language code (en / fr)
 
 
 # LLM instances: modular provider selection (Mistral or Groq)
@@ -201,6 +202,8 @@ def generate_node(state: AssistantState):
 You accompany a recovering postoperative patient.
 Answer ONLY from the CONTEXT provided below and authorized general post-op safety rules.
 If information is missing from the context, state: 'Je n'ai pas cette information dans votre protocole, veuillez demander à votre équipe médicale.'
+
+Reply in the patient's language: {'French' if state.get('lang', 'fr').lower().startswith('fr') else 'English'} (also for the missing-information sentence).
 
 CRITICAL RULES:
 - Never provide a medical diagnosis (e.g. do not say 'vous avez une infection' or 'vous êtes guéri').

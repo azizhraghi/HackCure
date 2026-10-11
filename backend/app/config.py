@@ -103,13 +103,28 @@ DEMO_PATIENT_ID = "sarah"
 
 # ------------------------------------------------------------------ D2 LangChain adapters
 
+D2_DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"  # own free-tier quota (D1 and the agents use gpt-oss-120b)
+
+
+def d2_route() -> tuple[str, str]:
+    """(provider, model) for the D2 LangChain graphs: LLM_ROUTE_D2 if set, else Groq (gpt-oss-20b),
+    else Mistral, else LLM_PROVIDER."""
+    from .llm import route
+    if os.getenv("LLM_ROUTE_D2", "").strip():
+        return route("d2")
+    if settings.groq_api_key:
+        return "groq", D2_DEFAULT_GROQ_MODEL
+    if settings.mistral_api_key:
+        return "mistral", settings.mistral_model
+    return route("d2")
+
+
 def get_active_provider() -> str:
-    """Provider for the D2 LangChain graphs: LLM_ROUTE_D2 if set, else LLM_PROVIDER; 'offline' when
-    LLM_MODE is stub/off or no key is configured (tests and offline demos never reach the network)."""
+    """Provider for the D2 LangChain graphs; 'offline' when LLM_MODE is stub/off or no key is configured
+    (tests and offline demos never reach the network)."""
     if settings.llm_mode != "live":
         return "offline"
-    from .llm import route
-    provider, _ = route("d2")
+    provider, _ = d2_route()
     return provider if getattr(settings, f"{provider}_api_key", "") else "offline"
 
 
@@ -117,8 +132,7 @@ def get_chat_llm(temperature: float = 0.1, model: Optional[str] = None, max_toke
     """Chat model for D2 (Groq, OpenRouter, Mistral, or an offline fake)."""
     provider = get_active_provider()
     if provider != "offline":
-        from .llm import route
-        model = model or route("d2")[1]
+        model = model or d2_route()[1]
     if provider == "groq":
         from langchain_groq import ChatGroq
         return ChatGroq(groq_api_key=settings.groq_api_key, model=model, temperature=temperature,

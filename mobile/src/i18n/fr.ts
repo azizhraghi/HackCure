@@ -61,7 +61,7 @@ const fr: Dict = {
   home: {
     dressingPhoto: 'Photo au changement\nde pansement autorisé', rehabTask: 'Suivez vos exercices\nde rééducation prévus',
     photoWait: 'Les photos suivent le calendrier de pansement de votre équipe. Gardez le pansement en place jusque-là.',
-    normalToday: 'CE QUI EST NORMAL AUJOURD’HUI', normalPain: 'Douleur habituelle : {{low}}-{{high}}/10', expectedComputing: 'Votre récupération attendue est en préparation…', expectedNote: 'Récupération typique, pas un diagnostic. Prévenez votre équipe si vous allez moins bien.',
+    normalToday: 'CE QUI EST NORMAL AUJOURD’HUI', postOpDay: 'J+{{n}} après l’opération', normalPain: 'Douleur habituelle : {{low}}-{{high}}/10', expectedComputing: 'Votre récupération attendue est en préparation…', expectedNote: 'Récupération typique, pas un diagnostic. Prévenez votre équipe si vous allez moins bien.',
     bodyTemp: 'TEMPÉRATURE', live: 'Dernière mesure', status_unknown: 'Inconnue : pas de données récentes', status_unreliable: 'Signal peu fiable', status_questionable: 'Dernière mesure (incertaine)',
     welcome: 'Bon retour', title: "Votre récupération\nen un coup d'œil",
     task: 'TÂCHE DU JOUR', taskTitle: 'Photographiez la plaie\net faites 10 flexions', about: 'Environ 5 min',

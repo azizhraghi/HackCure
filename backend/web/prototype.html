@@ -205,7 +205,7 @@ async function expectedLoop() {
     const e = await api('/patients/sarah/expected-recovery');
     if (e.status === 'ready') {
       const c = e.card;
-      show('#o-d1', c ? `<div class="card"><h3>Normal today · day ${c.day} · ${esc(e.generated_by)}</h3>
+      show('#o-d1', c ? `<div class="card"><h3>Normal today · post-op day ${c.day} · ${esc(e.generated_by)}</h3>
         <div>${esc(c.message)}</div>
         <div style="margin-top:6px"><b>Usual pain:</b> ${c.normal_pain.low}-${c.normal_pain.high}/10</div>
         ${c.normal_today?.length ? `<ul>${c.normal_today.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}

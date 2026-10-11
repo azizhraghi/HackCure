@@ -82,7 +82,7 @@ export function HomeScreen() {
       )}
       {expected?.status === 'ready' && expected.card && (
         <Card bg={c.sky} radius={16} style={{ padding: 11, marginBottom: 10 }}>
-          <T size={7} w={800} spacing={0.8} color={c.muted}>{t('home.normalToday')} · {t('common.day')} {expected.card.day}</T>
+          <T size={7} w={800} spacing={0.8} color={c.muted}>{t('home.normalToday')} · {t('home.postOpDay', { n: expected.card.day })}</T>
           <T size={9.5} w={700} lh={1.45} style={{ marginTop: 3 }}>{expected.card.message}</T>
           <T size={8} w={800} style={{ marginTop: 5 }}>{t('home.normalPain', { low: expected.card.normal_pain.low, high: expected.card.normal_pain.high })}</T>
           {expected.card.today.map(e => <T key={e} size={8} style={{ marginTop: 2 }}>• {e}</T>)}

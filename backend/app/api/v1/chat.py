@@ -52,7 +52,8 @@ async def chat_endpoint(req: ChatRequest):
         "raw_response": "",
         "final_response": "",
         "escalate": False,
-        "citations": []
+        "citations": [],
+        "lang": req.lang,
     }
 
     try:
