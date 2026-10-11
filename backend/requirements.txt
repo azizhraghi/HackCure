@@ -25,3 +25,5 @@ langchain-groq>=1.1
 faiss-cpu>=1.8
 pymupdf>=1.24
 bleach>=6.0
+scikit-learn>=1.4  # d1 physiology / patient twin
+joblib>=1.3

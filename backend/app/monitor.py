@@ -22,6 +22,7 @@ URGENT_TITLES = {
     "temp_very_high": "Very high temperature",
     "red_flag_text": "Red-flag symptom reported",
     "red_flag_symptom": "Red-flag symptom reported",
+    "fall_detected": "Fall detected",
 }
 
 

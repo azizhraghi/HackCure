@@ -46,6 +46,20 @@ class Settings:
     # Max total time one call may spend waiting out provider rate limits ("try again in Xs").
     llm_rate_wait_max_s: float = field(default_factory=lambda: float(os.getenv("LLM_RATE_WAIT_MAX_S", "60")))
 
+    # --- SurgiGuard API (.NET + MongoDB): source of truth for ESP32 telemetry, medications and family alerts.
+    # The AI backend READS telemetry/medications from it and PUSHES its alerts to it (POST /api/alerts/trigger).
+    surgiguard_api_url: str = field(default_factory=lambda: os.getenv("SURGIGUARD_API_URL", "http://localhost:8080").rstrip("/"))
+    surgiguard_agents_key: str = field(default_factory=lambda: os.getenv("SURGIGUARD_AGENTS_KEY", "dev-agents-key"))
+    surgiguard_iot_key: str = field(default_factory=lambda: os.getenv("SURGIGUARD_IOT_KEY", "dev-iot-key"))
+    # "off" = standalone AI backend (seed data only) | "on" = link to the SurgiGuard API
+    surgiguard_link: str = field(default_factory=lambda: os.getenv("SURGIGUARD_LINK", "on").strip().lower())
+    # Which SurgiGuard API patient is the demo patient "sarah": a Mongo id, or "auto" = the patient that owns ESP32_DEVICE_ID.
+    surgiguard_patient_id: str = field(default_factory=lambda: os.getenv("SURGIGUARD_PATIENT_ID", "auto").strip())
+    esp32_device_id: str = field(default_factory=lambda: os.getenv("ESP32_DEVICE_ID", "ESP32_001").strip())
+    # One AI observation per metric per window (the ESP32 publishes about once per second).
+    esp32_window_s: int = field(default_factory=lambda: int(os.getenv("ESP32_WINDOW_S", "15")))
+    esp32_poll_s: int = field(default_factory=lambda: int(os.getenv("ESP32_POLL_S", "3")))
+
     db_url: str = field(default_factory=lambda: os.getenv("DB_URL", "sqlite:///./surgiguard.db"))
 
     # Demo timeouts (seconds). Real deployments would use much longer values.

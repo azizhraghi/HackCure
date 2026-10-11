@@ -72,6 +72,8 @@ def create(repo: Repo, patient_id: str, level: str, title: str, reason: str, sou
             body = (f"{name} may need help now. Emergency services were advised; please stay with {name}."
                     if level == "urgent" else f"The care team is reviewing a change in {name}'s recovery.")
         notify(repo, patient_id, member_id, "alert", title, body, "alert", alert.id, category="alerts")
+    from .integrations import surgiguard_api  # family push/WhatsApp go through the SurgiGuard API
+    surgiguard_api.push_alert(alert)
     return alert
 
 
