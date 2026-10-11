@@ -1,0 +1,81 @@
+@API_HostAddress = http://localhost:5051
+@token = <coller access_token>
+@patientId = <coller profile_id du patient>
+
+### Inscription patient
+POST {{API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "patient@test.tn",
+  "password": "Password123",
+  "role": "PATIENT",
+  "first_name": "Ali",
+  "last_name": "Ben Salah",
+  "phone": "+216 22 333 444",
+  "date_of_birth": "1950-04-12",
+  "device_id": "ESP32-001"
+}
+
+### Inscription proche
+POST {{API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "fille@test.tn",
+  "password": "Password123",
+  "role": "FAMILY_MEMBER",
+  "first_name": "Sarra",
+  "last_name": "Ben Salah",
+  "whatsapp_number": "+216 55 666 777"
+}
+
+### Connexion
+POST {{API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "patient@test.tn", "password": "Password123" }
+
+### Profil patient (link_code à partager avec la famille)
+GET {{API_HostAddress}}/api/patients/me
+Authorization: Bearer {{token}}
+
+### Lier un proche (token du proche)
+POST {{API_HostAddress}}/api/family/link-patient
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "link_code": "ABCD2345", "relationship": "fille", "whatsapp_opt_in": true, "is_primary_contact": true }
+
+### Patients suivis (token du proche)
+GET {{API_HostAddress}}/api/family/patients
+Authorization: Bearer {{token}}
+
+### Ingestion IoT (passerelle MQTT)
+POST {{API_HostAddress}}/api/telemetry/ingest
+X-Api-Key: dev-iot-key
+Content-Type: application/json
+
+{ "device_id": "ESP32-001", "bpm": 128, "spo2": 95.5, "room_temp": 24.1, "room_humidity": 48, "motion_state": "STILL", "fall_detected": false }
+
+### Dernière mesure
+GET {{API_HostAddress}}/api/patients/{{patientId}}/telemetry/latest
+Authorization: Bearer {{token}}
+
+### Historique (24 h, moyennes 15 min)
+GET {{API_HostAddress}}/api/patients/{{patientId}}/telemetry/history?interval_minutes=15
+Authorization: Bearer {{token}}
+
+### Alerte (Système Multi-Agent)
+POST {{API_HostAddress}}/api/alerts/trigger
+X-Api-Key: dev-agents-key
+Content-Type: application/json
+
+{
+  "patient_id": "{{patientId}}",
+  "type": "TACHYCARDIA",
+  "severity": 2,
+  "message": "Fréquence cardiaque > 125 bpm depuis 10 minutes au repos.",
+  "source": "cardio-agent",
+  "vitals": { "bpm": 128, "spo2": 95.5, "room_temp": 24.1 }
+}

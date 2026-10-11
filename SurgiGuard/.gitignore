@@ -1,0 +1,20 @@
+# Fichiers generes / locaux (tous projets)
+node_modules/
+.venv/
+bin/
+obj/
+.pio/
+build/
+.gradle/
+.idea/
+.cxx/
+Pods/
+__pycache__/
+local.properties
+hs_err_pid*.log
+replay_pid*.log
+*.log
+.env
+
+# Wi-Fi personnel : copier IOT/src/config.example.h en IOT/src/config.h
+IOT/src/config.h
