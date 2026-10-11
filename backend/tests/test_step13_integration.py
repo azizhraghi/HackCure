@@ -127,3 +127,21 @@ def test_rag_index_replaces_the_previous_plan(repo, d2_offline):
     d2_bridge.index_plan(repo, "sarah")
     texts = [d.page_content for d in get_vectorstore().docstore._dict.values() if d.metadata.get("patient_id") == "sarah"]
     assert any("Testamol" in t for t in texts) and not any("Paracetamol" in t for t in texts)
+
+
+def test_checkin_mood_and_neuro_change_is_urgent(client, repo):
+    ok = client.post("/checkin", json={"pain": 3, "fatigue": 3, "mobility": 5, "mood": "good",
+                                       "neuro": {"smile": "normal", "arms": "normal"}}).json()
+    assert ok["status"] == "ok"
+    obs = repo.get(m.Observation, ok["checkin_id"])
+    assert obs.value["mood"] == "good" and obs.value["neuro_changed"] == []
+    urgent = client.post("/checkin", json={"pain": 3, "fatigue": 3, "mobility": 5, "mood": "okay",
+                                           "neuro": {"smile": "normal", "speech": "different"}}).json()
+    assert urgent["status"] == "urgent"  # added server-side as the neuro_change red flag
+
+
+def test_medication_guide_follows_the_plan(client, repo):
+    g = client.get("/patients/sarah/medication-guide?lang=fr").json()
+    names = {i["medication"].split()[0].lower(): i for i in g["items"]}
+    assert names["enoxaparin"]["known"] and names["enoxaparin"]["call_if"] and g["reassurance"].startswith("La plupart")
+    assert all(i["call_if"] or not i["known"] for i in g["items"])

@@ -9,6 +9,7 @@ export type LockTone = 'info' | 'attention' | 'urgent';
 
 export type RootParams = {
   Role: undefined;
+  Auth: undefined;
   Welcome: undefined;
   Upload: undefined;
   Protocol: { draftId?: string } | undefined;
@@ -30,7 +31,8 @@ export type RootParams = {
   LockPreview: { tone: LockTone };
   FamilyInfo: undefined;
   FamilyAttention: undefined;
-  FamilyUrgent: undefined;
+  /** Without params: demo content. With params: a real alert from the backend. */
+  FamilyUrgent: { title?: string; message?: string } | undefined;
 };
 
 export type RootScreen<K extends keyof RootParams> = NativeStackScreenProps<RootParams, K>;

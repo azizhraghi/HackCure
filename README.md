@@ -25,10 +25,10 @@ ESP32 (MAX30102, MPU6050, DHT11) --MQTT--> SurgiGuard API (.NET 8 + MongoDB)    
 | `SurgiGuard/Backend/Infrastructure_hackathon` | `docker-compose.yml`: MongoDB 7 + the API on port 8080. |
 | `SurgiGuard/Backend/scripts` | `seed_story.py` (demo accounts), `simulate_esp32.py` (stands in for the board). |
 | `SurgiGuard/MoniteurAndroid` | Native Android app (Kotlin / Compose), medication alarms. |
-| `SurgiGuard/AppMobile/SurgiGuardApp` | React Native app wired to the .NET API. |
+| `SurgiGuard/AppMobile/SurgiGuardApp` | **Replaced by `mobile/`** (kept for history; see its REPLACED.md). |
 | `backend/` | **AI backend** (FastAPI): agents D1/D2/D3, `/story`, `/hub`. |
 | `d1/` | Developer 1 Python package: trajectory prediction, Patient Twin, rehabilitation, guided movement tests. |
-| `mobile/` | React Native patient/family app (web build served at `/app`). |
+| `mobile/` | **The** React Native patient/family app: AI backend (care plan, check-in, twin, charts) + SurgiGuard API (accounts, ESP32 live vitals, device alerts). Web build served at `/app`. |
 | `contexte/` | Specifications of the three developer roles. |
 
 ## What you need

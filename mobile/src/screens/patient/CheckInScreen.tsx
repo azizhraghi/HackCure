@@ -1,15 +1,16 @@
 import { createDemoSafetyEvent } from '../../services/api';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Icon, type IconName } from '../../components/Icon';
+import { MovementTestCorner, RehabToday } from '../../components/motion/CheckinMotion';
 import { T } from '../../components/T';
 import { Button, Card, haptic, IconBadge, Muted, PageTitle, Screen, SectionRow, TopBar } from '../../components/ui';
 import { useAppState } from '../../context/AppState';
 import { useT } from '../../i18n';
-import { answerRequest, OTHER_CHIP_KEYS, submitCheckin, WOUND_CHIP_KEYS, type CheckinResult } from '../../services/api';
+import { answerRequest, getMedicationGuide, getToday, usePoll, OTHER_CHIP_KEYS, submitCheckin, WOUND_CHIP_KEYS, type CheckinResult, type MedicationGuide, type Mood } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 function ScaleCard({ label, value, onChange, bg, icon, none, worst }: { label: string; value: number; onChange: (v: number) => void; bg: string; icon: IconName; none: string; worst: string }) {
@@ -41,6 +42,76 @@ function ChipToggle({ label, on, onPress, danger }: { label: string; on: boolean
   );
 }
 
+const MOODS: { code: Mood; face: string; bg: string }[] = [
+  { code: 'very_good', face: '😄', bg: '#bff3d9' }, { code: 'good', face: '🙂', bg: '#dcefff' },
+  { code: 'okay', face: '😐', bg: '#fbe19b' }, { code: 'unwell', face: '😣', bg: '#ffd6b8' }, { code: 'very_unwell', face: '😫', bg: '#f4c7ea' },
+];
+
+/** 😄 🙂 😐 😣 😫: how the patient feels overall (not a pain score, not an urgency level). */
+function MoodPicker({ value, onChange }: { value: Mood | null; onChange: (m: Mood) => void }) {
+  const { c } = useTheme();
+  const { list } = useT();
+  const labels = list('checkin.moods');
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 6, marginTop: 10, marginBottom: 14 }}>
+      {MOODS.map((m, i) => {
+        const on = value === m.code;
+        return (
+          <Pressable key={m.code} accessibilityRole="button" accessibilityLabel={labels[i]} onPress={() => { haptic('selection'); onChange(m.code); }}
+            style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 16, borderWidth: on ? 2 : 1.2, borderColor: on ? c.primary : c.ink,
+              backgroundColor: on ? m.bg : c.surface, transform: [{ scale: on ? 1.06 : 1 }] }}>
+            <T size={24}>{m.face}</T>
+            <T size={6.5} w={800} center style={{ marginTop: 3 }} numberOfLines={1}>{labels[i]}</T>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Today's medicines: what may be noticed (reassurance) and when to call the care team. */
+function MedicinesToday() {
+  const { c } = useTheme();
+  const { t, lang } = useT();
+  const { apiUrl } = useAppState();
+  const [guide, setGuide] = useState<MedicationGuide | null>(null);
+  const [open, setOpen] = useState<number | null>(null);
+  useEffect(() => { getMedicationGuide(apiUrl, lang).then(setGuide).catch(() => setGuide(null)); }, [apiUrl, lang]);
+  if (!guide || guide.items.length === 0) return null;
+  return (
+    <Card bg={c.lilacBg} radius={19} style={{ padding: 12, marginTop: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <IconBadge icon="pill" bg={c.surface} size={28} />
+        <View style={{ flex: 1 }}>
+          <T size={7} w={800} spacing={0.8} color={c.muted}>{t('checkin.medsKicker')}</T>
+          <T size={10.5} w={800} style={{ marginTop: 1 }}>{t('checkin.medsTitle')}</T>
+        </View>
+      </View>
+      <View style={{ marginTop: 8, padding: 9, borderRadius: 12, backgroundColor: c.mint, borderWidth: 1, borderColor: c.track }}>
+        <T size={8.5} w={700} lh={1.4}>💚 {guide.reassurance}</T>
+      </View>
+      {guide.items.map((m, i) => (
+        <Pressable key={m.medication} onPress={() => { haptic('selection'); setOpen(open === i ? null : i); }}
+          style={{ marginTop: 7, padding: 9, borderRadius: 13, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <T size={9} w={800} style={{ flex: 1 }}>{m.medication}</T>
+            <T size={7.5} color={c.muted}>{m.times.join(' · ')}  {open === i ? '▴' : '▾'}</T>
+          </View>
+          {open === i && (m.known ? (
+            <View style={{ marginTop: 6 }}>
+              <T size={7} w={800} spacing={0.6} color={c.trackText}>{t('checkin.mayNotice')}</T>
+              {m.common.map(x => <T key={x} size={8} lh={1.4} style={{ marginTop: 2 }}>• {x}</T>)}
+              <T size={7} w={800} spacing={0.6} color={c.urgentText} style={{ marginTop: 7 }}>{t('checkin.callIf')}</T>
+              {m.call_if.map(x => <T key={x} size={8} lh={1.4} style={{ marginTop: 2 }}>• {x}</T>)}
+            </View>
+          ) : <T size={8} color={c.muted} style={{ marginTop: 6 }}>{t('checkin.medUnknown')}</T>)}
+        </Pressable>
+      ))}
+      <T size={6.5} color={c.muted} lh={1.4} style={{ marginTop: 8 }}>{guide.note}</T>
+    </Card>
+  );
+}
+
 export function CheckInScreen() {
   const { c } = useTheme();
   const { t, list } = useT();
@@ -50,11 +121,14 @@ export function CheckInScreen() {
   const [mobility, setMobility] = useState(5);
   const [wound, setWound] = useState<number[]>([]);
   const [other, setOther] = useState<number[]>([]);
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [rehabDone, setRehabDone] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [clarified, setClarified] = useState<string | null>(null);
   const { apiUrl } = useAppState();
+  const day = usePoll(getToday, 30000).data?.patient.day;
 
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoError, setDemoError] = useState(false);
@@ -85,7 +159,7 @@ export function CheckInScreen() {
     setBusy(true);
     try {
       const chips = [...wound.map(i => WOUND_CHIP_KEYS[i]), ...other.map(i => OTHER_CHIP_KEYS[i])].filter(Boolean);
-      setResult(await submitCheckin(apiUrl, { pain, fatigue, mobility, chips }));
+      setResult(await submitCheckin(apiUrl, { pain, fatigue, mobility, chips, mood: mood ?? undefined, rehab_done: rehabDone }));
     } catch {
       setResult(null); // backend unreachable: keep the local (offline) confirmation
     } finally {
@@ -146,6 +220,7 @@ export function CheckInScreen() {
   return (
     <Screen>
       <TopBar title={t('checkin.top')} back={false} />
+      <MovementTestCorner />
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {([['activity', t('checkin.rehab'), t('checkin.rehabSub'), c.sky, 'Rehab'], ['camera', t('checkin.scan'), t('checkin.scanSub'), c.lavender, 'WoundScan']] as const).map(([icon, title, sub, bg, route]) => (
           <Pressable key={route} style={{ flex: 1 }} onPress={() => nav.navigate(route)}>
@@ -158,9 +233,10 @@ export function CheckInScreen() {
         ))}
       </View>
 
-      <T size={9} w={800} spacing={1.5} color={c.primary} style={{ marginTop: 18 }}>{t('checkin.kicker')}</T>
+      <T size={9} w={800} spacing={1.5} color={c.primary} style={{ marginTop: 18 }}>{t('checkin.kickerDay', { n: day ?? '–' })}</T>
       <PageTitle style={{ marginTop: 6 }}>{t('checkin.title')}</PageTitle>
       <Muted>{t('checkin.sub')}</Muted>
+      <MoodPicker value={mood} onChange={setMood} />
 
       <ScaleCard label={t('checkin.pain')} value={pain} onChange={setPain} bg={c.yellow} icon="activity" none={t('checkin.none')} worst={t('checkin.worst')} />
       <ScaleCard label={t('checkin.fatigue')} value={fatigue} onChange={setFatigue} bg={c.lavender} icon="moon" none={t('checkin.none')} worst={t('checkin.worst')} />
@@ -174,6 +250,9 @@ export function CheckInScreen() {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {otherChips.map((x, i) => <ChipToggle key={x} label={x} on={other.includes(i)} danger={i >= 4} onPress={() => toggle(other, setOther, i)} />)}
       </View>
+
+      <RehabToday done={rehabDone} onChange={setRehabDone} />
+      <MedicinesToday />
 
       {emergency && (
         <Animated.View entering={FadeIn}>
@@ -194,12 +273,7 @@ export function CheckInScreen() {
       )}
 
       <Button style={{ marginTop: 16 }} onPress={busy ? undefined : submit}>{busy ? '…' : t('checkin.submit')}</Button>
-        <Card bg={c.ice} radius={16} style={{ padding: 12, marginTop: 14 }}>
-          <T size={8} w={800}>{t('d3Demo.entryTitle')}</T>
-          <T size={7.5} color={c.muted} style={{ marginTop: 4, marginBottom: 9 }}>{t('d3Demo.entrySub')}</T>
-          <Button secondary onPress={runSafetyDemo}>{demoBusy ? t('d3Demo.loading') : t('d3Demo.run')}</Button>
-          {demoError && <T size={7.5} color={c.urgentText} style={{ marginTop: 7 }}>{t('d3Demo.error')}</T>}
-        </Card>
+      <View style={{ height: 76 }} />{/* room for the floating assistant button */}
     </Screen>
   );
 }
