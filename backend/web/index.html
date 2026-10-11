@@ -82,13 +82,196 @@
   .toast.show { opacity: 1; }
   .sim { font-size: 10px; font-weight: 800; border: 1px solid var(--ink); border-radius: 6px; padding: 0 5px; background: var(--amber); }
   .empty { padding: 10px; color: var(--muted); }
+  .clinic { grid-column: 1 / -1; scroll-margin-top: 130px; padding: 24px; }
+  .clinic-heading { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+  .clinic-heading h2 { font-size:26px; }
+  .clinic-stats { display:flex; gap:10px; flex-wrap:wrap; margin:20px 0; }
+  .clinic-stat { border:1px solid var(--line); background:var(--surface); border-radius:14px; padding:12px 18px; min-width:140px; }
+  .clinic-stat strong { font-size:24px; display:block; }
+  .clinic-workspace { display:grid; grid-template-columns:260px minmax(0,1fr); gap:20px; align-items:start; }
+  .clinic-queue { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px; }
+  .clinic-queue select { width:100%; margin:12px 0; }
+  .clinic-queue .alert-item { display:block; width:100%; text-align:left; padding:14px; }
+  .clinic-detail-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(300px,1fr); gap:18px; align-items:start; }
+  .clinic .card { border-color:var(--line); padding:18px; }
+  .clinic .sec { border-color:var(--line); padding:14px; }
+  .clinic .card h3 { font-size:19px; }
+  .clinic .card p { margin:8px 0 12px; }
+  .clinic .case-heading { margin-top:0; background:var(--mint); margin-bottom:16px; }
+  .clinic .case-heading h3 { font-size:23px; margin:8px 0; }
+  .clinic details { margin-top:12px; }
+  .clinic summary { cursor:pointer; font-weight:700; padding:8px 0; }
+  .clinic .care-progress { display:flex; flex-wrap:wrap; gap:6px; list-style:none; padding:0; margin:14px 0; }
+  .clinic .care-progress li { font-size:11px; border-radius:8px; background:var(--readonly); padding:6px 8px; color:var(--muted); }
+  .clinic .care-progress .current { background:var(--sky); color:var(--text); font-weight:800; }
+  .clinic .care-progress .complete { background:var(--mint); color:var(--trackText); }
+  .clinic .oid { overflow-wrap:anywhere; }
+  .clinic textarea { min-height:90px; }
+  .clinic label { display:block; margin-top:10px; }
+  .clinic .cols { grid-template-columns:1fr; }
+  body.clinic-only .grid > .phone { display:none; }
+  body.clinic-only .grid { display:block; max-width:1600px; margin:auto; }
+  .btn:focus-visible, summary:focus-visible { outline:3px solid var(--primary); outline-offset:3px; }
+  .demo-controls { flex:1; }
+  .demo-controls > summary { cursor:pointer; font-weight:700; width:max-content; padding:6px 12px; border:1px solid var(--line); border-radius:99px; }
+  .demo-controls > .row { flex-wrap:wrap; margin-top:10px; }
+  /* Clinic presentation: compact clinical workspace using the app's blue palette. */
+  .clinic-nav { display:none; }
+  body.clinic-only { background:var(--bg); }
+  body.clinic-only .clinic-nav { display:flex; flex-direction:column; position:fixed; inset:0 auto 0 0; width:184px; padding:28px 14px; background:#112d48; color:#e8f2fc; z-index:6; }
+  .clinic-brand { font-size:19px; font-weight:800; letter-spacing:-.7px; display:flex; align-items:center; gap:8px; padding:0 8px; }
+  .clinic-brand-mark { display:grid; place-items:center; background:#268ce8; border-radius:10px; width:30px; height:32px; font-size:25px; font-weight:500; }
+  .clinic-nav .nav-caption { font-size:10px; color:#9cb4ca; text-transform:uppercase; letter-spacing:1.6px; margin:32px 12px 12px; }
+  .clinic-nav button, .clinic-nav a { display:flex; align-items:center; gap:10px; padding:12px; border:0; border-radius:9px; background:transparent; color:#b7cbdd; font-weight:600; text-decoration:none; font-size:12px; text-align:left; cursor:pointer; margin-bottom:5px; }
+  .clinic-nav button.active { background:#254d70; color:#fff; }
+  .clinic-nav button:hover, .clinic-nav a:hover { background:#203e59; color:#fff; }
+  .nav-symbol { width:18px; font-size:17px; text-align:center; }
+  .clinic-nav-footer { margin-top:auto; padding:12px; border-top:1px solid #35516a; color:#a3bbcf; font-size:11px; }
+  .clinic-nav-footer strong { color:#e8f2fc; display:block; margin-bottom:6px; }
+  body.clinic-only .bar { margin-left:184px; justify-content:flex-end; background:var(--surface); border-bottom:1px solid var(--line); padding:12px 28px; min-height:58px; }
+  body.clinic-only .bar > h1, body.clinic-only .bar > a { display:none; }
+  .clinic-sync { display:none; }
+  body.clinic-only .clinic-sync { display:block; margin-right:auto; font-size:11px; color:var(--muted); }
+  body.clinic-only .demo-controls { flex:initial; }
+  body.clinic-only .demo-controls[open] { flex:1; }
+  body.clinic-only .grid { margin-left:184px; padding:24px 28px 40px; max-width:none; }
+  body.clinic-only .clinic { padding:0; border:0; border-radius:0; background:transparent; scroll-margin-top:80px; }
+  .clinic-heading h2 { font-size:28px; letter-spacing:-1px; }
+  .clinic-heading > div > .kicker { color:var(--primary); letter-spacing:1.5px; font-size:10px; margin-bottom:6px; }
+  .clinic-heading p { margin:7px 0 0; font-size:12px; }
+  .clinician-identity { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:12px; }
+  .clinician-identity .avatar { width:34px; height:34px; background:var(--readonly); color:var(--primary); border:0; }
+  .clinic-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:24px 0; }
+  .clinic-stat { min-width:0; padding:16px 18px; border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; gap:8px; box-shadow:0 2px 5px #102a4310; }
+  .clinic-stat strong { font-size:27px; letter-spacing:-1px; line-height:1; }
+  .stat-top { display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--muted); font-weight:600; }
+  .stat-symbol { width:28px; height:28px; border-radius:8px; display:grid; place-items:center; color:var(--primary); background:var(--readonly); font-size:16px; }
+  .clinic-stat .small { font-size:10px; }
+  .clinic-workspace { grid-template-columns:225px minmax(0,1fr); gap:18px; }
+  .clinic-queue { padding:16px 12px; border-radius:14px; }
+  .queue-title { display:flex; justify-content:space-between; align-items:center; padding:0 4px; }
+  .queue-title h3 { font-size:14px; }
+  .clinic-queue select { border-color:var(--line); border-radius:8px; padding:9px; font-size:11px; margin-top:6px; }
+  .clinic-queue .alert-item { border:1px solid var(--line); border-radius:10px; padding:13px; margin:8px 0; transition:background .15s; }
+  .clinic-queue .alert-item.sel { outline:0; border-color:var(--primary); background:var(--readonly); box-shadow:inset 3px 0 var(--primary); }
+  .queue-case-title { font-weight:700; font-size:12px; margin:9px 0 6px; }
+  .queue-reason { font-size:10px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.6; margin:6px 0; }
+  .clinic .badge { border:0; font-size:9px; padding:4px 8px; letter-spacing:.3px; }
+  .clinic .lvl-attention { background:var(--peach); color:var(--reviewText); }
+  .clinic .lvl-urgent { background:var(--urgent); color:#341d22; }
+  .clinic .case-heading { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:14px; }
+  .patient-heading-row { display:flex; align-items:center; gap:12px; }
+  .patient-heading-row .avatar { width:42px; height:42px; border:0; border-radius:12px; background:var(--readonly); color:var(--primary); }
+  .clinic .case-heading h3 { font-size:21px; margin:3px 0 5px; }
+  .clinic .case-heading .muted { font-size:11px; }
+  .patient-meta { display:flex; gap:12px; flex-wrap:wrap; padding-top:14px; margin-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
+  .patient-meta b { color:var(--text); font-weight:600; }
+  .clinic-detail-grid { grid-template-columns:minmax(0,1fr) 280px; gap:14px; }
+  .clinic .card { border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 2px 5px #102a4308; }
+  .clinic .card h3 { font-size:15px; letter-spacing:-.3px; }
+  .clinic .kicker { font-size:9px; letter-spacing:1px; }
+  .clinic .sec { border:0; border-radius:10px; padding:12px; font-size:12px; line-height:1.6; }
+  .clinic .sec[style*="lavender"], .clinic .sec[style*="sky"] { background:var(--readonly) !important; }
+  .clinic .sec[style*="amber"] { background:var(--readonly) !important; border-left:3px solid var(--primary); }
+  .clinic .sec[style*="readonly"] { background:var(--peach) !important; border-left:3px solid var(--review); }
+  .clinic .sec li { margin:6px 0; }
+  .clinic .sec li details { display:inline; margin-left:5px; }
+  .clinic .sec li details[open] { display:block; }
+  .clinic .sec li summary { display:inline; font-size:10px; color:var(--primary); font-weight:500; padding:0; }
+  .clinic .sec li summary::before { content:'↗ '; }
+  .clinic .card p { font-size:12px; line-height:1.7; }
+  .clinic .btn { border-color:var(--line); border-radius:9px; padding:10px 12px; font-size:11px; }
+  .clinic .btn.primary { border-color:var(--primary); box-shadow:0 3px 7px #1e88e522; }
+  .clinic [data-act] { width:100%; }
+  .clinic .care-progress { flex-direction:column; gap:0; margin:18px 0; }
+  .clinic .care-progress li { position:relative; background:transparent; padding:0 0 16px 30px; font-size:11px; min-height:32px; }
+  .clinic .care-progress li::before { content:attr(data-step); position:absolute; left:0; top:-2px; display:grid; place-items:center; width:20px; height:20px; border:1px solid var(--line); border-radius:50%; background:var(--surface); font-size:9px; z-index:1; }
+  .clinic .care-progress li:not(:last-child)::after { content:''; position:absolute; left:10px; top:18px; width:1px; height:16px; background:var(--line); }
+  .clinic .care-progress .current { color:var(--primary); background:transparent; }
+  .clinic .care-progress .current::before { background:var(--primary); color:white; border-color:var(--primary); }
+  .clinic .care-progress .complete { background:transparent; }
+  .clinic .care-progress .complete::before { content:'✓'; background:var(--mint); border-color:var(--track); }
+  .clinic summary { font-size:11px; }
+  .reading-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 14px; }
+  .reading-mini { border:1px solid var(--line); background:var(--surface); border-radius:12px; padding:12px; }
+  .reading-mini .reading-value { font-weight:800; font-size:21px; letter-spacing:-.7px; margin:5px 0; }
+  .reading-mini .reading-value span { font-size:10px; font-weight:500; margin-left:3px; letter-spacing:0; }
+  .reading-mini .reading-time { font-size:9px; color:var(--muted); }
+  .reading-mini .reading-quality { color:var(--reviewText); font-size:10px; margin-top:5px; }
+  @media (max-width:1250px) { .clinic-detail-grid { grid-template-columns:1fr; } .clinic-detail-grid > aside { order:-1; } .clinic .care-progress { flex-direction:row; gap:6px; } .clinic .care-progress li { padding:4px 8px; background:var(--readonly); border-radius:6px; min-height:0; font-size:10px; } .clinic .care-progress li::before, .clinic .care-progress li::after { display:none; } }
+  @media (max-width:900px) { body.clinic-only .clinic-nav { width:66px; padding:24px 8px; } .clinic-nav .nav-label, .clinic-nav .nav-caption, .clinic-nav-footer { display:none; } .clinic-brand { padding:0 8px; } .clinic-nav button, .clinic-nav a { justify-content:center; padding:12px 8px; margin-top:12px; } body.clinic-only .bar { margin-left:66px; padding:10px 16px; } body.clinic-only .grid { margin-left:66px; padding:18px 16px; } .clinic-workspace { grid-template-columns:195px minmax(0,1fr); gap:12px; } .clinic-heading h2 { font-size:23px; } }
+  @media (max-width:1000px) { .clinic-detail-grid { grid-template-columns:1fr; } .clinic-detail-grid > aside { order:-1; } }
+  @media (max-width:700px) { body.clinic-only .clinic-nav { display:none; } body.clinic-only .bar, body.clinic-only .grid { margin-left:0; } .clinic { padding:14px; } .clinic-workspace { grid-template-columns:1fr; } .clinic-heading { align-items:start; flex-direction:column; } .clinic-heading h2 { font-size:21px; } .clinic-stats { display:grid; grid-template-columns:1fr 1fr; } .clinic-stat { min-width:0; padding:10px; } .reading-strip { gap:6px; } .reading-mini { padding:9px; } .reading-mini .reading-value { font-size:18px; } }
+</style>
+<style>
+  .family-welcome { display:none; }
+  #family { scroll-margin-top:90px; }
+  body.family-only .grid > :not(#family) { display:none; }
+  body.family-only .grid { display:block; max-width:1140px; margin:auto; padding:30px; }
+  body.family-only #family { border:0; background:transparent; padding:0; }
+  body.family-only .family-welcome { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:4px 0 26px; }
+  .family-welcome h2 { font-size:34px; letter-spacing:-1.2px; margin:8px 0; }
+  .family-welcome p { color:var(--muted); margin:0; font-size:13px; }
+  .family-member { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+  .family-member .avatar { border:0; width:36px; height:36px; background:var(--readonly); color:var(--primary); }
+  body.family-only #family > .role { display:none; }
+  .family-layout { display:grid; grid-template-columns:1fr; gap:0; }
+  body.family-only .family-layout { grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr); gap:22px; align-items:start; }
+  #family .card { border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 3px 8px #102a4306; }
+  #family .kicker { font-size:10px; letter-spacing:1px; }
+  #family .family-heading { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .family-heading .family-icon { width:32px; height:32px; display:grid; place-items:center; border-radius:10px; background:var(--readonly); color:var(--primary); font-size:18px; }
+  #family h3 { font-size:16px; letter-spacing:-.4px; }
+  #family .btn { border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:11px; }
+  #family .btn.primary { box-shadow:none; border-color:var(--primary); }
+  #family #f-digest { font-size:14px; line-height:1.8; }
+  #family .family-brief { background:var(--surface); }
+  .family-task { padding:16px 0; border-top:1px solid var(--line); }
+  .family-task:first-child { border-top:0; padding-top:4px; }
+  .family-task p { line-height:1.7; font-size:13px; margin:8px 0 12px; }
+  .family-empty { padding:18px; background:var(--page); border-radius:12px; }
+  .family-empty p { font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:0; }
+  .family-category { display:inline-block; background:var(--readonly); color:var(--primary); font-size:10px; padding:6px 9px; border-radius:8px; margin:3px; }
+  .family-status-title { font-size:24px; line-height:1.3; font-weight:800; letter-spacing:-.8px; margin:15px 0 10px; }
+  #f-status .patient-line { display:flex; align-items:center; gap:11px; border-bottom:1px solid var(--line); padding-bottom:17px; margin-bottom:17px; }
+  #f-status .avatar { border:0; background:var(--readonly); color:var(--primary); }
+  #family .family-alert { border-top:1px solid var(--line); padding:12px 0; }
+  #family .family-alert:first-of-type { margin-top:12px; }
+  #family .family-alert .badge { border:0; font-size:9px; }
+  #family .family-alert p { font-size:12px; margin:6px 0; }
+  #family .reading-strip { margin:0; }
+  #family .reading-mini { border:0; background:var(--page); }
+  body.family-only .bar { border-bottom:1px solid var(--line); padding:14px 30px; }
+  body.family-only .clinic-sync { display:block; order:99; color:var(--muted); font-size:10px; }
+  /* Shared patient palette: pastel cards, navy outlines, blue actions. */
+  body.family-only { background:var(--page); }
+  #family .card { border:1.5px solid var(--ink); border-radius:22px; box-shadow:none; }
+  #family #f-status > .card { background:var(--mint); }
+  #family .family-brief { background:var(--sky); }
+  #family .family-help { background:var(--yellow); }
+  #family .family-permissions { background:var(--lavender); }
+  #family .family-icon { border:1px solid var(--ink); border-radius:50%; background:var(--surface); color:var(--text); }
+  #family .family-category { border:1px solid var(--ink); border-radius:99px; background:var(--surface); color:var(--text); }
+  #family .family-empty { background:var(--surface); border:1px solid var(--ink); border-radius:16px; }
+  #family .reading-mini { border:1.3px solid var(--ink); border-radius:16px; }
+  #family .reading-mini:nth-child(1) { background:var(--pink); }
+  #family .reading-mini:nth-child(2) { background:var(--yellow); }
+  #family .reading-mini:nth-child(3) { background:var(--green); }
+  #family .btn { border:1.3px solid var(--ink); border-radius:15px; }
+  #family .btn.primary { border-color:var(--ink); box-shadow:0 3px 0 var(--ink); }
+  #f-status .avatar, .family-member .avatar { border:1.3px solid var(--ink); background:var(--pink); color:var(--text); }
+  @media (max-width:760px) { body.family-only .grid { padding:18px; } body.family-only .family-layout { grid-template-columns:1fr; gap:0; } body.family-only .family-welcome { flex-direction:column; align-items:start; gap:16px; } .family-welcome h2 { font-size:28px; } body.family-only .bar { padding:12px 18px; } #family .card { padding:17px; } }
 </style>
 </head>
 <body>
+<nav class="clinic-nav" aria-label="Clinic navigation"><div class="clinic-brand"><span class="clinic-brand-mark" aria-hidden="true">+</span><span class="nav-label">SurgiGuard</span></div><div class="nav-caption">Clinical workspace</div><button class="active" data-queue-filter="all" aria-label="Overview"><span class="nav-symbol" aria-hidden="true">▦</span><span class="nav-label">Overview</span></button><button data-queue-filter="review" aria-label="Cases awaiting care"><span class="nav-symbol" aria-hidden="true">☷</span><span class="nav-label">Awaiting care</span></button><button data-queue-filter="urgent" aria-label="Urgent alerts"><span class="nav-symbol" aria-hidden="true">!</span><span class="nav-label">Urgent alerts</span></button><button data-queue-filter="followup" aria-label="Follow-up cases"><span class="nav-symbol" aria-hidden="true">◷</span><span class="nav-label">Follow-up</span></button><div class="nav-caption">Connected views</div><a href="/app/" aria-label="Patient platform"><span class="nav-symbol" aria-hidden="true">♡</span><span class="nav-label">Patient platform ↗</span></a><a href="/agent-demo/?view=family#family" aria-label="Family demo"><span class="nav-symbol" aria-hidden="true">♧</span><span class="nav-label">Family demo ↗</span></a><div class="clinic-nav-footer"><strong>Fictional demo</strong>Local care workflow<br>External delivery is off</div></nav>
 <div class="bar">
+  <span class="clinic-sync" id="c-sync" role="status">Connecting to local demo…</span>
   <h1>SurgiGuard demo</h1>
   <a class="btn" href="/app/">Patient app</a>
-  <a class="btn" href="#clinic">Clinic ↓</a>
+  <a class="btn" href="/agent-demo/?view=clinic#clinic">Clinic workspace</a>
+  <a class="btn" href="/agent-demo/?view=family#family">Family space</a>
+  <details class="demo-controls" open><summary>Demo controls</summary><div class="row">
   <button class="btn" data-demo="reset">Reset</button>
   <span class="sep"></span>
   <span class="kicker">Scenario</span>
@@ -106,6 +289,7 @@
   <span class="kicker">AI</span>
   <select id="llm-mode"><option value="live">live</option><option value="stub">stub</option><option value="off">off (AI down)</option></select>
   <span id="health" class="small muted"></span>
+  </div></details>
 </div>
 
 <div class="grid">
@@ -162,32 +346,37 @@
   </section>
 
   <!-- ======================= CAREGIVER ======================= -->
-  <section class="phone" aria-label="Family app">
+  <section class="phone" id="family" aria-label="Family app">
+    <div class="family-welcome"><div><div class="kicker" style="color:var(--primary)">SurgiGuard · Family space</div><h2>Care, even from afar.</h2><p>The updates that matter. A clear way to help.</p></div><div class="family-member"><div class="avatar">AK</div><div><b>Ahmed Khan</b><div class="small muted">Shared access · fictional demo</div></div></div></div>
     <div class="role"><div class="avatar">AK</div>
       <div><div class="kicker">Family app</div><h2>Ahmed</h2></div></div>
+    <div class="family-layout"><div>
     <div id="f-status"></div>
-    <div class="card" style="background:var(--sky)">
-      <div class="row" style="justify-content:space-between"><span class="kicker">Today's update (AI)</span>
-        <button class="btn" id="f-digest-refresh" style="padding:3px 10px;font-size:12px">Refresh</button></div>
-      <div id="f-digest" style="margin-top:4px" class="muted">Loading…</div>
+    <div class="card family-brief">
+      <div class="row" style="justify-content:space-between"><div class="family-heading"><span class="family-icon" aria-hidden="true">✧</span><div><h3>Your recovery briefing</h3><div class="small muted">AI summary · shared information only</div></div></div>
+        <button class="btn" id="f-digest-refresh">Refresh</button></div>
+      <div id="f-digest" class="muted">Loading shared updates…</div>
+      <div id="f-digest-date" class="small muted" style="margin-top:12px"></div>
     </div>
-    <div class="card">
-      <div class="kicker">How you can help</div>
+    <div id="f-readings"></div>
+    </div><div>
+    <div class="card family-help">
+      <div class="family-heading"><span class="family-icon" aria-hidden="true">♡</span><div><h3>Ways you can help</h3><div class="small muted">Small actions, coordinated with the care team.</div></div></div>
       <div id="f-tasks"></div>
     </div>
-    <div class="card" style="background:var(--readonly)">
-      <div class="kicker">What Ahmed can see</div>
+    <div class="card family-permissions">
+      <div class="family-heading"><span class="family-icon" aria-hidden="true">◇</span><h3>Shared with you</h3></div>
       <div id="f-shared" class="small" style="margin-top:4px"></div>
+      <p class="small muted" style="line-height:1.7;margin-bottom:0">Sarah chooses what you can see. Care decisions remain with the care team.</p>
     </div>
+    </div></div>
   </section>
 
   <!-- ======================= CLINIC ======================= -->
   <section class="clinic" id="clinic" aria-label="Clinic dashboard preview">
-    <div class="role"><div class="avatar" style="background:var(--green)">ER</div>
-      <div><div class="kicker">Clinic dashboard (preview of the API your teammate uses)</div><h2>Dr. Elena Ruiz</h2></div></div>
-    <div class="kicker">Open alerts</div>
-    <div id="c-alerts"></div>
-    <div id="c-detail"></div>
+    <div class="clinic-heading"><div><div class="kicker">Care team / Overview</div><h2>Your recovery watchlist</h2><p class="muted">A clear view of who needs attention and what happens next.</p></div><div class="row clinician-identity"><div class="avatar">ER</div><div><b>Dr. Elena Ruiz</b><div class="small muted">Clinical workspace · demo</div></div></div></div>
+    <div id="c-stats" class="clinic-stats" aria-live="polite"></div>
+    <div class="clinic-workspace"><aside class="clinic-queue" aria-label="Patient review queue"><div class="queue-title"><h3>Patient queue</h3><span class="stat-symbol" aria-hidden="true">☷</span></div><label class="small muted" for="c-filter">Filter cases</label><select id="c-filter"><option value="all">All open cases</option><option value="review">Awaiting care</option><option value="followup">Follow-up and verification</option><option value="urgent">Urgent alerts</option></select><div id="c-alerts"></div><p class="small muted" style="font-size:10px;border-top:1px solid var(--line);padding-top:14px">Fictional recovery episode.<br>Sorted by recorded alert level, then oldest case.</p></aside><div id="c-detail" aria-label="Selected patient case"></div></div>
   </section>
 </div>
 <div class="toast" id="toast"></div>
@@ -195,6 +384,14 @@
 <script src="/agent-demo/workflow.js"></script>
 <script>
 const $ = s => document.querySelector(s);
+if (new URLSearchParams(location.search).get('view') === 'clinic') {
+  document.body.classList.add('clinic-only');
+  $('.demo-controls').open = false;
+}
+if (new URLSearchParams(location.search).get('view') === 'family') {
+  document.body.classList.add('family-only');
+  $('.demo-controls').open = false;
+}
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const time = iso => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
 
@@ -453,25 +650,34 @@ document.addEventListener('click', async e => {
 });
 
 // ---------------------------------------------------------------- caregiver
+let familySharedCategories = null;
+const familyLabels = { vitals:'Readings', wound:'Wound updates', symptoms:'Symptoms', medications:'Medications', rehab:'Rehabilitation', alerts:'Alerts', appointments:'Appointments' };
+const familyStage = state => ({created:'Awaiting review',assigned:'Awaiting review',acknowledged:'Review acknowledged',patient_contacted:'Patient contact recorded',action_taken:'Care action recorded',verified:'Follow-up verified',resolved:'Closed'}[state] || state);
 function renderFamily(alerts, tasks, twin) {
   const urgent = alerts.some(a => a.level === 'urgent'), attention = alerts.some(a => a.level === 'attention');
-  render('#f-status', alerts, () => `<div class="card" style="background:${urgent ? 'var(--urgent)' : attention ? 'var(--amber)' : 'var(--green)'};color:${urgent ? '#1b2a4a' : 'inherit'}">
-    <div class="kicker" style="color:inherit">Sarah's status</div>
-    <div style="font-size:22px;font-weight:800">${urgent ? 'Needs help now' : attention ? 'Care team reviewing' : 'On track'}</div>
-    <div class="small">${alerts.length ? alerts.map(a => esc(a.title)).join(' · ') : 'No urgent alerts'}</div></div>`);
-  render('#f-tasks', tasks, ts => ts.length ? ts.map(t => `<div class="row" style="border-top:1px solid var(--line);padding:8px 0">
-      <span style="flex:1">${esc(t.text)}</span><button class="btn primary" data-task="${t.id}">Done</button></div>`).join('') : '<div class="empty">No tasks right now.</div>');
-  render('#f-shared', twin.hidden_categories, h => h && h.length ? `Hidden by Sarah: ${h.map(esc).join(', ')}` : 'Sarah shares all categories with Ahmed.');
+  const alertsShared = !(twin.hidden_categories || []).includes('alerts');
+  render('#f-status', {alerts, alertsShared}, () => `<div class="card"><div class="patient-line"><div class="avatar">SM</div><div><div class="kicker">Supporting</div><h3 style="margin-top:4px">Sarah Miller</h3></div></div>
+    <div class="kicker">Current shared status</div><div class="family-status-title" style="color:${urgent ? 'var(--urgentText)' : attention ? 'var(--reviewText)' : 'var(--text)'}">${!alertsShared ? 'Alert status is not shared' : urgent ? 'An urgent alert is open' : attention ? 'Care team review needed' : 'No shared open alerts'}</div>
+    <div class="small muted">${alertsShared ? 'This reflects shared alerts, not a clinical assessment.' : 'Sarah chooses which updates are visible to you.'}</div>
+    ${alertsShared ? alerts.map(a => `<div class="family-alert"><span class="badge lvl-${esc(a.level)}">${esc(a.level.toUpperCase())}</span><p><b>${esc(a.title)}</b></p><div class="small muted">${esc(familyStage(a.state))} · ${time(a.created_at)}</div></div>`).join('') : ''}</div>`);
+  render('#f-tasks', tasks, ts => ts.length ? ts.map(t => `<div class="family-task"><span class="family-category">${esc(familyLabels[t.category] || t.category)}</span><p>${esc(t.text)}</p><button class="btn primary" data-task="${esc(t.id)}">Mark done ✓</button></div>`).join('') : '<div class="family-empty"><b>No assistance tasks right now</b><p>New requests will appear here when there is something you can help with.</p></div>');
+  render('#f-shared', familySharedCategories, categories => categories === null ? 'Loading sharing preferences…' : categories.length ? categories.map(k => `<span class="family-category">${esc(familyLabels[k] || k)}</span>`).join('') : 'No information categories are shared yet.');
+  render('#f-readings', twin.vitals, vitals => !vitals ? '' : `<div class="card"><div class="family-heading"><span class="family-icon" aria-hidden="true">⌁</span><div><h3>Shared readings</h3><div class="small muted">Latest available measurements, with collection times.</div></div></div><div class="reading-strip">${[['hr','Heart rate','bpm'],['temp','Temperature','°C'],['spo2','Oxygen','%']].map(([key,label,unit]) => {
+    const r = vitals[key] || {}; const source = (r.series || []).find(o => o.observation_id === r.observation_id);
+    return `<div class="reading-mini"><div class="kicker">${label}</div><div class="reading-value">${esc(r.value?.value ?? '—')}<span>${unit}</span></div><div class="reading-time">${r.at ? time(r.at) : 'No current reading'}${source?.simulated ? ' · simulated' : ''}</div>${r.status !== 'ok' ? `<div class="reading-quality">${esc(r.reason || 'No current reading')}</div>` : ''}</div>`;
+  }).join('')}</div></div>`);
 }
+
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-task]');
   if (!b) return;
-  try { await api(`/caregiver/tasks/${b.dataset.task}/done`, { actor: 'ahmed' }); toast('Task done'); } catch (err) { toast(err.message); }
-  poll();
+  b.disabled = true;
+  try { await api(`/caregiver/tasks/${b.dataset.task}/done`, { actor: 'ahmed' }); toast('Help recorded. Thank you.'); await poll(); } catch (err) { toast(err.message); }
+  finally { b.disabled = false; }
 });
 async function loadDigest(refresh) {
   $('#f-digest').textContent = refresh ? 'Writing today\'s update…' : $('#f-digest').textContent;
-  try { const d = await api(`/caregiver/ahmed/digest${refresh ? '?refresh=true' : ''}`); $('#f-digest').textContent = d.digest.text; $('#f-digest').classList.remove('muted'); }
+  try { const d = await api(`/caregiver/ahmed/digest${refresh ? '?refresh=true' : ''}`); familySharedCategories = d.shared_categories || []; $('#f-digest').textContent = d.digest.text; $('#f-digest').classList.remove('muted'); $('#f-digest-date').textContent = new Date(d.digest.created_at).toLocaleString(); }
   catch (err) { $('#f-digest').textContent = 'Unavailable: ' + err.message; }
 }
 $('#f-digest-refresh').addEventListener('click', () => loadDigest(true));
@@ -483,39 +689,73 @@ const verificationDrafts = {};
 const followupDrafts = {};
 const clinicalNotes = {};
 let activeClinicalForm = null;
-function renderClinic(alerts) {
-  if (selected && !alerts.some(a => a.id === selected)) selected = null;
-  if (!selected && alerts.length) selected = alerts[0].id;
-  render('#c-alerts', { alerts, selected }, () => alerts.length ? alerts.map(a => `
-    <div class="alert-item ${a.id === selected ? 'sel' : ''}" data-alert="${a.id}">
-      <div class="row" style="justify-content:space-between"><span><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span> <b>${esc(a.title)}</b></span>
-        <span class="small muted">${time(a.created_at)}</span></div>
-      <div class="small" style="margin-top:4px">${esc(a.reason)}</div>
-      <div class="small muted" style="margin-top:4px">State: <b>${esc(a.state)}</b> · assigned to ${esc(a.assigned_to || '–')}${a.escalated ? ' · <b style="color:var(--urgentText)">ESCALATED to on-call</b>' : ''}${a.priority === 'urgent_review' ? ' · AI suggests urgent review' : ''}</div>
-    </div>`).join('') : '<div class="empty">No open alerts.</div>');
+let clinicContext = null;
+let clinicAlerts = [];
+const careStages = ['assigned', 'acknowledged', 'patient_contacted', 'action_taken', 'verified', 'resolved'];
+const stageLabels = ['Review', 'Contact', 'Care action', 'Follow-up', 'Close', 'Closed'];
+const stateLabel = state => ({ created:'Awaiting review', assigned:'Awaiting review', acknowledged:'Ready to contact', patient_contacted:'Care action needed', action_taken:'Follow-up required', verified:'Ready to close', resolved:'Closed' }[state] || state);
+function waitingSince(at) {
+  const minutes = Math.max(0, Math.floor((new Date(clinicContext?.now || Date.now()) - new Date(at)) / 60000));
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
+function renderClinic(alerts) {
+  clinicAlerts = alerts;
+  const followup = a => ['action_taken', 'verified'].includes(a.state);
+  const filter = $('#c-filter').value;
+  const ranked = alerts.filter(a => filter === 'all' || (filter === 'urgent' ? a.level === 'urgent' : filter === 'followup' ? followup(a) : !followup(a)))
+    .sort((a,b) => ({urgent:0,attention:1,info:2}[a.level] ?? 3) - ({urgent:0,attention:1,info:2}[b.level] ?? 3) || new Date(a.created_at) - new Date(b.created_at));
+  if (selected && !ranked.some(a => a.id === selected)) selected = null;
+  if (!selected && ranked.length) selected = ranked[0].id;
+  const stats = [
+    ['Patients on watch', new Set(alerts.map(a => a.patient_id)).size, 'With open cases', '♡', ''],
+    ['Urgent alerts', alerts.filter(a => a.level === 'urgent').length, 'Recorded safety priority', '!', 'var(--urgentText)'],
+    ['Awaiting care', alerts.filter(a => !followup(a)).length, 'Review, contact or action', '☷', ''],
+    ['Follow-up', alerts.filter(followup).length, 'Evidence or closure pending', '◷', ''],
+  ];
+  render('#c-stats', stats, () => stats.map(([label, count, hint, symbol, color]) => `<div class="clinic-stat"><div class="stat-top">${esc(label)}<span class="stat-symbol" aria-hidden="true">${symbol}</span></div><strong ${color ? `style="color:${color}"` : ''}>${count}</strong><span class="small muted">${esc(hint)}</span></div>`).join(''));
+  for (const button of document.querySelectorAll('[data-queue-filter]')) {
+    const active = button.dataset.queueFilter === filter;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+  const groups = Map.groupBy ? Map.groupBy(ranked, a => a.patient_id) : ranked.reduce((m,a) => m.set(a.patient_id, [...(m.get(a.patient_id) || []), a]), new Map());
+  render('#c-alerts', { ranked, selected, patient:clinicContext?.patient, now:clinicContext?.now }, () => ranked.length ? [...groups].map(([pid, cases]) => `<div class="small" style="margin:8px 0"><b>${esc(clinicContext?.patient?.id === pid ? clinicContext.patient.name : pid)}</b><div class="muted">${cases.length} open ${cases.length === 1 ? 'case' : 'cases'}</div></div>${cases.map(a => `
+    <button type="button" class="alert-item ${a.id === selected ? 'sel' : ''}" data-alert="${esc(a.id)}" aria-pressed="${a.id === selected}">
+      <span class="badge lvl-${esc(a.level)}">${esc(a.level.toUpperCase())}</span>
+      <div class="queue-case-title">${esc(a.title)}</div><div class="queue-reason">${esc(a.reason)}</div>
+      <div class="small muted" style="margin-top:6px">${esc(stateLabel(a.state))} · open ${waitingSince(a.created_at)}</div>
+      ${a.escalated ? '<div class="small" style="color:var(--urgentText);margin-top:4px">Escalated to on-call</div>' : ''}
+    </button>`).join('')}`).join('') : '<div class="empty">No cases in this view. Choose another review stage.</div>');
+}
+$('#c-filter').addEventListener('change', () => { renderClinic(clinicAlerts); renderDetail(); });
+document.addEventListener('click', e => {
+  const button = e.target.closest('[data-queue-filter]');
+  if (!button) return;
+  $('#c-filter').value = button.dataset.queueFilter;
+  renderClinic(clinicAlerts); renderDetail();
+});
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-alert]');
-  if (a) { selected = a.dataset.alert; poll(); }
+  if (a) { selected = a.dataset.alert; renderClinic(clinicAlerts); renderDetail(); }
 });
 
 async function renderDetail() {
-  if (!selected) { render('#c-detail', null, () => ''); return; }
-  const a = await api(`/alerts/${selected}`);
-  detailAlert = a;
+  if (!selected) { render('#c-detail', null, () => '<div class="card"><h3>No case selected</h3><p class="muted">Select an open case from the patient queue. Completed cases leave this queue after verified closure.</p></div>'); return; }
+  const caseId = selected;
+  const a = await api(`/alerts/${caseId}`);
+  if (selected !== caseId) return;
   if (verificationDrafts[a.id]) {
     const eligible = new Set(a.followup_observations.map(o => o.id));
     verificationDrafts[a.id].ids = verificationDrafts[a.id].ids.filter(id => eligible.has(id));
   }
   const inv = a.investigation_id ? await api(`/investigations/${a.investigation_id}`) : null;
+  if (selected !== caseId) return;
+  detailAlert = a;
   const formAct = activeClinicalForm?.alertId === a.id ? activeClinicalForm.act : null;
-  render('#c-detail', { a, inv, formAct }, () => {
+  render('#c-detail', { a, inv, formAct, patient:clinicContext?.patient, vitals:clinicContext?.vitals }, () => {
     const s = a.evidence_summary;
-    const acts = `<div class="row" style="flex-wrap:wrap;margin-top:10px">
-      <button class="btn primary" data-act="ack" ${a.ack_at ? 'disabled' : ''}>Acknowledge</button>
-      <button class="btn" data-act="contacted" ${a.state !== 'acknowledged' ? 'disabled' : ''}>Patient contacted</button>
-      <button class="btn" data-act="action" ${a.state !== 'patient_contacted' ? 'disabled' : ''}>Record clinician action…</button>
-      <button class="btn" data-act="resolve" ${a.state !== 'verified' ? 'disabled' : ''}>Resolve after verification…</button></div>`;
+    const next = !a.ack_at ? ['ack','Acknowledge and review'] : a.state === 'acknowledged' ? ['contacted','Record patient contact'] : a.state === 'patient_contacted' ? ['action','Record care action'] : a.state === 'verified' ? ['resolve','Close verified case'] : null;
+    const acts = next ? `<button class="btn primary" data-act="${next[0]}" style="margin-top:10px">${next[1]}</button>` : '<p class="small muted">Collect follow-up evidence and record your assessment below. The case remains open.</p>';
     const noteLabel = formAct === 'contacted' ? 'Contact note' : formAct === 'action' ? 'Clinician action' : 'Resolution reason';
     const noteForm = formAct ? `<div class="card" style="margin-top:10px"><label>${noteLabel} (fictional demo)<textarea data-clinical-note style="display:block;width:100%;margin-top:4px" placeholder="Enter a short demo note">${esc(clinicalNotes[a.id] || '')}</textarea></label><button class="btn primary" data-submit-act="${formAct}" style="margin-top:8px">Save ${formAct === 'contacted' ? 'contact record' : formAct === 'action' ? 'clinician action' : 'resolution'}</button><button class="btn" data-cancel-clinical>Cancel</button></div>` : '';
     const draft = verificationDrafts[a.id] || { summary: '', outcome: 'needs_review', ids: [] };
@@ -535,22 +775,22 @@ async function renderDetail() {
       <label>Outcome <select data-ver-field="outcome"><option value="needs_review" ${draft.outcome === 'needs_review' ? 'selected' : ''}>Further review required — keep open</option><option value="resolved" ${draft.outcome === 'resolved' ? 'selected' : ''}>Follow-up verified — may resolve</option></select></label>
       <button class="btn primary" data-verify style="margin-top:8px">Record verification</button></div>` : '';
     const verHistory = a.verifications.length ? `<div class="card"><div class="kicker">Verification history</div>${a.verifications.map(v => `<p>${esc(v.outcome)} · ${esc(v.summary)}<br><span class="oid">${esc(v.id)} · ${v.observation_ids.map(esc).join(', ')}</span></p>`).join('')}</div>` : '';
-    const hist = `<div class="small muted" style="margin-top:8px">${a.history.map(h => `${time(h.at)} ${esc(h.event)} (${esc(h.by)})`).join(' → ')}</div>`;
+    const hist = `<details><summary>Care history · ${a.history.length} events</summary>${a.history.map(h => `<div class="step small"><b>${esc(h.event.replaceAll('_',' '))}</b> · ${time(h.at)}<div class="muted">${esc(h.by)}${h.note ? ` · ${esc(h.note)}` : ''}</div></div>`).join('')}<div class="oid">Case ${esc(a.id)}</div></details>`;
     let ev = '';
     if (s) {
       const li = (xs, f) => xs.length ? `<ul>${xs.map(f).join('')}</ul>` : '<div class="small muted">none</div>';
-      ev = `<div class="card"><div class="row" style="justify-content:space-between"><span class="kicker">Evidence summary</span>
-        <span class="badge ${s.evidence_status === 'complete' ? '' : 'lvl-attention'}">${esc(s.evidence_status)} · ${esc(s.generated_by)}</span></div>
-        <div style="font-weight:800;margin-top:4px">${esc(s.what_changed)}</div>
+      ev = `<div class="card" style="margin-top:0"><div class="row" style="justify-content:space-between"><h3>Investigation summary</h3>
+        <span class="badge ${s.evidence_status === 'complete' ? '' : 'lvl-attention'}">${esc(s.evidence_status)} evidence</span></div>
+        <div class="kicker" style="margin-top:16px">What changed</div><p style="font-weight:700">${esc(s.what_changed)}</p>
+        <div class="sec" style="background:var(--readonly);margin-top:10px"><div class="kicker">Uncertainty · missing or conflicting evidence</div>${li(s.missing_or_conflicting, x => `<li>${esc(x)}</li>`)}</div>
         <div class="cols" style="margin-top:8px">
-          <div class="sec" style="background:var(--lavender)"><div class="kicker">Patient-reported</div>${li(s.patient_reported, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)}</span></li>`)}</div>
-          <div class="sec" style="background:var(--sky)"><div class="kicker">Device-measured <span class="sim">SIM</span></div>${li(s.device_measured, c => `<li>${esc(c.text)} <span class="oid">${esc(c.observation_id)} · ${esc(c.quality)}</span></li>`)}</div>
+          <div class="sec" style="background:var(--lavender)"><div class="kicker">Patient-reported</div>${li(s.patient_reported, c => `<li>${esc(c.text)}<details><summary class="small">Evidence source</summary><span class="oid">${esc(c.observation_id)}</span></details></li>`)}</div>
+          <div class="sec" style="background:var(--sky)"><div class="kicker">Device readings</div>${li(s.device_measured, c => `<li>${esc(c.text)}<details><summary class="small">Evidence source and quality</summary><span class="oid">${esc(c.observation_id)} · ${esc(c.quality)}</span></details></li>`)}</div>
         </div>
         <div class="sec" style="background:var(--amber);margin-top:10px"><div class="kicker">AI interpretation · clinician review required</div><div>${esc(s.ai_interpretation)}</div></div>
         ${s.evidence_review?.status ? `<div class="sec" style="margin-top:10px"><div class="kicker">Independent evidence review · ${esc(s.evidence_review.status)}</div><p>Cited facts above are rendered from stored values. ${esc(s.evidence_review.interpretation_status)}</p>${li(s.evidence_review.issues || [], x => `<li>${esc(x)}</li>`)}</div>` : ''}
-        <div class="sec" style="background:var(--readonly);margin-top:10px"><div class="kicker">Missing or conflicting</div>${li(s.missing_or_conflicting, x => `<li>${esc(x)}</li>`)}</div>
         <div class="sec" style="margin-top:10px"><div class="kicker">Handover</div><div>${esc(s.messages.clinician)}</div>
-          <div class="small muted" style="margin-top:4px">To Sarah: “${esc(s.messages.patient)}” · To Ahmed: “${esc(s.messages.caregiver)}”</div></div></div>`;
+          <details><summary class="small">Patient and family messages</summary><div class="small muted">Patient: “${esc(s.messages.patient)}”<br>Family: “${esc(s.messages.caregiver)}”</div></details></div><div class="small muted" style="margin-top:12px">${esc(s.generated_by)} report · AI interpretation requires clinician assessment.</div></div>`;
     }
     let steps = '';
     if (inv) {
@@ -564,8 +804,17 @@ async function renderDetail() {
         return `<div class="step">${time(st.at)} ${txt}</div>`;
       }).join('')}</div></div>`;
     }
-    return `<div class="card"><div class="row" style="justify-content:space-between"><span class="badge lvl-${a.level}">${a.level.toUpperCase()}</span><span class="small muted">${esc(a.id)}</span></div>
-      <h3 style="margin-top:6px">${esc(a.title)}</h3><div class="small">${esc(a.reason)}</div>${acts}${noteForm}${hist}</div>${coordination}${verification}${verHistory}${ev}${steps}`;
+    const p = clinicContext?.patient;
+    const readings = `<div class="reading-strip" aria-label="Latest device readings">${[['hr','Heart rate','bpm'],['temp','Temperature','°C'],['spo2','Oxygen saturation','%']].map(([key,label,unit]) => {
+      const reading = clinicContext?.vitals?.[key] || {};
+      const source = (reading.series || []).find(o => o.observation_id === reading.observation_id);
+      return `<div class="reading-mini"><div class="kicker">${label}</div><div class="reading-value">${esc(reading.value?.value ?? '—')}<span>${unit}</span></div><div class="reading-time">${reading.at ? time(reading.at) : 'No current reading'}${source?.simulated ? ' · simulated' : ''}</div>${reading.status && reading.status !== 'ok' ? `<div class="reading-quality">${esc(reading.reason || reading.status)}</div>` : ''}</div>`;
+    }).join('')}</div>`;
+    const stage = Math.max(0, careStages.indexOf(a.state));
+    const progress = `<ol class="care-progress" aria-label="Care progress">${stageLabels.map((label,i) => `<li data-step="${i+1}" class="${i < stage ? 'complete' : i === stage ? 'current' : ''}" ${i === stage ? 'aria-current="step"' : ''}>${label}</li>`).join('')}</ol>`;
+    return `<div class="card case-heading"><div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><div class="patient-heading-row"><div class="avatar" aria-hidden="true">${esc((p?.name || a.patient_id).split(' ').map(n => n[0]).slice(0,2).join(''))}</div><div><div class="kicker">Recovery episode</div><h3>${esc(p?.name || a.patient_id)}</h3><div class="muted">${esc(p?.surgery || 'Recovery episode')}</div></div></div><span class="badge lvl-${esc(a.level)}">${esc(a.level.toUpperCase())}</span></div><div class="patient-meta">${p?.day != null ? `<span>Recovery <b>Day ${esc(p.day)}</b></span>` : ''}<span>Stage <b>${esc(stateLabel(a.state))}</b></span>${a.escalated ? '<span style="color:var(--reviewText)">Escalated to on-call</span>' : ''}</div>${!s ? `<p>${esc(a.reason)}</p>` : ''}${a.priority === 'urgent_review' ? '<p class="small">AI suggests urgent review · recorded alert level is unchanged.</p>' : ''}</div><div class="kicker" style="margin:0 0 8px">Latest device readings · separate from report evidence</div>${readings}
+      <div class="clinic-detail-grid"><div>${ev || '<div class="card" style="margin-top:0"><h3>Investigation summary</h3><p>No investigation report is attached to this alert. Review the alert reason and available patient context.</p></div>'}<details class="card"><summary>Investigation workflow and technical trace</summary>${steps || '<p>No investigation trace attached.</p>'}</details></div>
+      <aside aria-label="Care and follow-up"><div class="card" style="margin-top:0"><div class="kicker">Care and follow-up</div><h3 style="margin-top:8px">${esc(stateLabel(a.state))}</h3>${acts}${noteForm}${progress}<p class="small muted">${a.escalated ? 'On-call escalation recorded' : 'Assigned to ' + esc(a.assigned_to || 'care team')}. Acknowledgement records receipt; closure requires verified follow-up.</p>${hist}</div>${coordination}${verification}${verHistory}</aside></div>`;
   });
 }
 document.addEventListener('click', async e => {
@@ -698,9 +947,11 @@ async function poll() {
     renderPatient(today, twin);
     render('#p-wound', wound, renderWound);
     renderFamily(famAlerts, tasks, famTwin);
+    clinicContext = { ...today, vitals: twin.vitals };
     renderClinic(clinAlerts);
     await renderDetail();
-  } catch (err) { $('#health').textContent = 'Backend unreachable: ' + err.message; }
+    $('#c-sync').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  } catch (err) { $('#health').textContent = 'Backend unreachable: ' + err.message; $('#c-sync').textContent = 'Connection lost · displayed data may be out of date'; }
   finally { polling = false; }
 }
 drawChips(); drawChat(); health(); poll(); loadDigest(false); loadDocs();

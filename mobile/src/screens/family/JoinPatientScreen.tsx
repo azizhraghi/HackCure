@@ -10,12 +10,14 @@ import { useT } from '../../i18n';
 import { ApiError, type FollowedPatient } from '../../services/backend';
 import { useTheme } from '../../theme/ThemeContext';
 import { Corners } from '../patient/WoundScanScreen';
+import { useFamilyCopy } from './familyCopy';
 
 export function JoinPatientScreen() {
   const { c } = useTheme();
   const { t, list } = useT();
   const api = useApi();
-  const { session, completeOnboarding, resetRole } = useAppState();
+  const { session, demo, completeOnboarding, resetRole } = useAppState();
+  const copy = useFamilyCopy();
   const relations = list('join.relations');
   const [relation, setRelation] = useState(relations[0]!);
   const [code, setCode] = useState('');
@@ -57,6 +59,8 @@ export function JoinPatientScreen() {
       setScanning(false);
     }
   };
+
+  if (demo) return <Screen><TopBar title={copy.space} onBack={resetRole} /><PageTitle>{copy.demo}</PageTitle><Muted>{copy.demoIntro}</Muted><Button onPress={completeOnboarding} style={{marginTop:20}}>{copy.openDemo} →</Button></Screen>;
 
   const wrong = !!error;
 
