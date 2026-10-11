@@ -91,23 +91,32 @@ def predict(data: bytes, heatmap_for: str | None = "erythema") -> dict:
     bundle = load_heads()
     im = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
     x, patches = embed([im], with_patches=True, encoder=bundle.get("encoder"))
+    ood = bundle.get("ood")
+    familiar, distance = True, None
+    if ood is not None:
+        u = x[0] / np.linalg.norm(x[0])
+        sims = ood["reference"].astype(np.float32) @ u
+        distance = float(1 - np.sort(sims)[-ood["k"]:].mean())
+        familiar = distance <= ood["threshold"]
     out = {}
     for name, h in bundle["heads"].items():
         p = float(h["model"].predict_proba(h["scaler"].transform(x))[0, 1])
         thr, band = h["threshold"], h["band"]
-        decision = "uncertain" if abs(p - thr) < band else ("yes" if p >= thr else "no")
+        decision = "uncertain" if (not familiar or abs(p - thr) < band) else ("yes" if p >= thr else "no")
         pos, neg = HEADS[name]
         out[name] = {"probability": round(p, 3), "threshold": round(thr, 3), "decision": decision,
                      "text": pos if decision == "yes" else neg if decision == "no" else f"uncertain: {pos}?",
                      "test_auroc": h["metrics"]["test"]["auroc"], "test_sensitivity": h["metrics"]["test"]["sensitivity"],
                      "test_specificity": h["metrics"]["test"]["specificity"]}
-    result = {"version": bundle["version"], "encoder": bundle.get("encoder", ENCODER), "trained_on": bundle["dataset"], "attributes": out}
-    if heatmap_for and heatmap_for in bundle["heads"]:
+    result = {"in_distribution": familiar, "ood_distance": None if distance is None else round(distance, 4),
+              "ood_threshold": None if ood is None else round(ood["threshold"], 4),
+              "version": bundle["version"], "encoder": bundle.get("encoder", ENCODER), "trained_on": bundle["dataset"], "attributes": out}
+    if heatmap_for and heatmap_for in bundle["heads"] and familiar:
         result["_heatmap"] = _heatmap(bundle["heads"][heatmap_for], im, bundle.get("encoder"))
     return result
 
 
-def _heatmap(head: dict, im, encoder: str | None, grid: int = 7) -> np.ndarray:
+def _heatmap(head: dict, im, encoder: str | None, grid: int = 5) -> np.ndarray:
     """Occlusion sensitivity: grey out each cell of a grid and measure how much the head's score DROPS.
     Model-agnostic and faithful to the full head (CLS + patches), unlike raw patch-token attributions."""
     import torch

@@ -43,6 +43,7 @@ POS = {
                      {"Home Care (Green): Manage with routine care"}),
 }
 TARGET_SENSITIVITY = 0.85
+OOD_K = 5
 CS = [0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
 RNG = np.random.default_rng(0)
 
@@ -163,14 +164,28 @@ def main(prep: Path) -> None:
         print(f"{name:14s} CV AUROC {best_auc:.3f} | TEST AUROC {test['auroc']} {test['auroc_95ci']} "
               f"sens {test['sensitivity']} spec {test['specificity']} abstain {test['abstained_pct']}% (n={test['n']}, +{test['positives']})",
               flush=True)
-    bundle = {"version": "wound-attr-0.2", "encoder": encoder, "encoder_cv_auroc": encoder_scores, "trained_at": datetime.now(timezone.utc).isoformat(),
+    # Out-of-distribution gate: distance to the 5 nearest training photos (cosine, encoder space). A new photo farther
+    # than 97.5 % of the training photos are from their own neighbours is "unfamiliar": the model abstains on it.
+    trv = x[split != "test"]
+    unit = trv / np.linalg.norm(trv, axis=1, keepdims=True)
+    sims = unit @ unit.T
+    np.fill_diagonal(sims, -1)
+    knn = 1 - np.sort(sims, axis=1)[:, -OOD_K:].mean(1)
+    ood_thr = float(np.percentile(knn, 97.5))
+    te_unit = x[split == "test"] / np.linalg.norm(x[split == "test"], axis=1, keepdims=True)
+    te_knn = 1 - np.sort(te_unit @ unit.T, axis=1)[:, -OOD_K:].mean(1)
+    ood = {"k": OOD_K, "threshold": ood_thr, "reference": unit.astype(np.float16),
+           "test_flagged_pct": round(float((te_knn > ood_thr).mean() * 100), 1)}
+    print(f"OOD gate: threshold {ood_thr:.4f}, test photos flagged {ood['test_flagged_pct']}%", flush=True)
+    bundle = {"version": "wound-attr-0.3", "encoder": encoder, "encoder_cv_auroc": encoder_scores, "ood": ood, "trained_at": datetime.now(timezone.utc).isoformat(),
               "dataset": "SurgWound (Hugging Face Sonulee/SurgWound, CC BY-SA 4.0; surgeon labels, OSU Wexner)",
               "heads": heads}
     out = ROOT / "models"
     out.mkdir(exist_ok=True)
     import joblib
     joblib.dump(bundle, out / "wound_heads.joblib", compress=3)
-    (out / "wound_model_metrics.json").write_text(json.dumps({k: v for k, v in bundle.items() if k != "heads"} | {"heads": metrics},
+    public = {k: v for k, v in bundle.items() if k not in ("heads", "ood")} | {"ood": {k: v for k, v in ood.items() if k != "reference"}}
+    (out / "wound_model_metrics.json").write_text(json.dumps(public | {"heads": metrics},
                                                              indent=1), encoding="utf-8")
     print("saved", out / "wound_heads.joblib")
 

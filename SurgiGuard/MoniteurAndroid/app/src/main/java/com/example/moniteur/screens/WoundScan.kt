@@ -123,7 +123,7 @@ fun WoundScanScreen() {
                 val r = app.api.uploadWoundPhoto(out.toByteArray(), confirmed)
                 result = r
                 // L'analyse par le code est immédiate ; la lecture par l'IA arrive ensuite : on recharge quelques fois
-                repeat(15) {
+                repeat(40) {  // the trained model + evidence map take ~10-20 s on the server CPU
                     val d1 = result?.optJSONObject("d1")
                     if (overlay == null && d1 != null && !d1.isNull("overlay_url")) {
                         overlay = app.api.woundMedia(d1.getString("overlay_url"))?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
@@ -255,6 +255,7 @@ fun WoundScanScreen() {
                 val attrs = md?.optJSONObject("attributes")
                 if (md?.optBoolean("available") == true && attrs != null) {
                     T(t("scan.modelTitle"), Modifier.padding(top = 10.dp), size = 9f, w = 800)
+                    if (!md.optBoolean("in_distribution", true)) T(t("scan.modelUnfamiliar"), size = 8.5f, color = c.reviewText)
                     val shown = md.optJSONArray("patient_attributes")
                     for (i in 0 until (shown?.length() ?: 0)) {
                         val a = attrs.optJSONObject(shown!!.getString(i)) ?: continue

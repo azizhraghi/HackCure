@@ -28,9 +28,9 @@ export function WoundAnalysis({ apiUrl, photo }: { apiUrl: string; photo: WoundP
         const next = await getWoundPhoto(apiUrl, photo.observation_id);
         if (!alive) return;
         setP(next);
-        if (next.vision_review || tries > 20) clearInterval(id);
+        if (next.vision_review || tries > 40) clearInterval(id);
       } catch {
-        if (tries > 20) clearInterval(id);
+        if (tries > 40) clearInterval(id);
       }
     }, 2000);
     return () => { alive = false; clearInterval(id); };
@@ -62,6 +62,7 @@ export function WoundAnalysis({ apiUrl, photo }: { apiUrl: string; photo: WoundP
       {p.model?.available && p.model.attributes && (
         <View style={{ marginTop: 8 }}>
           <T size={8.5} w={800}>{t('scan.modelTitle')}</T>
+          {p.model.in_distribution === false && <T size={8.5} color={c.reviewText}>{t('scan.modelUnfamiliar')}</T>}
           {(p.model.patient_attributes ?? []).filter(k => p.model?.attributes?.[k]).map(k => {
             const a = p.model!.attributes![k];
             return <T key={k} size={8.5} color={a.decision === 'yes' ? c.reviewText : undefined}>• {a.text}</T>;

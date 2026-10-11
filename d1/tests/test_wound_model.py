@@ -42,3 +42,20 @@ def test_predicts_every_attribute_with_a_decision_and_an_evidence_map():
     grid = res["_heatmap"]
     assert grid.ndim == 2 and grid.shape[0] == grid.shape[1]
     assert wm.heatmap_overlay((PHOTOS / "day1.jpg").read_bytes(), grid)[:2] == b"\xff\xd8"
+
+
+@needs_model
+def test_unfamiliar_photo_makes_the_model_abstain():
+    import io
+
+    import numpy as np
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.fromarray((np.random.default_rng(0).random((300, 300, 3)) * 255).astype("uint8")).save(buf, "JPEG")
+    try:
+        res = wm.predict(buf.getvalue(), heatmap_for=None)
+    except OSError as e:
+        pytest.skip(str(e))
+    assert res["in_distribution"] is False
+    assert all(a["decision"] == "uncertain" for a in res["attributes"].values())
+    assert wm.predict((PHOTOS / "day3.jpg").read_bytes(), heatmap_for=None)["in_distribution"] is True

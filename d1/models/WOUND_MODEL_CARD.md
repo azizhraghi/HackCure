@@ -31,6 +31,11 @@ Why this design: 549 labelled photos are too few to fine-tune a large network wi
 pre-trained encoder + linear heads is the standard, reproducible approach for small medical datasets, trains on a laptop,
 and stays explainable.
 
+5. **Unfamiliar-photo gate** (out-of-distribution): cosine distance from the new photo to its 5 nearest training photos
+   in encoder space; above the 97.5th percentile of the training photos' own distances, the model abstains on every
+   attribute. On the untouched test split it flags 2.2 % of photos. Found necessary in practice: close-up phone photos
+   with dark backgrounds otherwise produced confident answers.
+
 ## Results on the untouched test split
 | Attribute | Test n (positives) | AUROC [95 % CI, bootstrap] | CV AUROC | Sens / Spec (all photos) | Sens / Spec (after abstaining) | Abstained |
 |---|---|---|---|---|---|---|

@@ -1,12 +1,17 @@
 {
- "version": "wound-attr-0.2",
+ "version": "wound-attr-0.3",
  "encoder": "openai/clip-vit-base-patch16",
  "encoder_cv_auroc": {
   "facebook/dinov2-small": 0.75,
   "openai/clip-vit-base-patch16": 0.817
  },
- "trained_at": "2026-10-11T04:09:42.430027+00:00",
+ "trained_at": "2026-10-11T05:00:52.950922+00:00",
  "dataset": "SurgWound (Hugging Face Sonulee/SurgWound, CC BY-SA 4.0; surgeon labels, OSU Wexner)",
+ "ood": {
+  "k": 5,
+  "threshold": 0.16946613788604736,
+  "test_flagged_pct": 2.2
+ },
  "heads": {
   "erythema": {
    "label_column": "erythema",

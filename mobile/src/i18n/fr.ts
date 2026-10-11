@@ -129,6 +129,7 @@ const fr: Dict = {
     disclaimer: 'Mesuré par le code (rougeur comparée à la peau autour). Le cadrage et la lumière changent les chiffres. Pas un diagnostic.',
     analyse: 'Analyser cette photo', outsideWindow: 'Hors changement prévu : la photo sera notée comme prise lors de votre propre changement de pansement.',
     modelTitle: 'Ce que voit le modèle entraîné', modelNote: 'Modèle entraîné sur des photos de plaies chirurgicales annotées par des chirurgiens. Pour votre équipe soignante, pas un diagnostic.',
+    modelUnfamiliar: 'Cette photo ne ressemble pas aux photos de plaies sur lesquelles le modèle a appris (cadrage, lumière, distance) : il s’abstient. Votre équipe soignante regardera la photo.',
     d1Title: 'CE QUI A ÉTÉ ANALYSÉ', d1Outlined: 'Entourée : la zone mesurée par le code. Vérifiez qu’elle couvre votre plaie.',
     d1NotFound: 'Aucune zone de plaie trouvée', d1Quality: 'Photo', d1Reference: 'Première photo : elle devient votre référence',
     d1Ai: 'Description par l’IA', d1AiPending: 'L’IA regarde la photo…', d1AiNothing: 'Rien de particulier décrit.',

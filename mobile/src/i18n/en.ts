@@ -127,6 +127,7 @@ const en = {
     disclaimer: 'Measured by code (redness compared with the skin around it). Framing and light change the numbers. Not a diagnosis.',
     analyse: 'Analyse this photo', outsideWindow: 'Not a planned dressing change: the photo will be marked as taken at your own dressing change.',
     modelTitle: 'What the trained model sees', modelNote: 'Model trained on surgical-wound photos labelled by surgeons. For your care team, not a diagnosis.',
+    modelUnfamiliar: 'This photo does not look like the wound photos the model learned from (framing, light, distance): it abstains. Your care team will look at the photo.',
     d1Title: 'WHAT WAS ANALYSED', d1Outlined: 'Outlined: the area the code measured. Check it covers your wound.',
     d1NotFound: 'No wound region found', d1Quality: 'Photo', d1Reference: 'First photo: it becomes your reference',
     d1Ai: 'AI description', d1AiPending: 'The AI is looking at the photo…', d1AiNothing: 'Nothing specific described.',

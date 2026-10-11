@@ -366,6 +366,7 @@ function renderWoundModel(md) {
       <td><span class="badge" style="background:${col(a.decision)}">${esc(a.decision)}</span></td>
       <td>${Math.round(a.probability * 100)}% <span class="muted">/ thr ${Math.round(a.threshold * 100)}%</span></td><td class="muted">AUROC ${a.test_auroc} · sens ${a.test_sensitivity} · spec ${a.test_specificity}</td></tr>`).join('');
   return `<div class="small" style="margin-top:8px"><b>Model reading</b> <span class="badge" style="background:var(--readonly)">${esc(md.version)} · ${esc((md.encoder || '').split('/').pop())} + linear heads · SurgWound</span>
+    ${md.in_distribution === false ? `<div class="small" style="color:var(--reviewText)">Unfamiliar photo (distance ${md.ood_distance} > ${md.ood_threshold} to the training photos): the model abstains on every attribute.</div>` : ''}
     <div class="row" style="gap:8px;align-items:flex-start;margin-top:4px">
       <table class="small" style="flex:1"><tr class="muted"><td>Attribute (surgeon labels)</td><td>Decision</td><td>p / threshold</td><td>Held-out test</td></tr>${rows}</table>
       ${md.evidence_map_url ? `<figure style="margin:0;width:34%"><img src="${esc(md.evidence_map_url)}" alt="where the redness evidence came from" style="width:100%;border-radius:8px;border:1px solid var(--ink)"><figcaption class="muted">Evidence map: redness</figcaption></figure>` : ''}

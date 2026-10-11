@@ -116,6 +116,7 @@ export type WoundVision = {
 /** Learned model (SurgWound surgeon labels): yes / no / uncertain per visible attribute, with test metrics. */
 export type WoundModel = {
   available: boolean; reason?: string; version?: string; evidence_map_url?: string | null; patient_attributes?: string[];
+  in_distribution?: boolean;
   attributes?: Record<string, { probability: number; decision: 'yes' | 'no' | 'uncertain'; text: string; test_auroc: number }>;
 };
 

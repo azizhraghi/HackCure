@@ -106,7 +106,8 @@ def model_reading(repo: Repo, obs: m.Observation, data: bytes) -> dict:
         out = {"available": False, "reason": "photo quality too low: the model abstains"}
     else:
         try:
-            res = wm.predict(data, heatmap_for="erythema")
+            # One forward pass (<1 s on CPU). The occlusion evidence map costs ~25 more: opt-in for demos.
+            res = wm.predict(data, heatmap_for="erythema" if os.getenv("WOUND_EVIDENCE_MAP", "off").lower() == "on" else None)
             grid = res.pop("_heatmap", None)
             heat_url = None
             if grid is not None:
