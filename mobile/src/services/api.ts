@@ -232,7 +232,17 @@ export const getExpectedRecovery = (apiUrl: string) => call<ExpectedRecovery>(ap
 // ---------------------------------------------------------------- caregiver
 
 export type CaregiverTask = { id: string; text: string; category: string; status: string };
-export type Digest = { digest: { text: string; created_at: string }; tasks: CaregiverTask[] };
+export type Digest = { digest: { text: string; created_at: string }; tasks: CaregiverTask[]; shared_categories: string[] };
+export type CaregiverTwin = {
+  day: number; hidden_categories: string[];
+  vitals?: Record<string, { value: { value?: number } | null; status: string; reason?: string; at?: string;
+    observation_id?: string; series?: { observation_id: string; simulated: boolean }[] }>;
+  checkins?: { latest: { at: string; scores_1_to_5: Record<string, number> } | null; status: string };
+  medications?: { last_48h: Record<string, number> };
+  wound?: { photos: { observation_id: string; at: string }[]; status: string };
+};
+export const getCaregiverTwin = (apiUrl: string) => call<CaregiverTwin>(apiUrl,
+  `/patients/${PATIENT_ID}/twin?role=caregiver&member_id=${CAREGIVER_ID}`);
 export type AlertSummary = { id: string; level: 'info' | 'attention' | 'urgent'; state: string; title: string; created_at: string };
 
 export const getDigest = (apiUrl: string, refresh = false) =>

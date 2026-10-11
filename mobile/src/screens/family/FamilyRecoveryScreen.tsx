@@ -1,75 +1,31 @@
 import React from 'react';
 import { View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { ScoreRing, TrajectoryChart } from '../../components/charts';
-import { BodyFigure } from '../../components/figures';
-import { Icon } from '../../components/Icon';
 import { T } from '../../components/T';
-import { Card, Chip, IconBadge, PageTitle, Screen, SectionRow, TopBar } from '../../components/ui';
-import { patient } from '../../data/mock';
+import { Screen } from '../../components/ui';
 import { useT } from '../../i18n';
+import { getCaregiverTwin, getDigest, usePoll } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import { CaregiverBanner } from './FamilyHomeScreen';
+import { FamilyCard, FamilyHeading, FamilyLoad, FamilyReadings, FamilySharing } from './FamilyShared';
+import { useFamilyCopy } from './familyCopy';
 
 export function FamilyRecoveryScreen() {
-  const { c } = useTheme();
-  const { t } = useT();
-  const milestones: [string, string, boolean][] = [
-    [t('reports.ms1'), t('reports.ms1s'), true], [t('reports.ms2'), t('reports.ms2s'), false], [t('reports.ms3'), t('reports.ms3s'), false],
-  ];
-  return (
-    <Screen>
-      <CaregiverBanner />
-      <TopBar title={t('famRecovery.top')} back={false} />
-      <PageTitle size={26} style={{ marginTop: 0 }}>{t('famRecovery.title')}</PageTitle>
-      <Chip tone="lavender" style={{ marginBottom: 10 }}>{t('famRecovery.shared')}</Chip>
-
-      <Card radius={20} style={{ height: 116, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <ScoreRing value={patient.score} label={t('famRecovery.score')} />
-        <View style={{ flex: 1 }}>
-          <T size={10} w={800}>{t('famRecovery.onTrack')}</T>
-          <T size={7} color={c.muted} style={{ marginTop: 3 }}>{t('fam.surgery')}</T>
-        </View>
-      </Card>
-
-      <SectionRow title={t('famRecovery.twin')} />
-      <LinearGradient colors={['#f8fcff', '#dbeef9', '#e6def8']} style={{ height: 200, borderWidth: 1.5, borderColor: c.ink, borderRadius: 22, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' }}>
-        <View style={{ width: 120, alignItems: 'center' }}><BodyFigure width={92} height={190} /></View>
-        <View style={{ flex: 1, paddingRight: 12, gap: 8 }}>
-          <Chip tone="green">{t('common.onTrack')} ✓</Chip>
-          <T size={11} w={800} color="#1b2a4a">{t('famRecovery.twinSub')}</T>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Icon name="camera" size={13} color="#64718a" />
-            <T size={7} color="#64718a" style={{ flex: 1 }}>{t('famRecovery.hidden')}</T>
-          </View>
-        </View>
-      </LinearGradient>
-
-      <Card bg={c.green} radius={18} style={{ marginTop: 10, padding: 11 }}>
-        <T size={6.5} w={800}>{t('twin.expVsActual')}</T>
-        <TrajectoryChart height={80} />
-      </Card>
-
-      <SectionRow title={t('famRecovery.milestones')} />
-      <Card radius={17}>
-        {milestones.map(([title, sub, done], i) => (
-          <View key={title} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 11, borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: c.line }}>
-            <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.2, borderColor: c.ink, backgroundColor: done ? c.green : c.surface, alignItems: 'center', justifyContent: 'center' }}>
-              {done ? <Icon name="check" size={14} /> : <T size={7} w={800}>{i + 1}</T>}
-            </View>
-            <View style={{ flex: 1 }}><T size={9} w={800}>{title}</T><T size={7} color={c.muted} style={{ marginTop: 2 }}>{sub}</T></View>
-          </View>
-        ))}
-      </Card>
-
-      <SectionRow title={t('famRecovery.appts')} />
-      {[[t('reports.a1'), t('reports.a1d'), c.lavender], [t('reports.a3'), t('reports.a3d'), c.sky]].map(([title, date, bg]) => (
-        <Card key={title} bg={bg} radius={16} style={{ padding: 10, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <IconBadge icon="calendar" bg={c.surface} size={30} />
-          <T size={9.5} w={800} style={{ flex: 1 }}>{title}</T>
-          <T size={8} w={800}>{date}</T>
-        </Card>
-      ))}
-    </Screen>
-  );
+  const { c } = useTheme(); const copy = useFamilyCopy(); const { t } = useT();
+  const twin = usePoll(getCaregiverTwin,4000); const digest = usePoll(getDigest,30000);
+  const checkin = twin.data?.checkins;
+  return <Screen bg={c.bg}><CaregiverBanner />
+    <T size={26} w={800} spacing={-1} style={{marginTop:12}}>{copy.recovery}</T>
+    <T size={11} color={c.muted} lh={1.6} style={{marginTop:9}}>{copy.recoverySub}</T>
+    {!twin.data ? <FamilyLoad online={twin.online} retry={twin.refresh} /> : <>
+      <FamilyReadings twin={twin.data} />
+      {checkin && <FamilyCard bg={c.mint}><FamilyHeading title={copy.checkin} sub={copy.score} icon="checkin" />
+        {checkin.latest ? <><View style={{flexDirection:'row',gap:8}}>{Object.entries(checkin.latest.scores_1_to_5).map(([key,value]) => <View key={key} style={{flex:1,backgroundColor:c.bg,padding:10,borderRadius:10}}><T size={9} color={c.muted}>{t(`checkin.${key}`)}</T><T size={23} w={800} style={{marginTop:8}}>{value}<T size={10}>/5</T></T></View>)}</View><T size={9} color={c.muted} style={{marginTop:12}}>{new Date(checkin.latest.at).toLocaleString()}</T>{checkin.status !== 'ok' && <T size={10} color={c.reviewText} style={{marginTop:8}}>{copy.noCheckin}</T>}</> : <T size={11} color={c.muted}>{copy.noCheckin}</T>}
+      </FamilyCard>}
+      {twin.data.medications && <FamilyCard bg={c.yellow}><FamilyHeading title={copy.medication} sub={copy.medicationSub} icon="pill" />
+        {([['taken',copy.taken],['not_taken',copy.notTaken],['postponed',copy.postponed],['unknown',copy.unanswered]] as const).map(([key,label]) => <View key={key} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:9,borderTopWidth:1,borderTopColor:c.line}}><T size={11} color={c.muted}>{label}</T><T size={12} w={800}>{twin.data?.medications?.last_48h[key] ?? 0}</T></View>)}
+      </FamilyCard>}
+      {twin.data.wound && <FamilyCard bg={c.lilacBg}><FamilyHeading title={copy.photos} sub={copy.photosSub} icon="camera" /><T size={12} w={700}>{twin.data.wound.photos.length ? `${twin.data.wound.photos.length} · ${copy.photosCount}`:copy.noPhotos}</T>{twin.data.wound.photos[0] && <T size={10} color={c.muted} style={{marginTop:9}}>{new Date(twin.data.wound.photos[0].at).toLocaleString()}</T>}</FamilyCard>}
+    </>}
+    {digest.data && <FamilySharing categories={digest.data.shared_categories} />}
+  </Screen>;
 }
