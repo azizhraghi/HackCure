@@ -85,3 +85,31 @@ def test_wound_status_and_detail_endpoints(client, repo):
     assert r["d1"]["segmentation"]["found"]
     r2 = client.post(f"/patients/sarah/wound-photos/{obs.id}/review").json()
     assert r2["vision_review"]["available"]
+
+
+def test_trained_model_reading_is_attached_or_explains_why_not(repo, monkeypatch):
+    monkeypatch.setenv("WOUND_MODEL", "on")
+    obs = _dressing_photo(repo)
+    md = obs.value.get("model") or repo.get(m.Observation, obs.id).value.get("model")
+    assert md is not None
+    if md["available"]:
+        assert set(md["attributes"]) >= {"erythema", "edema", "exudate", "elevated_risk", "needs_review"}
+        assert md["evidence_map_url"].startswith("/uploads/") and "SurgWound" in md["trained_on"]
+        assert set(md["patient_attributes"]).isdisjoint({"elevated_risk", "needs_review"})  # ratings stay with clinicians
+    else:
+        assert md["reason"]
+
+
+def test_model_can_add_a_review_reason_but_never_remove_one(repo):
+    obs = _dressing_photo(repo)
+    yes = {"probability": 0.9, "decision": "yes", "text": "visible fluid or discharge (exudate)", "test_auroc": 0.8}
+    no = {**yes, "decision": "no", "probability": 0.05}
+    obs.value = {**obs.value, "model": {"available": True, "attributes": {"exudate": yes, "elevated_risk": no, "needs_review": no}}}
+    repo.add(obs)
+    assert d1_wound.decide(repo, obs) is not None
+    obs2 = _dressing_photo(repo) if False else obs
+    obs2.value = {**obs2.value, "review_alert_id": None, "model": {"available": True, "attributes": {"exudate": no}},
+                  "d1": {**obs2.value["d1"], "comparison": {"available": True, "trend": "more_red", "summary": "redder",
+                                                             "redness_change_delta_a": 8, "redness_spread_change": 5, "area_change_pct": 0}}}
+    repo.add(obs2)
+    assert d1_wound.decide(repo, obs2) is not None  # a "no" from the model does not cancel the code's reason

@@ -251,6 +251,17 @@ fun WoundScanScreen() {
                     T("⚠ " + (0 until problems.length()).joinToString(" · ") { problems.getString(it) } + ": " + t("scan.retakeHint"),
                         Modifier.padding(top = 6.dp), size = 8.5f, w = 700, color = c.reviewText)
                 }
+                val md = r.optJSONObject("model")
+                val attrs = md?.optJSONObject("attributes")
+                if (md?.optBoolean("available") == true && attrs != null) {
+                    T(t("scan.modelTitle"), Modifier.padding(top = 10.dp), size = 9f, w = 800)
+                    val shown = md.optJSONArray("patient_attributes")
+                    for (i in 0 until (shown?.length() ?: 0)) {
+                        val a = attrs.optJSONObject(shown!!.getString(i)) ?: continue
+                        T("• " + a.optString("text"), size = 8.5f, color = if (a.optString("decision") == "yes") c.reviewText else c.text)
+                    }
+                    T(t("scan.modelNote"), Modifier.padding(top = 2.dp), size = 7.5f, color = c.muted)
+                }
                 T(t("scan.d1Ai"), Modifier.padding(top = 10.dp), size = 9f, w = 800)
                 val v = r.optJSONObject("vision_review")
                 when {

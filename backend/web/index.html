@@ -356,6 +356,22 @@ function renderWound(w) {
 }
 
 // ---------------------------------------------------------------- clinic: wound photo series (D1-F: code + vision reading)
+function renderWoundModel(md) {
+  if (!md) return '<div class="small muted" style="margin-top:6px">Model reading: pending…</div>';
+  if (!md.available) return `<div class="small muted" style="margin-top:6px">Model reading unavailable: ${esc(md.reason)}</div>`;
+  const names = { erythema: 'Redness (erythema)', edema: 'Swelling (edema)', exudate: 'Discharge (exudate)', not_healed: 'Not yet healed',
+                  elevated_risk: 'Infection-risk rating medium/high', needs_review: 'Professional review advised' };
+  const col = d => d === 'yes' ? 'var(--review)' : d === 'uncertain' ? 'var(--peach)' : 'var(--green)';
+  const rows = Object.entries(md.attributes).map(([k, a]) => `<tr><td>${esc(names[k] || k)}</td>
+      <td><span class="badge" style="background:${col(a.decision)}">${esc(a.decision)}</span></td>
+      <td>${Math.round(a.probability * 100)}% <span class="muted">/ thr ${Math.round(a.threshold * 100)}%</span></td><td class="muted">AUROC ${a.test_auroc} · sens ${a.test_sensitivity} · spec ${a.test_specificity}</td></tr>`).join('');
+  return `<div class="small" style="margin-top:8px"><b>Model reading</b> <span class="badge" style="background:var(--readonly)">${esc(md.version)} · ${esc((md.encoder || '').split('/').pop())} + linear heads · SurgWound</span>
+    <div class="row" style="gap:8px;align-items:flex-start;margin-top:4px">
+      <table class="small" style="flex:1"><tr class="muted"><td>Attribute (surgeon labels)</td><td>Decision</td><td>p / threshold</td><td>Held-out test</td></tr>${rows}</table>
+      ${md.evidence_map_url ? `<figure style="margin:0;width:34%"><img src="${esc(md.evidence_map_url)}" alt="where the redness evidence came from" style="width:100%;border-radius:8px;border:1px solid var(--ink)"><figcaption class="muted">Evidence map: redness</figcaption></figure>` : ''}
+    </div><div class="muted">${esc(md.note)}</div></div>`;
+}
+
 function renderWoundClinic(w) {
   const photos = (w.photos || []).filter(p => p.d1);
   if (!photos.length) return '<div class="empty">No analysed dressing-change photo yet.</div>';
@@ -380,7 +396,7 @@ function renderWoundClinic(w) {
           ${row('Redness beyond edge (Δa*)', mm.redness_spread_ring_delta_a)}${row('Area (% of frame)', mm.wound_area_pct_of_frame)}
           ${row('Staple-like bright marks', mm.closure_material?.staple_like_blobs)}${row('Dark / crust-coloured', mm.dark_crust_coloured_pct != null ? mm.dark_crust_coloured_pct + ' %' : null)}
           ${row('Pale-yellow regions', mm.pale_yellow_pct != null ? mm.pale_yellow_pct + ' %' : null)}</table></div>
-      <div class="small" style="margin-top:6px"><b>Compared with the reference:</b> ${comp}</div>${vis}
+      <div class="small" style="margin-top:6px"><b>Compared with the reference:</b> ${comp}</div>${renderWoundModel(p.model)}${vis}
       <div class="small muted" style="margin-top:4px">${esc(d.method || '')}. Not measured from a photo: ${(d.not_measured || []).join(', ')}. Not a diagnosis.</div></div>`;
   }).join('');
 }

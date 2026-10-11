@@ -84,6 +84,50 @@ def analyze(repo: Repo, obs: m.Observation, data: bytes) -> dict:
     return out
 
 
+# ------------------------------------------------------------------ 1b. learned model (SurgWound, DINOv2 + linear heads)
+
+# Heads whose "yes" is a reason for the clinician to look (the model can only ADD a reason, never remove one).
+MODEL_REVIEW_HEADS = ("exudate", "elevated_risk", "needs_review")
+# What the patient sees (signs only; risk / urgency ratings stay with the care team).
+PATIENT_HEADS = ("erythema", "edema", "exudate", "not_healed")
+
+
+def model_reading(repo: Repo, obs: m.Observation, data: bytes) -> dict:
+    """Wound attributes predicted by the model trained on surgeon-labelled surgical wounds, with an evidence map."""
+    from .. import wounds
+    _d1()
+    from surgiguard_d1.wound import model as wm
+    ok, why = wm.available()
+    if os.getenv("WOUND_MODEL", "on").lower() == "off":
+        ok, why = False, "trained model disabled (WOUND_MODEL=off)"
+    if not ok:
+        out = {"available": False, "reason": why}
+    elif (obs.value.get("d1") or {}).get("quality", {}).get("status") == "unusable":
+        out = {"available": False, "reason": "photo quality too low: the model abstains"}
+    else:
+        try:
+            res = wm.predict(data, heatmap_for="erythema")
+            grid = res.pop("_heatmap", None)
+            heat_url = None
+            if grid is not None:
+                name = f"{obs.id}_evidence.jpg"
+                (wounds.UPLOADS / name).write_bytes(wm.heatmap_overlay(data, grid))
+                heat_url = f"/uploads/{name}"
+            out = {"available": True, **res, "evidence_map_url": heat_url, "evidence_map_for": "erythema",
+                   "patient_attributes": list(PATIENT_HEADS),
+                   "note": "Learned from 549 surgical-wound photos labelled by surgeons (SurgWound; held-out test AUROC 0.76-0.84). Decision support for the "
+                           "care team; it can add a reason to review, never remove one. Not a diagnosis."}
+        except Exception as e:  # the photo and the code analysis are kept whatever happens here
+            log.exception("wound model failed")
+            out = {"available": False, "reason": f"model error ({type(e).__name__})"}
+    obs.value = {**obs.value, "model": out}
+    repo.add(obs)
+    audit.log(repo, obs.patient_id, "model:wound-attr", "wound.model_reading",
+              {k: v["decision"] for k, v in out.get("attributes", {}).items()} if out.get("available") else {"reason": out.get("reason")},
+              "observation", obs.id)
+    return out
+
+
 # ------------------------------------------------------------------ 2. vision LLM
 
 Aspect = Literal["redness", "swelling_appearance", "discharge_appearance", "wound_edges", "closure_material",
@@ -135,11 +179,14 @@ def _stub(messages, ctx):
             "uncertainty": "LLM offline (stub mode): no visual reading, only the code measurements."}
 
 
-def _cv_brief(cv: dict) -> str:
+def _cv_brief(cv: dict, md: dict | None = None) -> str:
     meas, comp = cv.get("measurements") or {}, cv.get("comparison") or {}
+    model_brief = ({k: f"{a['decision']} (p={a['probability']})" for k, a in md["attributes"].items()}
+                   if md and md.get("available") else "not available")
     keys = ("redness_mean_delta_a", "redness_area_pct", "redness_spread_ring_delta_a", "wound_area_pct_of_frame",
             "dark_crust_coloured_pct", "pale_yellow_pct", "closure_material")
     return (f"Photo quality: {cv.get('quality')}\nCode measurements: { {k: meas.get(k) for k in keys} }\n"
+            f"Trained model (surgeon labels, decision support): {model_brief}\n"
             f"Comparison with the reference photo: {comp.get('summary') or comp.get('reason') or 'none (first photo)'}")
 
 
@@ -147,7 +194,7 @@ def vision_review(repo: Repo, obs: m.Observation, data: bytes) -> dict:
     p = repo.patient(obs.patient_id)
     cv = obs.value.get("d1") or {}
     context = (f"Patient: {p.surgery if p else 'surgery'}; photo taken at a dressing change permitted by the care plan.\n"
-               + _cv_brief(cv))
+               + _cv_brief(cv, obs.value.get("model")))
     uri = "data:image/jpeg;base64," + base64.b64encode(data).decode()
     messages = [{"role": "system", "content": SYSTEM},
                 {"role": "user", "content": [{"type": "text", "text": context},
@@ -192,6 +239,12 @@ def decide(repo: Repo, obs: m.Observation) -> str | None:
     """Code decides whether the clinician should look; the LLM's reading is one input, never the only gate."""
     cv, vr = obs.value.get("d1") or {}, obs.value.get("vision_review") or {}
     reasons = []
+    md = obs.value.get("model") or {}
+    if md.get("available"):
+        hits = [f'{a["text"]} (p={a["probability"]})' for k, a in md["attributes"].items()
+                if k in MODEL_REVIEW_HEADS and a["decision"] == "yes"]
+        if hits:
+            reasons.append("model: " + "; ".join(hits))
     comp = cv.get("comparison") or {}
     if comp.get("available") and (comp.get("redness_spread_change", 0) >= 4 or comp.get("redness_change_delta_a", 0) >= 6):
         reasons.append(f"code: {comp['summary']}")
@@ -218,7 +271,8 @@ def _job(obs_id: str) -> None:
         data = photo_bytes(obs.value.get("url")) if obs else None
         if obs is None or data is None:
             return
-        vision_review(repo, obs, data)
+        model_reading(repo, obs, data)
+        vision_review(repo, repo.get(m.Observation, obs_id), data)
         decide(repo, repo.get(m.Observation, obs_id))
 
 

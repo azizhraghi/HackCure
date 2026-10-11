@@ -165,3 +165,8 @@ Both D1 branches are merged into `integration/esp32-story` and shown on `/story`
   screen (`components/WoundAnalysis.tsx`, phone + web build), native Android Wound Scan screen (camera or gallery,
   replaces the mock).
 - Not done: vision reading not yet run with a real key (stub mode restates the code numbers and says so).
+- **Trained wound model** (D1): CLIP ViT-B/16 features + linear heads trained on SurgWound (surgeon labels); runs in
+  the agent runner on every wound photo (`model_reading` in `app/integrations/d1_wound.py`), shown in the clinic column
+  (attributes, probabilities, held-out metrics, evidence map) and as plain signs in the RN and Android apps. It can add a
+  `wound_review` reason (discharge, risk rating, urgency), never remove one. `WOUND_MODEL=off` disables it (tests do).
+  Model card: `d1/models/WOUND_MODEL_CARD.md`.

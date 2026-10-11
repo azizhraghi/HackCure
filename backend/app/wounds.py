@@ -62,6 +62,6 @@ def public(o: m.Observation) -> dict:
     return {"observation_id": o.id, "at": o.measured_at.isoformat(), "url": v.get("url"), "label": v.get("label"),
             "simulated": o.simulated, "quality": o.quality, "analysis": v.get("analysis"),
             "comparison": v.get("comparison"), "reference_url": v.get("reference_url"),
-            "d1": v.get("d1"), "vision_review": v.get("vision_review"), "review_alert_id": v.get("review_alert_id"),
+            "d1": v.get("d1"), "model": v.get("model"), "vision_review": v.get("vision_review"), "review_alert_id": v.get("review_alert_id"),
             "request_id": v.get("request_id"), "dressing_change_confirmed": v.get("dressing_change_confirmed"),
             "initiated_by": v.get("initiated_by", "care_plan_window"), "outside_planned_window": v.get("outside_planned_window", False)}

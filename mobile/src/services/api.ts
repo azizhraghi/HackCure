@@ -95,7 +95,7 @@ export type WoundPhoto = {
   observation_id: string; at: string; url: string; label: string; simulated: boolean; quality: string;
   analysis?: { quality: string; problems?: string[]; redness_area_pct?: number };
   comparison?: WoundComparison; reference_url?: string | null; answered_request_id?: string | null;
-  d1?: WoundD1 | null; vision_review?: WoundVision | null; review_alert_id?: string | null;
+  d1?: WoundD1 | null; vision_review?: WoundVision | null; review_alert_id?: string | null; model?: WoundModel | null;
 };
 
 /** D1-F: OpenCV analysis of the photo (outlined area, quality, comparison only if it is the same site). */
@@ -111,6 +111,12 @@ export type WoundVision = {
   available: boolean; reason?: string; mode?: string; model?: string; uncertainty?: string;
   findings: { aspect: string; finding: string; confidence: 'low' | 'medium' | 'high' }[];
   review_suggested?: boolean;
+};
+
+/** Learned model (SurgWound surgeon labels): yes / no / uncertain per visible attribute, with test metrics. */
+export type WoundModel = {
+  available: boolean; reason?: string; version?: string; evidence_map_url?: string | null; patient_attributes?: string[];
+  attributes?: Record<string, { probability: number; decision: 'yes' | 'no' | 'uncertain'; text: string; test_auroc: number }>;
 };
 
 export const getWoundPhoto = (apiUrl: string, id: string) =>

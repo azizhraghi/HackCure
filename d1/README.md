@@ -84,3 +84,12 @@ Why no deep model: the public wound-segmentation checkpoints we looked at (e.g. 
 are trained on chronic ulcers, need a GPU or gated backbones, and none is validated on fresh surgical incisions.
 The backend adds a **vision-LLM second read** (Pixtral / Llama-4-Scout) that only describes what is visible, with a
 confidence per finding; diagnosis wording is filtered out.
+
+### Trained model (surgeon-labelled surgical wounds)
+
+`src/surgiguard_d1/wound/model.py` + `models/wound_heads.joblib`: frozen CLIP ViT-B/16 encoder (chosen over DINOv2 by
+cross-validation) + one logistic-regression head per attribute (redness, swelling, discharge, not healed, infection-risk
+rating, urgency), trained on **SurgWound** (686 surgical-wound photos labelled by surgeons, CC BY-SA 4.0).
+Held-out test AUROC 0.76–0.84, thresholds set for sensitivity ≥ 0.85, an "uncertain" band where it abstains, and an
+occlusion evidence map. Full protocol, numbers and limits: **`models/WOUND_MODEL_CARD.md`**.
+Reproduce: `scripts/prepare_surgwound.py` then `scripts/train_wound_model.py`.

@@ -59,6 +59,16 @@ export function WoundAnalysis({ apiUrl, photo }: { apiUrl: string; photo: WoundP
       {q.problems && q.problems.length > 0 && (
         <T size={8.5} w={700} color={c.reviewText} style={{ marginTop: 6 }}>⚠ {q.problems.join(' · ')}: {t('scan.retakeHint')}</T>
       )}
+      {p.model?.available && p.model.attributes && (
+        <View style={{ marginTop: 8 }}>
+          <T size={8.5} w={800}>{t('scan.modelTitle')}</T>
+          {(p.model.patient_attributes ?? []).filter(k => p.model?.attributes?.[k]).map(k => {
+            const a = p.model!.attributes![k];
+            return <T key={k} size={8.5} color={a.decision === 'yes' ? c.reviewText : undefined}>• {a.text}</T>;
+          })}
+          <T size={7.5} color={c.muted}>{t('scan.modelNote')}</T>
+        </View>
+      )}
       <View style={{ marginTop: 8 }}>
         <T size={8.5} w={800}>{t('scan.d1Ai')}</T>
         {!v ? (

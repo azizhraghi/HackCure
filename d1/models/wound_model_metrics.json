@@ -1,0 +1,343 @@
+{
+ "version": "wound-attr-0.2",
+ "encoder": "openai/clip-vit-base-patch16",
+ "encoder_cv_auroc": {
+  "facebook/dinov2-small": 0.75,
+  "openai/clip-vit-base-patch16": 0.817
+ },
+ "trained_at": "2026-10-11T04:09:42.430027+00:00",
+ "dataset": "SurgWound (Hugging Face Sonulee/SurgWound, CC BY-SA 4.0; surgeon labels, OSU Wexner)",
+ "heads": {
+  "erythema": {
+   "label_column": "erythema",
+   "positive": [
+    "Existent"
+   ],
+   "negative": [
+    "Non-existent"
+   ],
+   "train_n": 529,
+   "train_positives": 151,
+   "C": 0.001,
+   "cv_auroc": 0.748,
+   "threshold": 0.3217,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.912,
+    "specificity": 0.432,
+    "balanced_accuracy": 0.672,
+    "abstained_pct": 18.7,
+    "tp": 124,
+    "fn": 12,
+    "tn": 127,
+    "fp": 167
+   },
+   "test": {
+    "n": 131,
+    "positives": 40,
+    "auroc": 0.759,
+    "auroc_95ci": [
+     0.665,
+     0.839
+    ],
+    "sensitivity": 0.914,
+    "specificity": 0.452,
+    "balanced_accuracy": 0.683,
+    "abstained_pct": 17.6,
+    "tp": 32,
+    "fn": 3,
+    "tn": 33,
+    "fp": 40,
+    "no_abstention": {
+     "sensitivity": 0.9,
+     "specificity": 0.462,
+     "balanced_accuracy": 0.681,
+     "abstained_pct": 0.0,
+     "tp": 36,
+     "fn": 4,
+     "tn": 42,
+     "fp": 49
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.695,
+    "opencv_redness_baseline_auroc": 0.503,
+    "opencv_redness_baseline_coverage_pct": 96.9
+   }
+  },
+  "edema": {
+   "label_column": "edema",
+   "positive": [
+    "Existent"
+   ],
+   "negative": [
+    "Non-existent"
+   ],
+   "train_n": 439,
+   "train_positives": 60,
+   "C": 0.0003,
+   "cv_auroc": 0.77,
+   "threshold": 0.3706,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.917,
+    "specificity": 0.544,
+    "balanced_accuracy": 0.73,
+    "abstained_pct": 22.1,
+    "tp": 44,
+    "fn": 4,
+    "tn": 160,
+    "fp": 134
+   },
+   "test": {
+    "n": 115,
+    "positives": 21,
+    "auroc": 0.767,
+    "auroc_95ci": [
+     0.65,
+     0.865
+    ],
+    "sensitivity": 0.85,
+    "specificity": 0.556,
+    "balanced_accuracy": 0.703,
+    "abstained_pct": 20.0,
+    "tp": 17,
+    "fn": 3,
+    "tn": 40,
+    "fp": 32,
+    "no_abstention": {
+     "sensitivity": 0.81,
+     "specificity": 0.574,
+     "balanced_accuracy": 0.692,
+     "abstained_pct": 0.0,
+     "tp": 17,
+     "fn": 4,
+     "tn": 54,
+     "fp": 40
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.817
+   }
+  },
+  "exudate": {
+   "label_column": "exudate",
+   "positive": [
+    "Purulent",
+    "Sanguineous",
+    "Seropurulent",
+    "Serous"
+   ],
+   "negative": [
+    "Non-existent"
+   ],
+   "train_n": 501,
+   "train_positives": 79,
+   "C": 0.0003,
+   "cv_auroc": 0.855,
+   "threshold": 0.4043,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.892,
+    "specificity": 0.692,
+    "balanced_accuracy": 0.792,
+    "abstained_pct": 17.8,
+    "tp": 58,
+    "fn": 7,
+    "tn": 240,
+    "fp": 107
+   },
+   "test": {
+    "n": 125,
+    "positives": 16,
+    "auroc": 0.818,
+    "auroc_95ci": [
+     0.692,
+     0.922
+    ],
+    "sensitivity": 0.857,
+    "specificity": 0.649,
+    "balanced_accuracy": 0.753,
+    "abstained_pct": 13.6,
+    "tp": 12,
+    "fn": 2,
+    "tn": 61,
+    "fp": 33,
+    "no_abstention": {
+     "sensitivity": 0.75,
+     "specificity": 0.633,
+     "balanced_accuracy": 0.692,
+     "abstained_pct": 0.0,
+     "tp": 12,
+     "fn": 4,
+     "tn": 69,
+     "fp": 40
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.872
+   }
+  },
+  "not_healed": {
+   "label_column": "healing",
+   "positive": [
+    "Not Healed"
+   ],
+   "negative": [
+    "Healed"
+   ],
+   "train_n": 549,
+   "train_positives": 225,
+   "C": 0.001,
+   "cv_auroc": 0.835,
+   "threshold": 0.3679,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.915,
+    "specificity": 0.591,
+    "balanced_accuracy": 0.753,
+    "abstained_pct": 13.3,
+    "tp": 183,
+    "fn": 17,
+    "tn": 163,
+    "fp": 113
+   },
+   "test": {
+    "n": 137,
+    "positives": 55,
+    "auroc": 0.771,
+    "auroc_95ci": [
+     0.687,
+     0.844
+    ],
+    "sensitivity": 0.824,
+    "specificity": 0.521,
+    "balanced_accuracy": 0.672,
+    "abstained_pct": 10.9,
+    "tp": 42,
+    "fn": 9,
+    "tn": 37,
+    "fp": 34,
+    "no_abstention": {
+     "sensitivity": 0.818,
+     "specificity": 0.512,
+     "balanced_accuracy": 0.665,
+     "abstained_pct": 0.0,
+     "tp": 45,
+     "fn": 10,
+     "tn": 42,
+     "fp": 40
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.599
+   }
+  },
+  "elevated_risk": {
+   "label_column": "infection_risk",
+   "positive": [
+    "High",
+    "Medium"
+   ],
+   "negative": [
+    "Low"
+   ],
+   "train_n": 549,
+   "train_positives": 93,
+   "C": 0.001,
+   "cv_auroc": 0.856,
+   "threshold": 0.3252,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.881,
+    "specificity": 0.67,
+    "balanced_accuracy": 0.775,
+    "abstained_pct": 11.3,
+    "tp": 74,
+    "fn": 10,
+    "tn": 270,
+    "fp": 133
+   },
+   "test": {
+    "n": 137,
+    "positives": 20,
+    "auroc": 0.843,
+    "auroc_95ci": [
+     0.746,
+     0.929
+    ],
+    "sensitivity": 0.889,
+    "specificity": 0.68,
+    "balanced_accuracy": 0.784,
+    "abstained_pct": 11.7,
+    "tp": 16,
+    "fn": 2,
+    "tn": 70,
+    "fp": 33,
+    "no_abstention": {
+     "sensitivity": 0.9,
+     "specificity": 0.675,
+     "balanced_accuracy": 0.788,
+     "abstained_pct": 0.0,
+     "tp": 18,
+     "fn": 2,
+     "tn": 79,
+     "fp": 38
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.854
+   }
+  },
+  "needs_review": {
+   "label_column": "urgency",
+   "positive": [
+    "Clinic Visit (Yellow): Requires professional evaluation within 48 hours",
+    "Emergency Care (Red): Seek immediate medical attention"
+   ],
+   "negative": [
+    "Home Care (Green): Manage with routine care"
+   ],
+   "train_n": 549,
+   "train_positives": 70,
+   "C": 0.001,
+   "cv_auroc": 0.841,
+   "threshold": 0.2957,
+   "band": 0.05,
+   "cv_at_threshold": {
+    "sensitivity": 0.903,
+    "specificity": 0.627,
+    "balanced_accuracy": 0.765,
+    "abstained_pct": 13.5,
+    "tp": 56,
+    "fn": 6,
+    "tn": 259,
+    "fp": 154
+   },
+   "test": {
+    "n": 137,
+    "positives": 16,
+    "auroc": 0.823,
+    "auroc_95ci": [
+     0.703,
+     0.917
+    ],
+    "sensitivity": 0.812,
+    "specificity": 0.649,
+    "balanced_accuracy": 0.731,
+    "abstained_pct": 7.3,
+    "tp": 13,
+    "fn": 3,
+    "tn": 72,
+    "fp": 39,
+    "no_abstention": {
+     "sensitivity": 0.812,
+     "specificity": 0.653,
+     "balanced_accuracy": 0.733,
+     "abstained_pct": 0.0,
+     "tp": 13,
+     "fn": 3,
+     "tn": 79,
+     "fp": 42
+    },
+    "majority_baseline_balanced_accuracy": 0.5,
+    "majority_baseline_accuracy": 0.883
+   }
+  }
+ }
+}

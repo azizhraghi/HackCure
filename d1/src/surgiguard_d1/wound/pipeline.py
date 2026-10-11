@@ -406,7 +406,7 @@ def analyze(data: bytes, reference: bytes | None = None, limits: Limits = Limits
         return {"version": VERSION, "quality": {"status": "unusable", "problems": [f"not a readable image ({type(e).__name__})"]},
                 "measurements": None, "segmentation": {"found": False, "reason": "unreadable image"}, "not_measured": NOT_MEASURED}
     quality = assess_quality(bgr, limits)
-    out = {"version": VERSION, "method": "OpenCV: local colour contrast in CIELAB + staple detection + ORB registration (no trained model)",
+    out = {"version": VERSION, "method": "OpenCV: local colour contrast in CIELAB + staple detection + ORB registration (classical vision, no learning)",
            "quality": quality, "not_measured": NOT_MEASURED, "measurements": None, "comparison": None,
            "segmentation": {"found": False, "reason": "photo quality too low"}, "_mask": None, "_bgr": bgr}
     if quality["status"] == "unusable":
