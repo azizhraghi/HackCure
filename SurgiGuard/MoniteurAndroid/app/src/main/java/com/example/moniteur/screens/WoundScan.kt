@@ -14,6 +14,9 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
+import android.util.Size
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
@@ -94,7 +97,14 @@ fun WoundScanScreen() {
     var result by remember { mutableStateOf<JSONObject?>(null) }
     var overlay by remember { mutableStateOf<Bitmap?>(null) }
     var torch by remember { mutableStateOf(false) }
-    val imageCapture = remember { ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY).build() }
+    // ~2 Mpx suffisent pour l'analyse ; la pleine résolution (48 Mpx sur certains téléphones = 192 Mo) fait planter l'affichage
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .setResolutionSelector(ResolutionSelector.Builder().setResolutionStrategy(
+                ResolutionStrategy(Size(1920, 1440), ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)).build())
+            .build()
+    }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
 
     val askCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasCamera = it }
@@ -146,7 +156,7 @@ fun WoundScanScreen() {
     }
 
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
-        if (uri != null) shot = ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+        if (uri != null) shot = decodeSampled(ctx, uri, 1600)
     }
 
     val st = status?.optJSONObject("status")
@@ -270,13 +280,25 @@ fun WoundScanScreen() {
     DisposableEffect(Unit) { onDispose { runCatching { camera?.cameraControl?.enableTorch(false) } } }
 }
 
-/** Image de la caméra remise à l'endroit (rotation du capteur). */
+/** Image de la caméra réduite (côté max 1600 px) et remise à l'endroit (rotation du capteur). */
 private fun ImageProxy.toUprightBitmap(): Bitmap {
-    val bmp = toBitmap()
+    val full = toBitmap()
+    val small = scaleDown(full, 1600)
+    if (small !== full) full.recycle()
     val deg = imageInfo.rotationDegrees
-    if (deg == 0) return bmp
+    if (deg == 0) return small
     val m = Matrix().apply { postRotate(deg.toFloat()) }
-    return Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, m, true)
+    return Bitmap.createBitmap(small, 0, 0, small.width, small.height, m, true)
+}
+
+/** Photo de la galerie décodée directement en taille réduite (jamais la pleine résolution en mémoire). */
+private fun decodeSampled(ctx: android.content.Context, uri: Uri, maxSide: Int): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+    var sample = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxSide) sample *= 2
+    val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+    return ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }?.let { scaleDown(it, maxSide) }
 }
 
 private fun scaleDown(b: Bitmap, maxSide: Int): Bitmap {
