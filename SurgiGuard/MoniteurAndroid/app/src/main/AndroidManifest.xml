@@ -10,6 +10,9 @@
     <!-- Alarmes exactes pour les prises de médicaments (USE_EXACT_ALARM : accordée d'office à partir d'Android 13) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Photo de plaie au changement de pansement (caméra intégrée à l'écran) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -42,6 +45,14 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".alarm.MedActionReceiver" android:exported="false" />
+        <!-- Photo de plaie : l'appareil photo écrit dans le cache de l'app (aucune permission caméra nécessaire) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

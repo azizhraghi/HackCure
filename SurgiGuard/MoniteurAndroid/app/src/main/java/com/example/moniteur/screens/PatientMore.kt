@@ -147,49 +147,6 @@ private fun WoundHalf(label: String, today: Boolean, modifier: Modifier) {
 }
 
 @Composable
-fun WoundScanScreen() {
-    val c = Pal.c
-    val app = LocalApp.current
-    val haptic = rememberHaptic()
-    var torch by remember { mutableStateOf(false) }
-    var captured by remember { mutableStateOf(false) }
-    var saved by remember { mutableStateOf(false) }
-    LaunchedEffect(saved) { if (saved) { delay(900); app.pop() } }
-
-    Screen(padded = true) {
-        TopBar(t("scan.top"), action = { RoundButton(IconName.close, { app.pop() }) })
-        Box(Modifier.fillMaxWidth().height(407.dp).background(Color(0xFF273748)), contentAlignment = Alignment.TopCenter) {
-            MockSkin(Modifier.fillMaxSize())
-            Box(Modifier.padding(top = 50.dp)) { Corners() }
-            Chip(if (captured) t("scan.captured") else t("scan.align"), Modifier.padding(top = 294.dp), tone = "dark")
-            Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 31.dp, end = 31.dp, bottom = 18.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                T(t("scan.auto"), size = 8f, color = Color.White)
-                Box(Modifier.size(61.dp).background(c.primary, CircleShape).border(4.dp, Color.White, CircleShape).tap { haptic(HapticImpact); captured = true; saved = false }, contentAlignment = Alignment.Center) { Icon(IconName.camera, 26.dp, Color.White) }
-                T(if (torch) t("scan.flashOn") else t("scan.flashOff"), Modifier.tap { torch = !torch }, size = 8f, color = Color.White)
-            }
-        }
-        Column(Modifier.fillMaxWidth().background(c.surface).padding(vertical = 10.dp)) {
-            Row(Modifier.fillMaxWidth().padding(bottom = 9.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column { T(t("scan.ai"), size = 6f, spacing = 1f, color = c.muted); T(t("scan.progress"), Modifier.padding(top = 2.dp), size = 14f, w = 800) }
-                Chip(t("scan.good"), tone = "green")
-            }
-            Box(Modifier.fillMaxWidth().height(92.dp).clip(RoundedCornerShape(15.dp)).border(1.3.dp, c.ink, RoundedCornerShape(15.dp))) {
-                Row(Modifier.fillMaxSize()) {
-                    WoundHalf(t("scan.day1"), false, Modifier.weight(1f).fillMaxHeight())
-                    WoundHalf(t("scan.today"), true, Modifier.weight(1f).fillMaxHeight())
-                }
-                Box(Modifier.align(Alignment.Center).size(27.dp).background(Color.White, CircleShape).border(1.dp, Color(0xFF1B2A4A), CircleShape), contentAlignment = Alignment.Center) { T("‹ ›", size = 9f, w = 800, color = Color(0xFF1B2A4A)) }
-            }
-            FlowRow(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Chip(t("scan.redness") + "  ↑ 12%", tone = "pink"); Chip(t("scan.swelling") + "  " + t("scan.stable"), tone = "yellow")
-                Chip(t("scan.area") + "  ↓ 8%", tone = "green"); Chip(t("scan.discharge") + "  " + t("scan.none"), tone = "blue")
-            }
-            Button(if (saved) t("scan.saved") else t("scan.save"), { haptic(HapticImpact); saved = true })
-        }
-    }
-}
-
-@Composable
 private fun Ripple(inset: Int, delayMs: Int) {
     val t = rememberInfiniteTransition(label = "ripple")
     val p by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, delayMillis = delayMs, easing = LinearEasing), RepeatMode.Restart), label = "p")

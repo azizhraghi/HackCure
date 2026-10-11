@@ -125,6 +125,13 @@ const en = {
     noCamera: 'No camera found ({{n}} detected)', retry: 'Retry', captured: 'Photo taken · measuring…', measured: 'Photo measured',
     retake: 'Retake', retakeHint: 'please retake the photo', failed: 'The photo could not be sent', confirm: 'I am changing my dressing now, as my care plan allows', pick: 'Take / choose photo', notNow: 'Not a dressing-change time:',
     disclaimer: 'Measured by code (redness compared with the skin around it). Framing and light change the numbers. Not a diagnosis.',
+    analyse: 'Analyse this photo', outsideWindow: 'Not a planned dressing change: the photo will be marked as taken at your own dressing change.',
+    modelTitle: 'What the trained model sees', modelNote: 'Model trained on surgical-wound photos labelled by surgeons. For your care team, not a diagnosis.',
+    modelUnfamiliar: 'This photo does not look like the wound photos the model learned from (framing, light, distance): it abstains. Your care team will look at the photo.',
+    d1Title: 'WHAT WAS ANALYSED', d1Outlined: 'Outlined: the area the code measured. Check it covers your wound.',
+    d1NotFound: 'No wound region found', d1Quality: 'Photo', d1Reference: 'First photo: it becomes your reference',
+    d1Ai: 'AI description', d1AiPending: 'The AI is looking at the photo…', d1AiNothing: 'Nothing specific described.',
+    d1Review: 'Your care team has been asked to look at this photo.', d1Received: 'Photo received. Your care team can see it.',
   },
   sensing: {
     morning: 'Good morning', activity: 'Recovery activity', chip: 'DRESSING SENSOR',

@@ -109,3 +109,34 @@ def simulate(body: SimulateIn, repo: Repo = Depends(get_repo)):
                                                       source="device", simulated=True))
         results.append(res)
     return {"scenario": body.scenario, "monitor": results}
+
+
+# ------------------------------------------------------------------ wound photos for the apps that talk to the SurgiGuard API
+# The .NET API relays its patient's requests here (X-Api-Key Agents); only the API patient linked to the AI patient is served.
+
+from fastapi import File, Form, Header, UploadFile  # noqa: E402
+
+from .. import wound_photos, wounds  # noqa: E402
+
+
+def _linked(api_patient_id: str, key: str | None) -> None:
+    if key != settings.surgiguard_agents_key:
+        raise HTTPException(401, "agents key required")
+    if api.api_patient_id() != api_patient_id:
+        raise HTTPException(404, "this SurgiGuard API patient is not followed by the AI backend")
+
+
+@router.get("/wound/{api_patient_id}")
+def wound_for_api_patient(api_patient_id: str, x_api_key: str | None = Header(default=None), repo: Repo = Depends(get_repo)):
+    _linked(api_patient_id, x_api_key)
+    photos = repo.observations(DEMO_PATIENT_ID, "photo", newest_first=True, limit=10)
+    return {"status": wound_photos.eligibility(repo, DEMO_PATIENT_ID), "photos": [wounds.public(o) for o in photos]}
+
+
+@router.post("/wound/{api_patient_id}")
+async def wound_upload_for_api_patient(api_patient_id: str, file: UploadFile = File(...),
+                                       dressing_change_confirmed: bool = Form(False),
+                                       x_api_key: str | None = Header(default=None), repo: Repo = Depends(get_repo)):
+    _linked(api_patient_id, x_api_key)
+    from .wounds import upload_wound_photo
+    return await upload_wound_photo(DEMO_PATIENT_ID, file, DEMO_PATIENT_ID, dressing_change_confirmed, repo)
