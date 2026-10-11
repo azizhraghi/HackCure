@@ -285,12 +285,15 @@ def _api_type(alert: m.Alert) -> str:
     return "OTHER"
 
 
+CLINICIAN_ONLY = ("motor_review_", "rehab_")
 _SEVERITY = {"info": 1, "attention": 2, "urgent": 3}
 
 
 def push_alert(alert: m.Alert) -> None:
     """Fire-and-forget: send an AI alert to the API so the family gets push/WhatsApp. Never blocks, never raises."""
     if not enabled() or alert.level not in ("attention", "urgent"):
+        return
+    if (alert.rule or "").startswith(CLINICIAN_ONLY):  # movement-test / rehab findings are for the care team, not the family
         return
     snap = {"id": alert.id, "patient_id": alert.patient_id, "level": alert.level, "rule": alert.rule,
             "title": alert.title, "reason": alert.reason, "source": alert.source}
