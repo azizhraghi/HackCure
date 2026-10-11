@@ -239,6 +239,9 @@ const fr: Dict = {
     m3: 'Pantoprazole 20 mg', m3p: "Protège l'estomac", m4: 'Énoxaparine 40 mg', m4p: 'Prévient les caillots · injection',
   },
   ai: {
+    fab: "Demander à SurgiGuard",
+    barTitle: "Demandez à SurgiGuard",
+    barSub: "Votre assistant de récupération · médicaments, plaie, exercices, à tout moment",
     top: 'Assistant de récupération', kicker: 'IA · BASÉ SUR VOTRE PLAN DE SOINS',
     hello: 'Bonjour Sarah 👋 Je peux vous expliquer vos consignes de sortie, vos médicaments et vos exercices. Que voulez-vous savoir ?',
     disclaimer: "SurgiGuard ne pose pas de diagnostic. En cas d'urgence, appelez les secours.",

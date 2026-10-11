@@ -237,6 +237,9 @@ const en = {
     m3: 'Pantoprazole 20 mg', m3p: 'Protects the stomach', m4: 'Enoxaparin 40 mg', m4p: 'Prevents blood clots · injection',
   },
   ai: {
+    fab: "Ask SurgiGuard",
+    barTitle: "Ask SurgiGuard",
+    barSub: "Your recovery assistant · medicines, wound care, exercises, anytime",
     top: 'Recovery assistant', kicker: 'AI · BASED ON YOUR CARE PLAN',
     hello: "Hi Sarah 👋 I can explain your discharge instructions, medications and exercises. What would you like to know?",
     disclaimer: "SurgiGuard doesn't diagnose. For urgent symptoms, call emergency services.",

@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Vibration } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Vibration, View } from 'react-native';
+import { AssistantFab } from '../components/Assistant';
 import { DarkTheme, DefaultTheme, NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -45,8 +46,10 @@ const FamilyTab = createBottomTabNavigator<FamilyTabParams>();
 
 function PatientTabs() {
   const { t } = useT();
+  const [tab, setTab] = useState('Home');
   return (
-    <PatientTab.Navigator screenOptions={{ headerShown: false }}
+    <View style={{ flex: 1 }}>
+    <PatientTab.Navigator screenOptions={{ headerShown: false }} screenListeners={{ focus: e => setTab(String(e.target).split('-')[0]) }}
       tabBar={props => <BottomNav {...props} icons={{ Home: 'home', CheckIn: 'checkin', Twin: 'twin', Reports: 'report', Profile: 'profile' }} />}>
       <PatientTab.Screen name="Home" component={HomeScreen} options={{ title: t('tabs.home') }} />
       <PatientTab.Screen name="CheckIn" component={CheckInScreen} options={{ title: t('tabs.checkin') }} />
@@ -54,6 +57,9 @@ function PatientTabs() {
       <PatientTab.Screen name="Reports" component={ReportsScreen} options={{ title: t('tabs.reports') }} />
       <PatientTab.Screen name="Profile" component={ProfileScreen} options={{ title: t('tabs.profile') }} />
     </PatientTab.Navigator>
+    {/* Recovery assistant always one tap away (Home has its own large entry) */}
+    {tab !== 'Home' && <AssistantFab />}
+    </View>
   );
 }
 

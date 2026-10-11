@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { AssistantBar } from '../../components/Assistant';
 import { Icon, type IconName } from '../../components/Icon';
 import { T } from '../../components/T';
 import { Avatar, Card, haptic, IconBadge, RoundButton, Screen } from '../../components/ui';
@@ -193,6 +194,9 @@ export function HomeScreen() {
         </View>
       </Animated.View>
 
+      {/* Recovery assistant: big and easy to find */}
+      <AssistantBar />
+
       {/* Daily affirmation (replaces the task card) */}
       <Pressable onPress={() => { haptic('selection'); setAffOffset(o => o + 1); }}>
         <Animated.View key={affirmation} entering={FadeIn.duration(400)}>
@@ -235,7 +239,7 @@ export function HomeScreen() {
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
         <Shortcut icon="pill" title={t('home.meds')} sub={t('home.medsSub')} bg={c.lavender} onPress={() => nav.navigate('Medications')} />
-        <Shortcut icon="sparkle" title={t('home.ai')} sub={t('home.aiSub')} bg={c.mint} onPress={() => nav.navigate('AIAssistant')} />
+        <Shortcut icon="activity" title={t('checkin.rehab')} sub={t('checkin.rehabSub')} bg={c.mint} onPress={() => nav.navigate('Rehab')} />
       </View>
 
       <Card bg={c.surface} radius={16} style={{ marginTop: 10, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
