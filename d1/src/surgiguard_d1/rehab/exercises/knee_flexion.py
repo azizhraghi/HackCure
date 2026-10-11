@@ -71,7 +71,8 @@ class KneeFlexionTracker(BaseExerciseTracker):
             # If clinician specified max flexion (e.g. 90°), bending beyond that (< 85°) triggers warning
             if angle < (self.prescription.max_safety_angle_deg - 5.0):
                 return (
-                    f"Avertissement sécurité : flexion de {round(angle, 1)}° "
-                    f"dépassant le plafond prescrit ({self.prescription.max_safety_angle_deg}°)."
+                    f"Avertissement sécurité : flexion de {round(180.0 - angle)}° "
+                    f"(angle du genou {round(angle, 1)}°) dépassant le plafond prescrit de "
+                    f"{round(180.0 - self.prescription.max_safety_angle_deg)}° de flexion."
                 )
         return None

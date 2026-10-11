@@ -138,9 +138,12 @@ def build_personalized_rehab_plan(
                 target_side=side,
                 target_reps=reps_flexion,
                 target_sets=2,
-                target_rom_deg=target_flexion,
+                # The tracker measures the knee's INTERIOR angle (180 = straight, smaller = more bent), while the clinical
+                # numbers above are degrees of FLEXION. Convert, otherwise the target (85 deg) sat on the wrong side of
+                # the safety ceiling (95 deg) and no repetition could be both reached and safe.
+                target_rom_deg=180.0 - target_flexion,
                 min_start_angle_deg=165.0,  # Starts near extension
-                max_safety_angle_deg=max_safety_flexion,
+                max_safety_angle_deg=180.0 - max_safety_flexion,
                 min_hold_duration_sec=2.0 + hold_modifier,
                 cadence_target_bpm=12.0,
                 clinical_rationale=(

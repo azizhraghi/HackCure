@@ -13,7 +13,7 @@ from . import db, scheduler
 from .agents import digest, investigation, protocol  # noqa: F401  (registers the runner jobs)
 from .config import settings
 from .routers import (alerts, caregiver, chat, checkin, demo, documents, integration, investigations, medications,
-                      observations, patients, wounds, hub)
+                      observations, patients, wounds, hub, motor)
 from d3_demo import router as d3_demo_router
 from .api.v1 import router as d2_router  # Developer 2: documents (D2A), RAG assistant (D2B), check-in rules
 
@@ -70,7 +70,7 @@ def root():
     return RedirectResponse("/app/")
 
 for r in (chat, patients, documents, wounds, observations, checkin, investigations, alerts, medications, caregiver,
-          demo, integration, hub):
+          demo, integration, hub, motor):
     app.include_router(r.router)
 
 

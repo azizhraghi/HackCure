@@ -129,3 +129,24 @@ doses ticked in the Android/RN app --GET .../medications/schedule--> medication 
 - Env: `SURGIGUARD_API_URL` (default `http://localhost:8080`), `SURGIGUARD_AGENTS_KEY`, `SURGIGUARD_LINK=off` for standalone.
 - Dev helpers: `SurgiGuard/Backend/scripts/seed_story.py` (accounts), `simulate_esp32.py` (stands in for the board).
 - Not done: Python alert state (ack/resolve) is not mirrored back to the API's alert status (no update endpoint there).
+
+## D1 motor work: rehabilitation + guided movement tests (merged from `dev/d1-recovery` and `dev/d1-rehab-exercises`)
+
+Both D1 branches are merged into `integration/esp32-story` and shown on `/story` (chapters 10 and 11).
+
+- **Rehabilitation (D1-E)** `GET /patients/{id}/rehab/plan`, `POST .../rehab/session` (landmark frames), `POST .../rehab/demo`
+  (synthetic recordings through the real engine), `GET .../rehab/history`. Pain stays patient-reported (EVA); EVA >= 6 or a
+  range beyond the prescribed ceiling raises an "attention" alert; red-flag words go through the urgent gate. **Heart rate
+  during the session is read from the ESP32 stream.** A camera that does not see the leg gives an abstention, not a score.
+- **Guided movement tests (D1-D)** `GET .../motor/tests`, `POST .../motor/consent` (opt-in, recorded), `POST .../motor/{test}`
+  (frames or a demo variant), `GET .../motor/history`. Compared with the previous session of the same test. A notable
+  difference = "attention" alert worded as a prompt to review, never an emergency or a diagnosis; no test is offered while an
+  urgent alert is open; post-test symptom answers pass the urgent gate. Frames come from the browser (MediaPipe via CDN, only
+  landmarks leave the browser; **the live-camera path is not yet tested with a real webcam**) or from demo recordings.
+- **Fixes to D1 code made while integrating** (tests added):
+  - `rehab/evaluator.py` imported `surgiguard_d1.twin`, renamed `legacy.twin_record` on the other branch: the whole rehab package failed to import.
+  - Knee flexion: the prescription gave degrees of *flexion* (target 85, ceiling 95) but the tracker measures the knee's *interior*
+    angle (180 = straight). The target sat on the wrong side of the ceiling, so no repetition could be both reached and safe. The
+    prescription now converts (`180 - flexion`); the safety message now reports degrees of flexion.
+- Not done: no native phone UI for these two chapters (the React Native Rehab screen is still a static mock); no video upload
+  endpoint (needs `mediapipe` + `scripts/fetch_neuro_models.sh`); motor/rehab results are not yet in the family digest or the D1 Twin.

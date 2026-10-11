@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ..physiology.models import Evidence, Quality
-from ..twin.models import AnalysisInput
+from ..legacy.twin_record.models import AnalysisInput
 from .models import RehabSessionResult
 
 

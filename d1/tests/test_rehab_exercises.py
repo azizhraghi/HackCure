@@ -435,3 +435,14 @@ def test_rehab_session_honest_abstention():
     payload = format_analysis_payload(result)
     assert payload.status == "abstained"
     assert payload.quality.status == "unusable"
+
+
+@pytest.mark.parametrize("postop_day", [3, 10, 20, 40])
+def test_knee_flexion_target_is_reachable_and_below_the_safety_ceiling(postop_day):
+    """Prescribed flexion (degrees of bend) must become a knee angle (180 = straight) that is reachable AND safe."""
+    profile = PatientClinicalProfile(patient_id="p", age=60, sex="F", surgery_type="PTG droite", affected_side="right",
+                                     surgery_date="2025-06-01", postop_day=postop_day)
+    ex = build_personalized_rehab_plan(profile).exercises[0]
+    assert ex.category == "knee_flexion"
+    assert ex.max_safety_angle_deg < ex.target_rom_deg  # the ceiling is deeper than the target
+    assert ex.target_rom_deg + ex.allowed_angle_slack_deg > ex.max_safety_angle_deg - 5.0

@@ -165,6 +165,33 @@
   <div class="card" style="margin-top:10px"><h3>Résumé du soir pour le proche (Ahmed)</h3><button class="b" onclick="loadDigest(this)">Générer</button><div id="digest" class="muted" style="margin-top:6px"></div></div>
 </section>
 
+<section class="step" id="s10">
+  <div class="head"><span class="num">10</span><h2>Rééducation guidée par la caméra</h2><span class="who ai">IA D1-E</span><span class="who api">ESP32</span></div>
+  <p class="story">Le moteur D1 construit les exercices <b>pour cette patiente</b> (chirurgie, jour post-op, facteurs de risque, limites du chirurgien), compte les répétitions, mesure l'amplitude et la tenue, et <b>s'abstient</b> quand la caméra ne voit pas la jambe. La douleur est <b>uniquement</b> celle que la patiente déclare (EVA 0-10). La fréquence cardiaque de la séance vient du <b>boîtier ESP32</b>. Séances de démonstration = enregistrements fabriqués (étiquette orange) passés dans le vrai moteur.</p>
+  <div class="grid"><div class="card" style="grid-column:1/-1"><h3>Prescription personnalisée</h3><div id="rehabPlan" class="muted">…</div></div></div>
+  <div class="row" style="margin:10px 0 4px">
+    <span class="muted">Séance de démonstration :</span>
+    <button class="b" onclick="rehabDemo('good',this)">Bonne séance</button>
+    <button class="b" onclick="rehabDemo('incomplete',this)">Amplitude insuffisante</button>
+    <button class="b d" onclick="rehabDemo('too_deep',this)">Trop profond</button>
+    <button class="b" onclick="rehabDemo('occluded',this)">Caméra masquée</button>
+    <button class="b p" onclick="liveRehab(this)">Ma caméra (genou, 20 s)</button>
+  </div>
+  <div class="row"><label class="muted">Douleur déclarée <b id="rpv">3</b>/10</label><input type="range" min="0" max="10" value="3" id="rpain" oninput="rpv.textContent=this.value" style="width:160px"><input type="text" id="rdiff" placeholder="Difficulté ressentie (texte libre)" style="flex:1;min-width:200px"></div>
+  <div id="camRehab"></div>
+  <div class="grid" style="margin-top:10px"><div class="card"><h3>Résultat de la séance</h3><div id="rehabOut" class="muted">Aucune séance.</div></div><div class="card"><h3>Historique</h3><div id="rehabHist" class="muted">…</div></div></div>
+</section>
+
+<section class="step" id="s11">
+  <div class="head"><span class="num">11</span><h2>Tests de mouvement guidés</h2><span class="who ai">IA D1-D</span></div>
+  <p class="story">Six tests courts, <b>sur accord de la patiente</b> (refuser ou arrêter = « non terminé », jamais « test raté »). Le moteur mesure, compare gauche/droite et les séances précédentes, et rapporte ce qu'il voit : <b>jamais un diagnostic</b>. Un écart notable devient une alerte « attention » pour le médecin, pas une urgence. Pas de test proposé si une alerte urgente est ouverte, et les symptômes déclarés passent par la porte d'urgence.</p>
+  <div class="row"><label><input type="checkbox" id="consent" onchange="setConsent(this.checked)"> J'accepte de faire ces tests de mouvement (révocable)</label><span id="motorBlock" class="err"></span></div>
+  <div class="grid" id="motorTests" style="margin-top:10px"></div>
+  <div id="camMotor"></div>
+  <input type="text" id="msym" placeholder="Après le test : vertiges, faiblesse, douleur ? (texte libre, ex. « je me sens étourdi »)" style="margin-top:8px">
+  <div class="grid" style="margin-top:10px"><div class="card"><h3>Résultat</h3><div id="motorOut" class="muted">Aucun test.</div></div><div class="card"><h3>Historique</h3><div id="motorHist" class="muted">…</div></div></div>
+</section>
+
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -331,11 +358,143 @@ async function ask() {
 }
 async function loadDigest(b) { busy(b, async () => { const r = await j("/caregiver/ahmed/digest?refresh=true"); $("digest").textContent = (r.digest.text || r.digest.summary || JSON.stringify(r.digest)).slice(0, 900); }); }
 
+/* ---------------- step 10: rehab (D1-E) ---------------- */
+const CAT = { knee_flexion: "Flexion du genou", straight_leg_raise: "Jambe tendue", ankle_pumps: "Pompes de cheville", hip_abduction: "Abduction de hanche", seated_knee_extension: "Extension assise" };
+let rehabPlan = null;
+async function refreshRehab() {
+  try {
+    rehabPlan = await j(`/patients/${PID}/rehab/plan`);
+    $("rehabPlan").innerHTML = `<b>${esc(rehabPlan.postop_phase)}</b> · côté ${rehabPlan.affected_side} · ${rehabPlan.daily_sessions} séances/jour · <span class="tag">${rehabPlan.approval_status}</span>
+      <table><tr><th>Exercice</th><th>Séries × reps</th><th>Cible</th><th>Plafond de sécurité</th><th>Précautions</th></tr>${rehabPlan.exercises.map((e) => {
+        const knee = e.category === "knee_flexion";
+        return `<tr><td>${esc(e.name)}</td><td>${e.target_sets} × ${e.target_reps}</td><td>${knee ? `flexion ${Math.round(180 - e.target_rom_deg)}° <span class="muted">(angle genou ${e.target_rom_deg}°)</span>` : e.target_rom_deg + "°"}</td><td>${e.max_safety_angle_deg == null ? "—" : knee ? `flexion ${Math.round(180 - e.max_safety_angle_deg)}°` : e.max_safety_angle_deg + "°"}</td><td class="muted">${esc((e.precautions || []).join(" · "))}</td></tr>`; }).join("")}</table>
+      <div class="muted" style="margin-top:4px">${esc((rehabPlan.general_guardrails || []).join(" · "))}</div>`;
+  } catch (e) { $("rehabPlan").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  try {
+    const h = await j(`/patients/${PID}/rehab/history`);
+    $("rehabHist").innerHTML = h.length ? `<table>${h.slice(0, 6).map((s) => `<tr><td>${s.at.slice(11, 19)}</td><td>${s.status}</td><td>${s.exercises.map((e) => `${e.completed}/${e.target_reps} reps`).join(", ")}</td><td>EVA ${s.pain_eva ?? "—"}</td></tr>`).join("")}</table>` : "Aucune séance.";
+  } catch (e) { /* ignore */ }
+}
+function showRehab(r) {
+  const s = r.session, hr = r.heart_rate;
+  $("rehabOut").innerHTML = `<b>${{ complete: "Séance complète", limited: "Séance limitée", abstained: "Abstention : la caméra ne voyait pas assez" }[s.status]}</b>${r.synthetic ? '<span class="tag sim">démo fabriquée</span>' : ""}
+    ${s.exercise_results.map((e) => `<div style="margin-top:6px"><b>${esc(e.exercise_name)}</b><br>${e.completed_reps} répétition(s) complète(s), ${e.incomplete_reps} incomplète(s) sur ${e.target_reps} visées<br>
+      angle le plus fléchi ${e.max_rom_achieved_deg}° · tenue moyenne ${e.mean_hold_duration_sec} s · qualité du geste ${Math.round(e.average_form_score * 100)} %<br>
+      ${e.reps_data.map((p) => `<span class="tag ${p.completed ? "real" : "sim"}">rep ${p.rep_number} : ${p.completed ? "ok" : (p.incomplete_reason || "incomplète")}${p.safety_violation ? " ⚠" : ""}</span>`).join(" ")}
+      ${(e.guardrail_warnings || []).map((w) => `<div class="err">${esc(w)}</div>`).join("")}</div>`).join("")}
+    <div style="margin-top:6px">Fréquence cardiaque pendant la séance : ${hr.status === "ok" ? `<b>${hr.mean} bpm</b> en moyenne, pic ${hr.peak} <span class="tag real">ESP32</span>` : `<span class="muted">inconnue — ${esc(hr.reason)}</span>`}</div>
+    ${s.limitations.length ? `<div class="muted" style="margin-top:4px">Limites : ${esc(s.limitations.join(" · "))}</div>` : ""}
+    ${r.alerts.length ? `<div class="err" style="margin-top:4px">→ ${r.alerts.length} alerte(s) « attention » envoyée(s) au médecin (étape 6)</div>` : ""}`;
+  refreshRehab(); refreshAlerts(); refreshFamily();
+}
+async function rehabDemo(kind, b) { busy(b, async () => showRehab(await j(`/patients/${PID}/rehab/demo`, { method: "POST", body: { kind, pain_eva: +$("rpain").value, difficulty: $("rdiff").value || null } }))); }
+
+/* ---------------- step 11: guided movement tests (D1-D) ---------------- */
+let motor = null;
+async function refreshMotor() {
+  try { motor = await j(`/patients/${PID}/motor/tests`); } catch (e) { return; }
+  $("consent").checked = motor.consent; $("motorBlock").textContent = motor.blocked || "";
+  $("motorTests").innerHTML = motor.tests.map((t) => `<div class="card"><h3>${esc(t.name)}</h3><div class="muted" style="margin-bottom:6px">${esc(t.instructions)}</div>
+    <div class="row">${t.demo_variants.map((v) => `<button class="b" ${motor.consent && !motor.blocked ? "" : "disabled"} onclick="motorDemo('${t.id}','${v}',this)">${v.replace(/_/g, " ")}</button>`).join("")}
+    <button class="b p" ${motor.consent && !motor.blocked ? "" : "disabled"} onclick="liveMotor('${t.id}',${t.seconds},this)">Ma caméra</button></div></div>`).join("");
+  try {
+    const h = await j(`/patients/${PID}/motor/history`);
+    $("motorHist").innerHTML = h.length ? `<table>${h.slice(0, 8).map((x) => `<tr><td>${x.at.slice(11, 19)}</td><td>${x.test}</td><td>${x.status}</td><td>${x.review_suggested ? '<span class="err">à revoir</span>' : "ok"}</td></tr>`).join("")}</table>` : "Aucun test.";
+  } catch (e) { /* ignore */ }
+}
+async function setConsent(v) { await j(`/patients/${PID}/motor/consent`, { method: "POST", body: { granted: v } }); refreshMotor(); }
+const symptoms = () => ($("msym").value.trim() ? { reported: $("msym").value.trim() } : null);
+function showMotor(r) {
+  const x = r.result;
+  $("motorOut").innerHTML = `<b>${x.test}</b> · ${x.status}${r.synthetic ? '<span class="tag sim">démo fabriquée</span>' : ""} · ${x.review_suggested ? '<span class="err">Un avis du médecin est suggéré</span>' : "rien de notable"}
+    <ul>${x.observations.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
+    <table>${x.measurements.map((m) => `<tr><td>${m.code}</td><td>${m.side || ""}</td><td>${m.value == null ? "—" : m.value} ${m.unit}</td></tr>`).join("")}</table>
+    ${r.changes_since_previous.length ? `<div class="muted">Depuis la séance précédente : ${r.changes_since_previous.map((c) => `${c.code}${c.side ? " " + c.side : ""} ${c.previous} → ${c.current}`).join(" · ")}</div>` : ""}
+    ${(x.limitations || []).length ? `<div class="muted">Limites : ${esc(x.limitations.join(" · "))}</div>` : ""}
+    ${r.urgent_gate && r.urgent_gate.level === "urgent" ? '<div class="err">Symptôme d\'alarme déclaré : alerte urgente créée sans passer par l\'IA.</div>' : ""}
+    ${r.alert_id ? '<div class="err">→ alerte « attention » pour le médecin (étape 6). Un message à examiner, pas un constat de maladie.</div>' : ""}
+    <div class="muted" style="margin-top:4px">${esc(r.note)}</div>`;
+  refreshMotor(); refreshAlerts(); refreshFamily();
+}
+async function motorDemo(test, v, b) { busy(b, async () => showMotor(await j(`/patients/${PID}/motor/${test}`, { method: "POST", body: { demo: v, symptoms: symptoms() } }))); }
+
+/* ---------------- live camera (MediaPipe on the device; nothing is uploaded except derived landmarks) ---------------- */
+const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14", MODELS = "https://storage.googleapis.com/mediapipe-models";
+const MP_FILES = { pose: `${MODELS}/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task`,
+  hands: `${MODELS}/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task`, face: `${MODELS}/face_landmarker/face_landmarker/float16/latest/face_landmarker.task` };
+const NEEDS = { arm_hold: ["pose"], finger_to_nose: ["pose"], hand_open_close: ["pose", "hands"], smile: ["face"], eyebrows_and_eyes: ["face"], head_and_gaze: ["face"], knee: ["pose"] };
+const POSE_IDX = { nose: 0, left_shoulder: 11, right_shoulder: 12, left_elbow: 13, right_elbow: 14, left_wrist: 15, right_wrist: 16, left_index: 19, right_index: 20 };
+let mpLib = null, mpFiles = null; const mpModels = {};
+async function mpModel(kind) {
+  if (!mpLib) { mpLib = await import(`${MP}/vision_bundle.mjs`); mpFiles = await mpLib.FilesetResolver.forVisionTasks(`${MP}/wasm`); }
+  if (!mpModels[kind]) {
+    const base = { modelAssetPath: MP_FILES[kind] };
+    mpModels[kind] = kind === "pose" ? await mpLib.PoseLandmarker.createFromOptions(mpFiles, { baseOptions: base, runningMode: "VIDEO", numPoses: 2 })
+      : kind === "hands" ? await mpLib.HandLandmarker.createFromOptions(mpFiles, { baseOptions: base, runningMode: "VIDEO", numHands: 2 })
+      : await mpLib.FaceLandmarker.createFromOptions(mpFiles, { baseOptions: base, runningMode: "VIDEO", numFaces: 2, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true });
+  }
+  return mpModels[kind];
+}
+function headAngles(m) {  // MediaPipe matrices are column-major: r[i][j] = data[j*4+i]; same formulas as d1 neuro/video.py (unmirrored image)
+  const r = (i, j) => m.data[j * 4 + i], deg = (x) => (x * 180) / Math.PI;
+  return [deg(Math.atan2(-r(2, 0), Math.hypot(r(2, 1), r(2, 2)))), deg(Math.atan2(r(2, 1), r(2, 2))), deg(Math.atan2(r(1, 0), r(0, 0)))];
+}
+async function record(host, kinds, seconds, label, perFrame) {
+  host.innerHTML = `<div class="card" style="margin-top:8px"><b>${label}</b> <span class="muted" id="camMsg">chargement des modèles…</span><br><div style="position:relative;display:inline-block"><video id="camV" playsinline muted style="max-width:100%;width:420px;transform:scaleX(-1);border-radius:10px"></video></div><div class="muted">Les images restent dans votre navigateur : seules les positions des articulations sont envoyées.</div></div>`;
+  const video = $("camV"), msg = $("camMsg"); let stream;
+  try {
+    const models = {}; for (const k of kinds) models[k] = await mpModel(k);
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
+    video.srcObject = stream; await video.play();
+    const frames = [], t0 = performance.now(); let last = -1;
+    await new Promise((resolve) => {
+      const tick = () => {
+        const now = performance.now(), el = (now - t0) / 1000;
+        msg.textContent = `enregistrement… ${Math.max(0, Math.ceil(seconds - el))} s`;
+        if (el >= seconds) return resolve();
+        if (video.currentTime !== last) { last = video.currentTime; const f = perFrame(models, video, now, el); if (f) frames.push(f); }
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+    return frames;
+  } finally { if (stream) stream.getTracks().forEach((t) => t.stop()); host.innerHTML = ""; }  // camera released on completion, error or cancel
+}
+async function liveRehab(b) { busy(b, async () => {
+  const ex = rehabPlan && rehabPlan.exercises.find((e) => e.category === "knee_flexion"); if (!ex) throw new Error("Pas d'exercice de flexion du genou dans le plan.");
+  alert("Placez-vous de PROFIL, jambe opérée visible de la hanche à la cheville, et faites vos flexions de genou pendant 20 secondes.");
+  const frames = await record($("camRehab"), NEEDS.knee, 20, "Flexions du genou (profil)", (m, v, now) => {
+    const r = m.pose.detectForVideo(v, now); if (!r.landmarks.length) return null;
+    const lm = {}; r.landmarks[0].forEach((p, i) => { lm[i] = [p.x, p.y, p.z, p.visibility ?? 0]; }); return { t_ms: now, landmarks: lm };
+  });
+  const t0 = frames.length ? frames[0].t_ms : 0; frames.forEach((f) => { f.t_ms -= t0; });
+  showRehab(await j(`/patients/${PID}/rehab/session`, { method: "POST", body: { exercises: [{ exercise_id: ex.exercise_id, frames }], pain_eva: +$("rpain").value, difficulty: $("rdiff").value || null } }));
+}); }
+async function liveMotor(test, seconds, b) { busy(b, async () => {
+  const info = motor.tests.find((t) => t.id === test);
+  alert(info.instructions + "\n\nLa capture dure " + seconds + " s. Vous pouvez arrêter en rechargeant la page.");
+  const kinds = NEEDS[test];
+  const frames = await record($("camMotor"), kinds, seconds, info.name, (m, v, now, el) => {
+    const f = { t: el, people: 1 };
+    if (m.pose) { const r = m.pose.detectForVideo(v, now); f.people = Math.max(f.people, r.landmarks.length);
+      if (r.landmarks.length) { f.pose = {}; for (const [n, i] of Object.entries(POSE_IDX)) { const p = r.landmarks[0][i]; f.pose[n] = [p.x, p.y, p.visibility ?? 0]; } } }
+    if (m.hands) { const r = m.hands.detectForVideo(v, now);
+      r.landmarks.forEach((pts) => { const w = pts[0], p = f.pose; let side = "right";
+        if (p && p.left_wrist && p.right_wrist) { const d = (s) => Math.hypot(w.x - p[s + "_wrist"][0], w.y - p[s + "_wrist"][1]); side = d("left") < d("right") ? "left" : "right"; }
+        f[side + "_hand"] = pts.map((q) => [q.x, q.y]); }); }
+    if (m.face) { const r = m.face.detectForVideo(v, now); f.people = Math.max(f.people, r.faceLandmarks.length);
+      if (r.faceBlendshapes && r.faceBlendshapes.length) f.face = Object.fromEntries(r.faceBlendshapes[0].categories.map((c) => [c.categoryName, c.score]));
+      if (r.facialTransformationMatrixes && r.facialTransformationMatrixes.length) f.head = headAngles(r.facialTransformationMatrixes[0]); }
+    return f;
+  });
+  showMotor(await j(`/patients/${PID}/motor/${test}`, { method: "POST", body: { frames, symptoms: symptoms() } }));
+}); }
+
 /* ---------------- loop ---------------- */
 async function refreshAll() { await refreshStatus(); await Promise.allSettled([refreshLive(), refreshPlan(), refreshAlerts(), refreshFamily()]); }
-drawTabs(); drawChat(); refreshAll(); refreshD1();
+drawTabs(); drawChat(); refreshAll(); refreshD1(); refreshRehab(); refreshMotor();
 setInterval(refreshLive, 2000); setInterval(refreshStatus, 5000);
-setInterval(() => { refreshAlerts(); refreshFamily(); }, 6000); setInterval(refreshD1, 30000); setInterval(refreshPlan, 20000);
+setInterval(() => { refreshAlerts(); refreshFamily(); refreshMotor(); }, 6000); setInterval(refreshD1, 30000); setInterval(refreshPlan, 20000);
 </script>
 </body>
 </html>
