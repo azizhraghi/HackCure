@@ -204,6 +204,7 @@ export function ReportsScreen() {
           <View style={{ paddingVertical: 5, paddingHorizontal: 8, borderRadius: 99, backgroundColor: c.surface, borderWidth: 1, borderColor: c.ink }}><T size={7.5} w={800}>{date}</T></View>
         </Card>
       ))}
+      <View style={{ height: 76 }} />{/* room for the floating assistant button */}
     </Screen>
   );
 }

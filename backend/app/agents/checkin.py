@@ -45,7 +45,7 @@ def submit(repo: Repo, body: m.CheckinIn) -> dict:
         body.chips = [*body.chips, "neuro_change"]
     value = {"items": {k: {"raw": v, "scale5": to_scale5(v)} for k, v in
                        (("pain", body.pain), ("fatigue", body.fatigue), ("mobility", body.mobility))},
-             "chips": body.chips, "comment": body.comment, "mood": body.mood, "neuro": body.neuro,
+             "chips": body.chips, "comment": body.comment, "mood": body.mood, "neuro": body.neuro, "rehab_done": body.rehab_done,
              "neuro_changed": changed}
     obs = repo.add(m.Observation(patient_id=pid, type="checkin", source=body.submitted_by, value=value))
     audit.log(repo, pid, AGENT, "checkin.received", {"scores": {k: v["scale5"] for k, v in value["items"].items()},

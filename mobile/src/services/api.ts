@@ -73,7 +73,7 @@ export const getRequests = (apiUrl: string) => call<PatientRequest[]>(apiUrl, `/
 export type Mood = 'very_good' | 'good' | 'okay' | 'unwell' | 'very_unwell';
 export type NeuroAnswer = 'normal' | 'different' | 'skipped';
 
-export const submitCheckin = (apiUrl: string, body: { pain: number; fatigue: number; mobility: number; chips: string[]; comment?: string; mood?: Mood; neuro?: Record<string, NeuroAnswer> }) =>
+export const submitCheckin = (apiUrl: string, body: { pain: number; fatigue: number; mobility: number; chips: string[]; comment?: string; mood?: Mood; neuro?: Record<string, NeuroAnswer>; rehab_done?: string[] }) =>
   call<CheckinResult>(apiUrl, '/checkin', { method: 'POST', body: { patient_id: PATIENT_ID, ...body } }, 30000);
 
 export type AnswerBody = { option_index?: number; text?: string; value?: number; photo_asset?: string; photo_base64?: string; dressing_change_confirmed?: boolean };
@@ -303,3 +303,32 @@ export type MedicationGuide = {
 
 export const getMedicationGuide = (apiUrl: string, lang: string) =>
   call<MedicationGuide>(apiUrl, `/patients/${PATIENT_ID}/medication-guide?lang=${lang}`);
+
+// ---------------------------------------------------------------- Developer 1: rehab exercises + guided movement tests
+
+export type RehabExercise = {
+  exercise_id: string; name: string; category: string; target_side: string; target_reps: number; target_sets: number;
+  target_rom_deg: number | null; min_hold_duration_sec: number; precautions: string[]; forbidden_movements: string[];
+};
+export type RehabPlan = { postop_day: number; daily_sessions: number; exercises: RehabExercise[]; general_guardrails: string[] };
+
+export const getRehabPlan = (apiUrl: string) => call<RehabPlan>(apiUrl, `/patients/${PATIENT_ID}/rehab/plan`);
+
+export type MotorTestInfo = { id: string; name: string; instructions: string; seconds: number; demo_variants: string[] };
+export type MotorTests = { consent: boolean; blocked: string | null; tests: MotorTestInfo[]; note: string };
+export type MotorMeasurement = { code: string; value: number | null; unit: string; side: 'left' | 'right' | 'both' | null };
+export type MotorOutcome = {
+  result: { test: string; status: 'complete' | 'limited' | 'not_interpretable'; measurements: MotorMeasurement[];
+    observations: string[]; review_suggested: boolean; limitations: string[] };
+  changes_since_previous: { code: string; side: string | null; previous: number; current: number; change: number }[];
+  compared_with_previous: boolean; alert_id: string | null; note: string; synthetic: boolean;
+};
+
+export const getMotorTests = (apiUrl: string) => call<MotorTests>(apiUrl, `/patients/${PATIENT_ID}/motor/tests`);
+
+export const setMotorConsent = (apiUrl: string, granted: boolean) =>
+  call<{ consent: boolean }>(apiUrl, `/patients/${PATIENT_ID}/motor/consent`, { method: 'POST', body: { granted } });
+
+/** frames from the on-device capture, or `demo` = a named sample recording (clearly synthetic). */
+export const runMotorTest = (apiUrl: string, test: string, body: { frames?: object[]; demo?: string }) =>
+  call<MotorOutcome>(apiUrl, `/patients/${PATIENT_ID}/motor/${test}`, { method: 'POST', body }, 60000);

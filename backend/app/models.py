@@ -291,6 +291,8 @@ class CheckinIn(BaseModel):
     mood: Literal["very_good", "good", "okay", "unwell", "very_unwell"] | None = None
     # Daily neurological self-check: item -> "normal" | "different" | "skipped". Any "different" is a red flag.
     neuro: dict[str, Literal["normal", "different", "skipped"]] | None = None
+    # Rehabilitation exercises the patient ticked as done today (D1 rehab plan exercise ids)
+    rehab_done: list[str] = PField(default_factory=list, max_length=20)
 
 
 class RequestAnswer(BaseModel):
