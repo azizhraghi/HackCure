@@ -10,4 +10,5 @@ def run(repo: Repo) -> dict:
     inv = investigation.sweep(repo)
     escalated = alerts.escalate_overdue(repo, now)
     return {"at": now.isoformat(), **inv, "escalated_alerts": [a.id for a in escalated],
-            "scheduled_photo_requests": wound_photos.sweep(repo)}
+            "scheduled_photo_requests": wound_photos.sweep(repo),
+            "recovered_investigations": investigation.recover(repo)}

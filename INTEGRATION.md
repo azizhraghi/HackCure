@@ -101,7 +101,9 @@ Tests: backend **132 passed** (offline), D1 **128 passed, 1 skipped**. Live run 
 
 **D3**
 - Two investigation implementations (`/v1/demo` LangGraph and the agent loop): choose one.
-- Jobs run in an in-process thread pool (lost on restart). The event envelope v1 is used only by `/v1/demo`.
+- Investigation jobs now recover from persisted checkpoints on startup and periodic sweeps, with atomic local
+  tool effects and completion. One server process is supported; protocol/digest job recovery and coordinated
+  workers remain outstanding. See `backend/RESTART_RECOVERY.md`. The event envelope v1 is used only by `/v1/demo`.
 
 **App**
 - Twin, Reports, Medications, Rehab screens and parts of Home (pain, score ring, sensor card) are still mock data.

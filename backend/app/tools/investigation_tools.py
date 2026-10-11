@@ -239,7 +239,7 @@ def ask_followup_question(ctx: Ctx, text: str, options: list[str] | None = None,
 def request_wound_photo(ctx: Ctx, reason: str = "", call_id=None) -> dict:
     if err := _can_request(ctx, "wound_photo"):
         return {"error": err}
-    result = wound_photos.request(ctx.repo, ctx.pid, ctx.inv.id, reason)
+    result = wound_photos.request(ctx.repo, ctx.pid, ctx.inv.id, reason, call_id=call_id)
     if result.get("status") == "requested":
         ctx.inv.patient_requests += 1
         ctx.repo.add(ctx.inv)

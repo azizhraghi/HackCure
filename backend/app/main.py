@@ -28,6 +28,8 @@ async def lifespan(_: FastAPI):
         if repo.patient("sarah") is None:
             from seed.demo_seed import load
             load(repo)
+        recovered = investigation.recover(repo)
+        logging.getLogger("surgiguard.recovery").info("Requeued %d persisted investigations", len(recovered))
     scheduler.start()
     yield
     scheduler.stop()

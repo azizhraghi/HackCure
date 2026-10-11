@@ -1,4 +1,6 @@
 .venv/
+.venv-web/
+.cache-web-install.log
 .env
 __pycache__/
 *.db
