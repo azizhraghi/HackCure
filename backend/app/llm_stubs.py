@@ -150,7 +150,7 @@ def _findings(res, ctx, new_photo_id):
         patient.append({"text": "Invented claim", "observation_id": "obs_doesnotexist"})
 
     redness = (cmp.get("comparison") or {}).get("redness_area_change_pct") if cmp.get("available") else None
-    wound_txt = f", wound redness area +{redness}% vs day 1 (pre-computed comparison)" if redness is not None else ""
+    wound_txt = f", wound redness area {redness:+}% vs the day-1 photo (measured by code)" if redness is not None else ""
     hr_last = hr_rows[-1]["value"].get("value") if hr_rows else "unknown"
     temp_last = temp_rows[-1]["value"].get("value") if temp_rows else "unknown"
     n_missed = len(meds.get("not_taken", []))

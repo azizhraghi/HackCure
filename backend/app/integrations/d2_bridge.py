@@ -63,8 +63,9 @@ def run(draft_id: str) -> None:
                                        "word_count": len(text.split()), "extracted_data": None, "errors": [],
                                        "low_confidence": False})
         d2 = state.get("extracted_data")
-        if d2 is None:
-            return fail("D2 extraction failed: " + "; ".join(state.get("errors", []))[:300])
+        if d2 is None:  # keep the start and the end: a parser error puts the validation reason last
+            errors = "; ".join(state.get("errors", []))
+            return fail("D2 extraction failed: " + (errors if len(errors) <= 380 else errors[:150] + " … " + errors[-220:]))
         safety = safety_graph.invoke({"extracted_protocol": d2, "patient_allergies": list(patient.allergies if patient else []),
                                       "safety_report": None, "deterministic_alerts": [], "needs_llm_check": False})
         report = safety.get("safety_report")
@@ -217,11 +218,17 @@ def index_plan(repo: Repo, patient_id: str, force: bool = False) -> int:
     if not force and _indexed.get(patient_id) == version:
         return 0
     from langchain_core.documents import Document
-    from ..ai.rag.vectorstore import add_documents_to_store
+    from ..ai.rag.vectorstore import get_vectorstore, save_vectorstore
     docs = [Document(page_content=t, metadata={"access_scope": s, "patient_id": patient_id, "source": "active_care_plan",
                                                 "plan_version": version})
             for s, t in plan_passages(plan, patient)]
-    add_documents_to_store(docs, use_semantic_chunking=False)
+    store = get_vectorstore()
+    old = [i for i, d in store.docstore._dict.items()  # passages of an earlier plan are replaced, never mixed
+           if d.metadata.get("patient_id") == patient_id and d.metadata.get("source") == "active_care_plan"]
+    if old:
+        store.delete(old)
+    store.add_documents(docs)
+    save_vectorstore(store)
     _indexed[patient_id] = version
     audit.log(repo, patient_id, "d2:rag", "rag.plan_indexed", {"plan_version": version, "passages": len(docs)})
     return len(docs)

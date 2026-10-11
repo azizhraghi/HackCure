@@ -42,6 +42,7 @@ const fr: Dict = {
     pdf: 'Importer un PDF', gallery: 'Galerie', files: 'Fichiers importés', count: '{{n}} fichiers',
     discharge: 'Compte rendu de sortie', operative: 'Compte rendu opératoire', labs: 'Résultats de labo', meds: 'Liste des médicaments',
     processing: 'Traitement…', ready: 'Prêt', analyze: "Analyser avec l'IA", analyzing: 'Analyse des documents…',
+    sample: 'Ajouter le compte rendu de sortie (exemple)', pick: 'Choisir un fichier', none: 'Aucun document. Ajoutez-en un pour créer votre plan.', unreadable: 'Illisible', failed: "L'analyse a échoué", chars: '{{n}} caractères lus',
   },
   protocol: {
     top: 'Protocole IA', title: 'Votre protocole de\nrécupération est prêt', sub: 'Compilé à partir de 4 documents médicaux',
@@ -53,10 +54,14 @@ const fr: Dict = {
     warning: "Signes d'alerte", warningSub: 'Fièvre > 38°C, rougeur qui s’étend, écoulement',
     modules: 'Modules de suivi activés', chips: 'Caméra plaie|Capteur pansement|Suivi douleur|Rééduc. angle genou',
     confirm: 'Confirmer et créer le jumeau',
+    loading: 'Lecture de vos documents…', reviewTitle: 'Vérifiez votre\nplan de récupération', reviewSub: "Créé par l'IA à partir de vos documents. Chaque médicament et dose a été vérifié dans le texte.",
+    meds: 'MÉDICAMENTS', noTimes: 'pas d’horaire fixe', proposed: 'horaires proposés, à vérifier', checks: 'À VÉRIFIER AVANT DE CONFIRMER', noChecks: 'Rien à vérifier.',
+    profile: 'DANS VOS DOCUMENTS', restrictions: 'RESTRICTIONS', failed: "Le plan n'a pas pu être créé", back: 'Retour aux documents', confirmPlan: 'Confirmer mon plan', confirming: 'Enregistrement…',
   },
   home: {
     dressingPhoto: 'Photo au changement\nde pansement autorisé', rehabTask: 'Suivez vos exercices\nde rééducation prévus',
     photoWait: 'Les photos suivent le calendrier de pansement de votre équipe. Gardez le pansement en place jusque-là.',
+    normalToday: 'CE QUI EST NORMAL AUJOURD’HUI', normalPain: 'Douleur habituelle : {{low}}-{{high}}/10', expectedComputing: 'Votre récupération attendue est en préparation…', expectedNote: 'Récupération typique, pas un diagnostic. Prévenez votre équipe si vous allez moins bien.',
     bodyTemp: 'TEMPÉRATURE', live: 'Dernière mesure', status_unknown: 'Inconnue : pas de données récentes', status_unreliable: 'Signal peu fiable', status_questionable: 'Dernière mesure (incertaine)',
     welcome: 'Bon retour', title: "Votre récupération\nen un coup d'œil",
     task: 'TÂCHE DU JOUR', taskTitle: 'Photographiez la plaie\net faites 10 flexions', about: 'Environ 5 min',
@@ -92,7 +97,7 @@ const fr: Dict = {
     trendUp: 'Plus de rougeur', trendDown: 'Moins de rougeur', trendStable: 'Pas de changement net', notCompared: 'Non comparé : qualité de photo ou pas de référence',
     saved: 'Terminé ✓', permission: "L'accès à la caméra est nécessaire pour scanner la plaie", allow: 'Autoriser la caméra',
     noCamera: 'Aucune caméra trouvée ({{n}} détectée)', retry: 'Réessayer', captured: 'Photo prise · mesure…', measured: 'Photo mesurée',
-    retake: 'Reprendre', retakeHint: 'reprenez la photo', failed: "La photo n'a pas pu être envoyée",
+    retake: 'Reprendre', retakeHint: 'reprenez la photo', failed: "La photo n'a pas pu être envoyée", confirm: 'Je change mon pansement maintenant, comme mon plan le permet', pick: 'Prendre / choisir une photo', notNow: 'Pas un moment de changement de pansement :',
     disclaimer: 'Mesuré par le code (rougeur comparée à la peau autour). Le cadrage et la lumière changent les chiffres. Pas un diagnostic.',
   },
   sensing: {

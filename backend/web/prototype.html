@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurgiGuard Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #edf2fa; --surface: #ffffff; --ink: #1b2a4a; --text: #1b2a4a; --muted: #64718a; --line: #d7dfec;
+    --d1: #e3f6ec; --d2: #fff4d6; --d3: #fde6e4; --app: #e6f0ff; --ok: #1f8a4c; --warn: #a65f00; --bad: #c64e48;
+    --primary: #3157d5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1120; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2; --line: #2a3a5c;
+      --d1: #12332a; --d2: #3a3013; --d3: #3a1c22; --app: #182a4d; --ok: #6ad79a; --warn: #ffc070; --bad: #ff8a84; --primary: #7d9bff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1120; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2; --line: #2a3a5c;
+    --d1: #12332a; --d2: #3a3013; --d3: #3a1c22; --app: #182a4d; --ok: #6ad79a; --warn: #ffc070; --bad: #ff8a84; --primary: #7d9bff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Plus Jakarta Sans", system-ui, sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  header { background: var(--surface); border-bottom: 1.5px solid var(--ink); padding: 14px 16px; position: sticky; top: 0; z-index: 3; }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 2px 0 8px; color: var(--muted); font-size: 13px; }
+  .links, .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .links a { border: 1.2px solid var(--ink); border-radius: 99px; padding: 4px 11px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 12.5px; background: var(--app); }
+  .chip { border: 1px solid var(--line); border-radius: 99px; padding: 2px 9px; font-size: 12px; background: var(--surface); }
+  .chip.on { border-color: var(--ok); color: var(--ok); } .chip.off { border-color: var(--warn); color: var(--warn); }
+  main { max-width: 1060px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+  .step { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 18px; padding: 14px 16px; }
+  .step > .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .num { font-weight: 800; font-size: 13px; border: 1.2px solid var(--ink); border-radius: 99px; width: 26px; height: 26px; display: inline-grid; place-items: center; flex: none; }
+  .step h2 { margin: 0; font-size: 16px; }
+  .who { font-size: 11.5px; font-weight: 800; letter-spacing: .5px; border-radius: 99px; padding: 2px 9px; border: 1px solid var(--ink); }
+  .who.d1 { background: var(--d1); } .who.d2 { background: var(--d2); } .who.d3 { background: var(--d3); } .who.app { background: var(--app); }
+  .story { color: var(--muted); margin: 6px 0 10px; font-size: 13.5px; max-width: 75ch; }
+  .row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+  button.b { border: 1.2px solid var(--ink); background: var(--surface); border-radius: 10px; padding: 7px 12px; font-weight: 700; cursor: pointer; }
+  button.b.p { background: var(--primary); color: #fff; border-color: var(--primary); }
+  button.b:disabled { opacity: .5; cursor: wait; }
+  .out { margin-top: 10px; display: grid; gap: 8px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); }
+  .card h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .w-high { color: var(--bad); font-weight: 700; } .w-medium { color: var(--warn); } .w-low { color: var(--muted); }
+  ul { margin: 4px 0; padding-left: 18px; } li { margin: 2px 0; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  .err { color: var(--bad); font-weight: 700; }
+  textarea { width: 100%; min-height: 54px; border: 1.2px solid var(--ink); border-radius: 10px; padding: 8px; background: var(--surface); }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  td, th { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: left; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; max-height: 260px; overflow: auto; margin: 4px 0 0; }
+  img.ph { width: 100%; max-width: 220px; border-radius: 10px; border: 1px solid var(--line); }
+  @media (max-width: 520px) { header { position: static; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>SurgiGuard AI · prototype</h1>
+  <p>One backend, three developers. Fictional patient Sarah Miller, 64, right total knee replacement, at home after discharge. Not a medical device.</p>
+  <div class="links">
+    <a href="/app/" target="_blank">📱 Patient &amp; family app</a>
+    <a href="/agent-demo/" target="_blank">🩺 Patient · family · clinic dashboard</a>
+    <a href="/demo" target="_blank">D3 safety workflow</a>
+    <a href="/docs" target="_blank">API docs</a>
+  </div>
+  <div class="chips" id="status" style="margin-top:8px"></div>
+</header>
+
+<main>
+  <section class="step">
+    <div class="head"><span class="num">0</span><h2>Start clean</h2></div>
+    <p class="story">Resets the demo patient (care plan, vitals history, photos) and the demo clock: day 3 after discharge, 15:30, inside a permitted dressing-change window.</p>
+    <div class="row"><button class="b" data-act="reset">Reset demo</button></div>
+    <div class="out" id="o-reset"></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><span class="num">1</span><h2>Documents become the care plan</h2><span class="who d2">D2 COMPILER</span><span class="who d3">D3 GROUNDING</span></div>
+    <p class="story">Sarah uploads her discharge summary. Developer 2's compiler extracts 20+ clinical fields and runs its deterministic allergy/interaction graph. The shared backend then checks every medicine, dose and date against the text and lists anything to verify. Nothing is active until Sarah confirms.</p>
+    <div class="row">
+      <button class="b" data-act="sample">Add sample discharge summary</button>
+      <button class="b p" data-act="draft-d2">Compile with D2</button>
+      <button class="b" data-act="draft-agent">Compile with the D3 protocol agent</button>
+      <button class="b" data-act="confirm" id="btn-confirm" disabled>Confirm as Sarah</button>
+    </div>
+    <div class="out" id="o-plan"></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><span class="num">2</span><h2>What a normal day looks like</h2><span class="who d1">D1 TRAJECTORY · TWIN</span></div>
+    <p class="story">From the plan (the "D2 JSON"), Developer 1 estimates an uncomplicated recovery for this operation and this person, split into days, which the app's home screen shows. The Patient Twin continues Sarah's own heart-rate and SpO₂ curve a few hours ahead, or abstains and says why.</p>
+    <div class="row">
+      <button class="b p" data-act="expected">Today's expected recovery</button>
+      <button class="b" data-act="twin">Patient Twin forecast</button>
+      <button class="b" data-act="d2doc">Show the D2 JSON given to D1</button>
+    </div>
+    <div class="out" id="o-d1"></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><span class="num">3</span><h2>Something changes at home</h2><span class="who d3">D3 SAFETY · INVESTIGATION</span></div>
+    <p class="story">Sarah's check-in says she is very tired; her wearable shows heart rate and temperature creeping up. Urgent rules run first (no AI). Nothing is urgent, so the investigation agent gathers evidence, asks Sarah one question and asks for a wound photo, but only because a dressing change is permitted now.</p>
+    <div class="row">
+      <button class="b p" data-act="scenario">Inject "infection pattern"</button>
+      <button class="b" data-act="answer">Sarah answers (demo day-3 photo, dressing change confirmed)</button>
+      <button class="b" data-act="inv">Refresh investigation</button>
+    </div>
+    <div class="out" id="o-d3"></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><span class="num">4</span><h2>The care team closes the loop</h2><span class="who d3">D3 ALERTS · FOLLOW-UP</span></div>
+    <p class="story">The clinic sees the evidence report and the alert. Acknowledging, contacting Sarah, recording the action, verifying with new evidence and resolving are separate steps in the clinic view. Ahmed (family) gets only what Sarah allowed.</p>
+    <div class="row">
+      <button class="b" data-act="alerts">Show alerts</button>
+      <button class="b" data-act="digest">Family digest (Ahmed)</button>
+      <a class="b" style="text-decoration:none;border:1.2px solid var(--ink);border-radius:10px;padding:7px 12px;font-weight:700;color:var(--text)" href="/agent-demo/" target="_blank">Open clinic view ↗</a>
+    </div>
+    <div class="out" id="o-loop"></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><span class="num">5</span><h2>Sarah asks questions</h2><span class="who d2">D2 RAG ASSISTANT</span><span class="who d3">D3 URGENT GATE</span></div>
+    <p class="story">The same question goes to Developer 2's RAG assistant (retrieves only Sarah's plan passages, with guardrails and self-check) and to the plan assistant. A message with an emergency sign is caught by the deterministic urgent rules before any AI.</p>
+    <textarea id="q">Can I take ibuprofen for the pain?</textarea>
+    <div class="row" style="margin-top:6px">
+      <button class="b p" data-act="ask">Ask both assistants</button>
+      <button class="b" data-act="ask-urgent">Try: "I suddenly can't breathe"</button>
+      <button class="b" data-act="checkin-v1">D2 check-in form → D3 (calf pain)</button>
+    </div>
+    <div class="out" id="o-chat"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let draftId = null;
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: opts.body ? { 'Content-Type': 'application/json' } : {}, ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? res.status));
+  return data;
+}
+const show = (id, html) => { $(id).innerHTML = html; };
+const raw = obj => `<details><summary>raw JSON</summary><pre>${esc(JSON.stringify(obj, null, 2))}</pre></details>`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function status() {
+  try {
+    const s = await api('/integration/status');
+    const chip = (on, label) => `<span class="chip ${on ? 'on' : 'off'}">${on ? '●' : '○'} ${esc(label)}</span>`;
+    show('#status', [
+      chip(s.llm_mode === 'live', `LLM ${s.llm_mode} · ${s.llm_provider}`),
+      chip(s.d2_langchain_provider !== 'offline', `D2 LLM: ${s.d2_langchain_provider}`),
+      chip(s.d1.expected_recovery, 'D1 expected recovery'),
+      chip(s.d1.patient_twin, 'D1 Patient Twin'),
+      chip(s.ui.patient_app_built, 'patient app built'),
+      `<span class="chip">open alerts: ${s.d3.open_alerts}</span>`,
+    ].join(''));
+  } catch (e) { show('#status', `<span class="err">backend not reachable: ${esc(e.message)}</span>`); }
+}
+
+function renderDraft(d) {
+  if (d.status === 'analyzing') return `<div class="card">Analyzing… <span class="muted">(${esc(d.mode || '')})</span></div>`;
+  if (d.status === 'failed') return `<div class="card err">Draft failed: ${esc(d.error)}</div>${raw(d)}`;
+  const p = d.plan || {}, info = p.document_info || {}, prof = p.clinical_profile || {};
+  const meds = (p.medications || []).map(m => `<li><b>${esc(m.name)} ${esc(m.dose)}</b> · ${m.times?.length ? esc(m.times.join(', ')) : 'no fixed time'}${m.times_inferred ? ' <span class="w-medium">(times proposed)</span>' : ''}${m.duration_days ? ` · ${m.duration_days} d` : ''}</li>`).join('');
+  const order = { high: 0, medium: 1, low: 2 };
+  const warns = [...(d.warnings || [])].sort((a, b) => order[a.level] - order[b.level])
+    .map(w => `<li class="w-${w.level}">${esc(w.item)}: ${esc(w.message)}</li>`).join('') || '<li class="muted">nothing to check</li>';
+  const profKeys = ['patient_age', 'patient_sex', 'asa_score', 'bmi_kg_m2', 'smoking_status', 'diabetes', 'anesthesia_type', 'is_high_risk'];
+  const profile = profKeys.filter(k => prof[k] !== undefined && prof[k] !== null).map(k => `<span class="chip">${esc(k)}: ${esc(prof[k])}</span>`).join(' ');
+  return `<div class="grid2">
+    <div class="card"><h3>Plan v${esc(p.version)} · ${esc(d.status)} · ${esc(d.mode)}</h3>
+      <div><b>${esc(p.pathway || info.surgery)}</b> ${info.surgery_date ? '· surgery ' + esc(info.surgery_date) : ''} ${info.surgeon ? '· ' + esc(info.surgeon) : ''}</div>
+      <ul>${meds}</ul>
+      ${profile ? `<h3 style="margin-top:6px">Clinical profile (D2)</h3><div class="chips">${profile}</div>` : ''}
+      ${prof.missing?.length ? `<div class="muted" style="margin-top:4px">Missing from documents: ${esc(prof.missing.join(', '))}</div>` : ''}</div>
+    <div class="card"><h3>To check before confirming</h3><ul>${warns}</ul></div>
+  </div>${raw(d)}`;
+}
+
+async function pollDraft(id) {
+  for (let i = 0; i < 90; i++) {
+    const d = await api(`/plan-drafts/${id}`);
+    show('#o-plan', renderDraft(d));
+    if (d.status !== 'analyzing') { $('#btn-confirm').disabled = d.status !== 'ready'; return d; }
+    await sleep(2000);
+  }
+}
+
+async function expectedLoop() {
+  for (let i = 0; i < 120; i++) {
+    const e = await api('/patients/sarah/expected-recovery');
+    if (e.status === 'ready') {
+      const c = e.card;
+      show('#o-d1', c ? `<div class="card"><h3>Normal today · day ${c.day} · ${esc(e.generated_by)}</h3>
+        <div>${esc(c.message)}</div>
+        <div style="margin-top:6px"><b>Usual pain:</b> ${c.normal_pain.low}-${c.normal_pain.high}/10</div>
+        ${c.normal_today?.length ? `<ul>${c.normal_today.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        ${c.today?.length ? `<div><b>Today:</b> ${esc(c.today.join(' · '))}</div>` : ''}
+        <div class="muted" style="margin-top:6px">${esc(e.note)}</div></div>${raw(e)}` : `<div class="card">Today is outside the plan.</div>`);
+      return;
+    }
+    if (e.status !== 'computing') { show('#o-d1', `<div class="card"><b>${esc(e.status)}</b>: ${esc(e.reason || e.error || '')}</div>`); return; }
+    show('#o-d1', `<div class="card">D1 is writing the expected recovery (a few minutes on the free LLM tier; cached afterwards)… since ${esc(e.since)}</div>`);
+    await sleep(5000);
+  }
+}
+
+function renderInv(inv) {
+  const s = inv.summary || {};
+  const reqs = (inv.requests || []).map(r => `<li>${esc(r.kind)}: ${esc(r.prompt)} · <b>${esc(r.status)}</b></li>`).join('');
+  return `<div class="grid2">
+    <div class="card"><h3>Investigation · ${esc(inv.status)} · ${esc(inv.mode || '')}</h3>
+      ${s.what_changed ? `<div><b>What changed:</b> ${esc(s.what_changed)}</div>` : '<div class="muted">collecting evidence…</div>'}
+      ${s.messages?.clinician ? `<div style="margin-top:4px"><b>For the clinician:</b> ${esc(s.messages.clinician)}</div>` : ''}
+      ${s.missing?.length ? `<div class="muted">Missing: ${esc(s.missing.join('; '))}</div>` : ''}
+      <ul>${reqs}</ul></div>
+    <div class="card"><h3>Steps</h3><ul>${(inv.steps || []).slice(-10).map(st => `<li><span class="muted">${esc(st.actor)}</span> ${esc(st.kind)}</li>`).join('')}</ul></div>
+  </div>${raw(inv)}`;
+}
+
+let lastInv = null;
+const actions = {
+  async reset() { const r = await api('/demo/reset', { method: 'POST' }); draftId = null; $('#btn-confirm').disabled = true;
+    show('#o-reset', `<div class="card">Reset done. Demo clock: day 3, 15:30.</div>${raw(r)}`); },
+  async sample() { const d = await api('/patients/sarah/documents/sample', { method: 'POST' });
+    show('#o-plan', `<div class="card">Uploaded <b>${esc(d.filename)}</b>: ${d.chars} characters read (${esc(d.status)}).</div>`); },
+  async 'draft-d2'() { const d = await api('/patients/sarah/plan-drafts', { method: 'POST', body: { engine: 'd2' } }); draftId = d.id; await pollDraft(d.id); },
+  async 'draft-agent'() { const d = await api('/patients/sarah/plan-drafts', { method: 'POST', body: { engine: 'agent' } }); draftId = d.id; await pollDraft(d.id); },
+  async confirm() { if (!draftId) return; const r = await api(`/plan-drafts/${draftId}/confirm`, { method: 'POST', body: { actor: 'sarah' } });
+    $('#btn-confirm').disabled = true; show('#o-plan', $('#o-plan').innerHTML + `<div class="card" style="border-color:var(--ok)"><b>Active plan updated</b> (${r.medications.length} medicines). Reminders, chat, D1 and the RAG assistant now use it.</div>`); },
+  async expected() { await expectedLoop(); },
+  async twin() { const f = await api('/patients/sarah/twin-forecast');
+    const rows = Object.entries(f.forecasts || {}).flatMap(([code, list]) => list.map(x => `<tr><td>${esc(code)}</td><td>+${x.horizon_hours} h</td><td>${x.status === 'available' ? `<b>${x.point}</b> ${esc(x.unit)}${x.interval ? ` (${x.interval.lower}-${x.interval.upper})` : ''}` : '<span class="w-medium">abstained</span>'}</td><td class="muted">${esc((x.limitations || []).join(' '))}</td></tr>`)).join('');
+    show('#o-d1', `<div class="card"><h3>Patient Twin · as of ${esc(f.as_of)} (demo clock)</h3><table><tr><th>signal</th><th>horizon</th><th>forecast</th><th>limits</th></tr>${rows}</table><div class="muted" style="margin-top:4px">${esc(f.note)}</div></div>${raw(f)}`); },
+  async d2doc() { const d = await api('/patients/sarah/d2-document'); show('#o-d1', `<div class="card"><h3>D2 JSON handed to D1</h3><pre>${esc(JSON.stringify(d, null, 2))}</pre></div>`); },
+  async scenario() { const r = await api('/demo/scenario/infection_pattern', { method: 'POST' });
+    const inv = (r.results || []).map(x => x.investigation_id).find(Boolean); lastInv = inv;
+    show('#o-d3', `<div class="card">Check-in + vitals injected. Rule results: ${esc((r.results || []).map(x => x.rule?.level || x.monitor?.rule?.level).filter(Boolean).join(', ') || 'see raw')}. ${inv ? 'Investigation started.' : ''}</div>${raw(r)}`);
+    if (inv) { await sleep(1500); await actions.inv(); } },
+  async answer() { const r = await api('/demo/answer_pending', { method: 'POST' });
+    show('#o-d3', `<div class="card">Sarah answered ${r.answered?.length ?? 0} request(s).</div>${raw(r)}`); await sleep(1500); await actions.inv(); },
+  async inv() { if (!lastInv) { const list = await api('/patients/sarah/investigations'); lastInv = list[0]?.id; }
+    if (!lastInv) { show('#o-d3', '<div class="card muted">No investigation yet.</div>'); return; }
+    for (let i = 0; i < 30; i++) { const inv = await api(`/investigations/${lastInv}`); show('#o-d3', renderInv(inv));
+      if (inv.status !== 'running') break; await sleep(2000); } },
+  async alerts() { const list = await api('/alerts?role=clinician&patient_id=sarah');
+    show('#o-loop', `<div class="card"><h3>Alerts (clinician view)</h3><ul>${list.map(a => `<li><b>${esc(a.level)}</b> · ${esc(a.title)} · state <b>${esc(a.state)}</b></li>`).join('') || '<li class="muted">none</li>'}</ul></div>${raw(list)}`); },
+  async digest() { const d = await api('/caregiver/ahmed/digest?refresh=true');
+    show('#o-loop', `<div class="card"><h3>Ahmed's digest (permission-filtered)</h3><div>${esc(d.digest?.text)}</div><ul>${(d.tasks || []).map(t => `<li>${esc(t.text)}</li>`).join('')}</ul></div>${raw(d)}`); },
+  async ask(text) { const q = text || $('#q').value.trim(); if (!q) return;
+    const messages = [{ role: 'user', content: q }];
+    show('#o-chat', '<div class="card muted">Asking…</div>');
+    const [rag, plan] = await Promise.allSettled([
+      api('/v1/chat', { method: 'POST', body: { messages, patient_id: 'sarah', actor_role: 'patient' } }),
+      api('/chat', { method: 'POST', body: { messages, patient_id: 'sarah', lang: 'en' } })]);
+    const box = (title, r) => `<div class="card"><h3>${title}</h3>${r.status === 'fulfilled'
+      ? `<div>${esc(r.value.reply)}</div><div class="muted" style="margin-top:4px">${r.value.escalate ? '⚠ escalate · ' : ''}${(r.value.citations || []).length ? 'sources: ' + esc(r.value.citations.join(', ')) : ''}</div>`
+      : `<div class="err">${esc(r.reason.message)}</div>`}</div>`;
+    show('#o-chat', `<div class="grid2">${box('D2 RAG assistant · /v1/chat', rag)}${box('Plan assistant · /chat', plan)}</div>`); },
+  async 'ask-urgent'() { $('#q').value = "I suddenly can't breathe"; await actions.ask(); },
+  async 'checkin-v1'() { const r = await api('/v1/checkin', { method: 'POST', body: { patient_id: 'sarah', pain: 5, fatigue: 4, mobility: 4, other_symptoms: ['calf_pain'] } });
+    show('#o-chat', `<div class="card"><h3>D2 rules: ${esc(r.status)} → recorded by D3: ${esc(r.recorded?.status)}</h3><ul>${(r.alerts || []).map(a => `<li>${esc(a.severity)}: ${esc(a.message)}</li>`).join('')}</ul>${r.recorded?.message ? `<div><b>Shown to Sarah:</b> ${esc(r.recorded.message)}</div>` : ''}</div>${raw(r)}`); },
+};
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const all = document.querySelectorAll('[data-act]');
+  b.disabled = true;
+  try { await actions[b.dataset.act](); }
+  catch (err) { const out = b.closest('.step').querySelector('.out'); out.innerHTML = `<div class="card err">${esc(err.message)}</div>` + out.innerHTML; }
+  finally { if (b.id !== 'btn-confirm') b.disabled = false; status(); }
+});
+status();
+</script>
+</body>
+</html>

@@ -47,7 +47,9 @@ def followup_evidence(alert_id: str, body: m.ActorBody, repo: Repo = Depends(get
 @router.post("/reset")
 def reset(repo: Repo = Depends(get_repo)):
     from seed.demo_seed import load
+    from ..integrations import d2_bridge
     clock.clear_offset()
+    d2_bridge._indexed.clear()  # the RAG index is rebuilt from the reseeded plan on the next question
     return {"ok": True, **load(repo)}
 
 

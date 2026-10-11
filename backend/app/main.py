@@ -48,6 +48,12 @@ app.include_router(d3_demo_router)
 app.include_router(d2_router, prefix="/v1")
 
 
+@app.get("/prototype", include_in_schema=False)
+def prototype_page():
+    """Story walkthrough across D1 / D2 / D3 on this backend."""
+    return FileResponse(BACKEND_DIR / "web" / "prototype.html")
+
+
 @app.get("/demo", include_in_schema=False)
 def d3_demo_page():
     return FileResponse(BACKEND_DIR / "web_demo.html")

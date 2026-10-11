@@ -97,22 +97,74 @@ export type WoundPhoto = {
 export const getWoundPhotos = (apiUrl: string) =>
   call<{ reference: WoundPhoto | null; photos: WoundPhoto[] }>(apiUrl, `/patients/${PATIENT_ID}/wound-photos`);
 
-/** Uploads a photo file taken by the camera (multipart). Answers the care-team agent's photo request if one is pending. */
-export async function uploadWoundPhoto(apiUrl: string, fileUri: string): Promise<WoundPhoto> {
+/** Uploads a wound photo (a camera file URI on the phone, a Blob in the browser). Only accepted inside a dressing
+ * change permitted by the care plan, confirmed by the patient; it answers that window's photo request. */
+export async function uploadWoundPhoto(apiUrl: string, file: string | Blob, dressingChangeConfirmed: boolean): Promise<WoundPhoto> {
   const form = new FormData();
-  form.append('file', { uri: fileUri, type: 'image/jpeg', name: 'wound.jpg' } as unknown as Blob);
+  if (typeof file === 'string') form.append('file', { uri: file, type: 'image/jpeg', name: 'wound.jpg' } as unknown as Blob);
+  else form.append('file', file); // a browser File keeps its own name
+  form.append('dressing_change_confirmed', dressingChangeConfirmed ? 'true' : 'false');
+  return postForm<WoundPhoto>(apiUrl, `/patients/${PATIENT_ID}/wound-photos`, form, 60000);
+}
+
+async function postForm<T>(apiUrl: string, path: string, form: FormData, timeoutMs: number): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/patients/${PATIENT_ID}/wound-photos`, {
-      method: 'POST', body: form, signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return (await res.json()) as WoundPhoto;
+    const res = await fetch(`${apiUrl.replace(/\/$/, '')}${path}`, { method: 'POST', body: form, signal: controller.signal });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(typeof error?.detail === 'string' ? error.detail : `HTTP ${res.status}`);
+    }
+    return (await res.json()) as T;
   } finally {
     clearTimeout(timer);
   }
 }
+
+// ---------------------------------------------------------------- documents -> care plan (Developer 2 compiler)
+
+export type UploadedDocument = { id: string; filename: string; status: 'ready' | 'unreadable'; error: string | null; size: number; chars: number };
+export type DraftWarning = { level: 'high' | 'medium' | 'low'; item: string; message: string };
+export type PlanMedication = { id: string; name: string; dose: string; route: string; purpose: string; times: string[]; as_needed: boolean; duration_days: number | null; times_inferred: boolean };
+export type PlanDraft = {
+  id: string; status: 'analyzing' | 'ready' | 'failed' | 'confirmed'; mode: string; error: string | null; warnings: DraftWarning[];
+  plan: null | {
+    pathway: string; medications: PlanMedication[]; rehab: { name: string; times: string[] }[];
+    appointments: { title: string; day_offset?: number; time: string; date?: string }[];
+    document_info?: { surgery: string; side: string; surgery_date: string | null; surgeon: string; allergies: string[]; activity_restrictions: string[]; warning_signs: string[] };
+    clinical_profile?: Record<string, unknown>;
+  };
+};
+
+export const getDocuments = (apiUrl: string) => call<UploadedDocument[]>(apiUrl, `/patients/${PATIENT_ID}/documents`);
+
+export const addSampleDocument = (apiUrl: string) =>
+  call<UploadedDocument>(apiUrl, `/patients/${PATIENT_ID}/documents/sample`, { method: 'POST' });
+
+/** One document from the phone (file URI + name + type) or the browser (File). */
+export function uploadDocument(apiUrl: string, file: { uri: string; name: string; type: string } | File) {
+  const form = new FormData();
+  form.append('files', file as unknown as Blob);
+  return postForm<UploadedDocument[]>(apiUrl, `/patients/${PATIENT_ID}/documents`, form, 60000);
+}
+
+export const startPlanDraft = (apiUrl: string, documentIds: string[] = []) =>
+  call<PlanDraft>(apiUrl, `/patients/${PATIENT_ID}/plan-drafts`, { method: 'POST', body: { document_ids: documentIds, engine: 'd2' } }, 30000);
+
+export const getPlanDraft = (apiUrl: string, id: string) => call<PlanDraft>(apiUrl, `/plan-drafts/${id}`);
+
+export const confirmPlanDraft = (apiUrl: string, id: string) =>
+  call<{ ok: boolean; plan_id: string }>(apiUrl, `/plan-drafts/${id}/confirm`, { method: 'POST', body: { actor: PATIENT_ID } });
+
+// ---------------------------------------------------------------- Developer 1: expected recovery + Patient Twin
+
+export type ExpectedRecovery =
+  | { status: 'ready'; card: null | { day: number; surgery: string; message: string; normal_today: string[]; normal_pain: { low: number; high: number }; today: string[] }; note: string }
+  | { status: 'computing'; since: string }
+  | { status: 'unavailable' | 'failed' | 'not_started' | 'unknown_patient'; reason?: string; error?: string };
+
+export const getExpectedRecovery = (apiUrl: string) => call<ExpectedRecovery>(apiUrl, `/patients/${PATIENT_ID}/expected-recovery`);
 
 // ---------------------------------------------------------------- caregiver
 

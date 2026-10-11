@@ -116,3 +116,14 @@ def test_d1_card_from_a_ready_trajectory(repo, monkeypatch):
     monkeypatch.setitem(d1_bridge._jobs, "sarah", {"status": "ready", "key": key, "trajectory": Traj()})
     out = d1_bridge.expected_today(repo, "sarah")
     assert out["status"] == "ready" and out["card"]["message"] == "Normal day"
+
+
+def test_rag_index_replaces_the_previous_plan(repo, d2_offline):
+    from app.ai.rag.vectorstore import get_vectorstore
+    assert d2_bridge.index_plan(repo, "sarah") > 0
+    row = repo.first(m.SurveillancePlan)
+    row.plan = {**row.plan, "version": 99, "medications": [{"name": "Testamol", "dose": "1 mg", "times": ["08:00"]}]}
+    repo.add(row)
+    d2_bridge.index_plan(repo, "sarah")
+    texts = [d.page_content for d in get_vectorstore().docstore._dict.values() if d.metadata.get("patient_id") == "sarah"]
+    assert any("Testamol" in t for t in texts) and not any("Paracetamol" in t for t in texts)

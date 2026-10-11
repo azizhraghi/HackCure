@@ -29,7 +29,7 @@ class ProtocolState(TypedDict):
 
 
 # ── LLM & Parser ───────────────────────────────────────────────────────────
-llm = get_chat_llm(temperature=0.0, max_tokens=4000)  # shared provider (LLM_ROUTE_D2 / LLM_PROVIDER)
+llm = get_chat_llm(temperature=0.0, max_tokens=3000)  # shared provider (LLM_ROUTE_D2 / LLM_PROVIDER); Groq free tier: 8k tokens/min
 parser = PydanticOutputParser(pydantic_object=ExtractedProtocol)
 
 EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([

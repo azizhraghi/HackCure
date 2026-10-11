@@ -11,7 +11,7 @@ export type RootParams = {
   Role: undefined;
   Welcome: undefined;
   Upload: undefined;
-  Protocol: undefined;
+  Protocol: { draftId?: string } | undefined;
   PatientTabs: NavigatorScreenParams<PatientTabParams> | undefined;
   TwinDetail: undefined;
   WoundScan: undefined;

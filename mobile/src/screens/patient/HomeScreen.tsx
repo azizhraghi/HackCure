@@ -7,7 +7,7 @@ import { T } from '../../components/T';
 import { Avatar, Card, haptic, IconBadge, PageTitle, RoundButton, Screen, SectionRow, SimulatedTag } from '../../components/ui';
 import { metrics, patient } from '../../data/mock';
 import { useT } from '../../i18n';
-import { getToday, getTwin, usePoll } from '../../services/api';
+import { getExpectedRecovery, getToday, getTwin, usePoll } from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 
 export function HomeHeader({ greeting, name, avatar, avatarBg }: { greeting: string; name: string; avatar: string; avatarBg?: string }) {
@@ -48,6 +48,7 @@ export function HomeScreen() {
   const [taskHidden, setTaskHidden] = useState(false);
   const today = usePoll(getToday, 4000).data;
   const twin = usePoll(getTwin, 10000).data;
+  const expected = usePoll(getExpectedRecovery, 15000).data; // Developer 1: typical recovery for today
   const pending = today?.pending_requests ?? [];
   const photoDue = today?.wound_photo?.permitted === true;
   const temp = twin?.vitals?.temp;
@@ -77,6 +78,20 @@ export function HomeScreen() {
         <Card bg={c.mint} radius={16} style={{ padding: 11, marginBottom: 10 }}>
           <T size={7} w={800} spacing={0.8} color={c.muted}>{t('req.nextStep')}</T>
           <T size={9.5} w={700} lh={1.45} style={{ marginTop: 3 }}>{today.next_step.body}</T>
+        </Card>
+      )}
+      {expected?.status === 'ready' && expected.card && (
+        <Card bg={c.sky} radius={16} style={{ padding: 11, marginBottom: 10 }}>
+          <T size={7} w={800} spacing={0.8} color={c.muted}>{t('home.normalToday')} · {t('common.day')} {expected.card.day}</T>
+          <T size={9.5} w={700} lh={1.45} style={{ marginTop: 3 }}>{expected.card.message}</T>
+          <T size={8} w={800} style={{ marginTop: 5 }}>{t('home.normalPain', { low: expected.card.normal_pain.low, high: expected.card.normal_pain.high })}</T>
+          {expected.card.today.map(e => <T key={e} size={8} style={{ marginTop: 2 }}>• {e}</T>)}
+          <T size={6.5} color={c.muted} style={{ marginTop: 5 }}>{t('home.expectedNote')}</T>
+        </Card>
+      )}
+      {expected?.status === 'computing' && (
+        <Card bg={c.sky} radius={16} style={{ padding: 11, marginBottom: 10 }}>
+          <T size={8.5} w={700}>{t('home.expectedComputing')}</T>
         </Card>
       )}
 

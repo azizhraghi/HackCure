@@ -40,6 +40,7 @@ const en = {
     pdf: 'Upload PDF', gallery: 'Gallery', files: 'Uploaded files', count: '{{n}} files',
     discharge: 'Discharge summary', operative: 'Operative report', labs: 'Lab results', meds: 'Medication list',
     processing: 'Processing…', ready: 'Ready', analyze: 'Analyze with AI', analyzing: 'Analyzing documents…',
+    sample: 'Add sample discharge summary', pick: 'Choose a file', none: 'No document yet. Add one to build your plan.', unreadable: 'Cannot be read', failed: 'Analysis failed', chars: '{{n}} characters read',
   },
   protocol: {
     top: 'AI protocol', title: 'Your recovery\nprotocol is ready', sub: 'Compiled from 4 medical documents',
@@ -51,10 +52,14 @@ const en = {
     warning: 'Warning signs', warningSub: 'Fever over 38°C, spreading redness, drainage',
     modules: 'Monitoring modules activated', chips: 'Wound camera|Dressing sensor|Pain tracking|Knee-angle rehab',
     confirm: 'Confirm & create Twin',
+    loading: 'Reading your documents…', reviewTitle: 'Check your\nrecovery plan', reviewSub: 'Built from your documents by the AI. Every medicine and dose was checked against the text.',
+    meds: 'MEDICINES', noTimes: 'no fixed time', proposed: 'times proposed, check them', checks: 'TO CHECK BEFORE CONFIRMING', noChecks: 'Nothing to check.',
+    profile: 'FROM YOUR DOCUMENTS', restrictions: 'RESTRICTIONS', failed: 'The plan could not be built', back: 'Back to documents', confirmPlan: 'Confirm my plan', confirming: 'Saving…',
   },
   home: {
     dressingPhoto: 'Photo at your permitted\ndressing change', rehabTask: 'Follow your planned\nrehabilitation exercises',
     photoWait: 'Wound photos follow your care team’s dressing-change schedule. Keep the dressing in place until then.',
+    normalToday: 'WHAT IS NORMAL TODAY', normalPain: 'Usual pain today: {{low}}-{{high}}/10', expectedComputing: 'Your expected recovery is being prepared…', expectedNote: 'Typical recovery, not a diagnosis. Tell your care team if you feel worse.',
     bodyTemp: 'TEMPERATURE', live: 'Latest reading', status_unknown: 'Unknown: no recent data', status_unreliable: 'Unreliable signal', status_questionable: 'Latest reading (questionable)',
     welcome: 'Welcome back', title: "Here's your recovery\nat a glance",
     task: "TODAY'S TASK", taskTitle: 'Take a wound photo\nand do 10 knee bends', about: 'About 5 min',
@@ -90,7 +95,7 @@ const en = {
     trendUp: 'More redness', trendDown: 'Less redness', trendStable: 'No clear change', notCompared: 'Not compared: photo quality or no reference',
     saved: 'Done ✓', permission: 'Camera access is needed to scan your wound', allow: 'Allow camera',
     noCamera: 'No camera found ({{n}} detected)', retry: 'Retry', captured: 'Photo taken · measuring…', measured: 'Photo measured',
-    retake: 'Retake', retakeHint: 'please retake the photo', failed: 'The photo could not be sent',
+    retake: 'Retake', retakeHint: 'please retake the photo', failed: 'The photo could not be sent', confirm: 'I am changing my dressing now, as my care plan allows', pick: 'Take / choose photo', notNow: 'Not a dressing-change time:',
     disclaimer: 'Measured by code (redness compared with the skin around it). Framing and light change the numbers. Not a diagnosis.',
   },
   sensing: {
