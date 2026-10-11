@@ -74,5 +74,9 @@ def test_upload_needs_confirmation_and_a_dressing_window(client):
     photo = {"file": ("knee.jpg", wounds.demo_bytes("day3"), "image/jpeg")}
     assert client.post("/patients/sarah/wound-photos", files=photo).status_code == 409  # not confirmed
     clock.advance(24 * 3600)  # day 4: no dressing change planned
+    assert client.post("/patients/sarah/wound-photos", files=photo).status_code == 409  # still needs confirmation
+    # the patient changes the dressing on their own: accepted, analysed, flagged as outside the planned window
     r = client.post("/patients/sarah/wound-photos", files=photo, data={"dressing_change_confirmed": "true"})
-    assert r.status_code == 409 and "dressing change" in r.json()["detail"]
+    body = r.json()
+    assert r.status_code == 200 and body["outside_planned_window"] and body["answered_request_id"] is None
+    assert body["d1"]["segmentation"]["found"]

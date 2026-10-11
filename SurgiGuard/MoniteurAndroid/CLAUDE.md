@@ -36,7 +36,7 @@ Langue de travail : **français**. Port natif de `AppMobile/SurgiGuardApp` (Reac
 
 ## Reste en données fictives / non porté
 - Jumeau, bilan, médicaments, rééducation, scan de plaie, écrans info/attention : `Mock.kt` et textes, comme l'app RN.
-- **Pas de caméra** : scan de plaie et pose de rééducation utilisent le visuel de secours ; la jonction famille se fait par le **code à 6 chiffres** (pas de scan QR). Sélecteur de PDF absent.
+- **Scan de plaie réel** (`screens/WoundScan.kt`) : caméra intégrée CameraX (permission `CAMERA` demandée à l'ouverture), photo vérifiée puis envoyée après confirmation « je change mon pansement » → `POST /api/patients/me/wound-photos` (relais .NET → backend IA : contour OpenCV, qualité, comparaison, lecture par LLM vision). La pose de rééducation utilise encore le visuel de secours ; la jonction famille se fait par le **code à 6 chiffres** (pas de scan QR). Sélecteur de PDF absent.
 - Pas de push FCM (alertes famille par polling, 8 s).
 
 ## Pièges

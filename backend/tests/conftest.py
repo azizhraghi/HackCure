@@ -6,6 +6,7 @@ from pathlib import Path
 os.environ["LLM_MODE"] = "stub"
 os.environ["SCHEDULER_ENABLED"] = "0"
 os.environ["SURGIGUARD_LINK"] = "off"  # never reach for the .NET API in tests
+os.environ["WOUND_MODEL"] = "off"  # the trained wound model runs only in its own tests (slow on CPU)
 os.environ["RUN_AGENTS_INLINE"] = "1"
 os.environ["DB_URL"] = "sqlite://"
 os.environ["MISTRAL_API_KEY"] = ""  # set (empty) so load_dotenv cannot pull the real key from .env

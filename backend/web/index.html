@@ -377,6 +377,7 @@
     <div class="clinic-heading"><div><div class="kicker">Care team / Overview</div><h2>Your recovery watchlist</h2><p class="muted">A clear view of who needs attention and what happens next.</p></div><div class="row clinician-identity"><div class="avatar">ER</div><div><b>Dr. Elena Ruiz</b><div class="small muted">Clinical workspace · demo</div></div></div></div>
     <div id="c-stats" class="clinic-stats" aria-live="polite"></div>
     <div class="clinic-workspace"><aside class="clinic-queue" aria-label="Patient review queue"><div class="queue-title"><h3>Patient queue</h3><span class="stat-symbol" aria-hidden="true">☷</span></div><label class="small muted" for="c-filter">Filter cases</label><select id="c-filter"><option value="all">All open cases</option><option value="review">Awaiting care</option><option value="followup">Follow-up and verification</option><option value="urgent">Urgent alerts</option></select><div id="c-alerts"></div><p class="small muted" style="font-size:10px;border-top:1px solid var(--line);padding-top:14px">Fictional recovery episode.<br>Sorted by recorded alert level, then oldest case.</p></aside><div id="c-detail" aria-label="Selected patient case"></div></div>
+    <section class="card" aria-label="Wound photo review" style="margin-top:20px"><div class="kicker">Wound photos · dressing changes</div><p class="small muted">Photo measurements and AI observations for clinician review.</p><div id="c-wound"></div></section>
   </section>
 </div>
 <div class="toast" id="toast"></div>
@@ -549,6 +550,53 @@ function renderWound(w) {
     Demo photos: real, openly licensed photos of different patients (<a href="https://commons.wikimedia.org/wiki/File:Surgical_staples2.JPG" target="_blank" rel="noopener">Llywrch, CC BY-SA 2.5</a>,
     <a href="https://commons.wikimedia.org/wiki/File:Hip_replacement,_surgical_staples_01.JPG" target="_blank" rel="noopener">K.-H. Wellmann, CC BY 3.0</a>,
     <a href="https://commons.wikimedia.org/wiki/File:Knee_Replacement.jpg" target="_blank" rel="noopener">Ravedave, CC BY-SA 3.0</a>).</div>`;
+}
+
+// ---------------------------------------------------------------- clinic: wound photo series (D1-F: code + vision reading)
+function renderWoundModel(md) {
+  if (!md) return '<div class="small muted" style="margin-top:6px">Model reading: pending…</div>';
+  if (!md.available) return `<div class="small muted" style="margin-top:6px">Model reading unavailable: ${esc(md.reason)}</div>`;
+  const names = { erythema: 'Redness (erythema)', edema: 'Swelling (edema)', exudate: 'Discharge (exudate)', not_healed: 'Not yet healed',
+                  elevated_risk: 'Infection-risk rating medium/high', needs_review: 'Professional review advised' };
+  const col = d => d === 'yes' ? 'var(--review)' : d === 'uncertain' ? 'var(--peach)' : 'var(--green)';
+  const rows = Object.entries(md.attributes).map(([k, a]) => `<tr><td>${esc(names[k] || k)}</td>
+      <td><span class="badge" style="background:${col(a.decision)}">${esc(a.decision)}</span></td>
+      <td>${Math.round(a.probability * 100)}% <span class="muted">/ thr ${Math.round(a.threshold * 100)}%</span></td><td class="muted">AUROC ${a.test_auroc} · sens ${a.test_sensitivity} · spec ${a.test_specificity}</td></tr>`).join('');
+  return `<div class="small" style="margin-top:8px"><b>Model reading</b> <span class="badge" style="background:var(--readonly)">${esc(md.version)} · ${esc((md.encoder || '').split('/').pop())} + linear heads · SurgWound</span>
+    ${md.in_distribution === false ? `<div class="small" style="color:var(--reviewText)">Unfamiliar photo (distance ${md.ood_distance} > ${md.ood_threshold} to the training photos): the model abstains on every attribute.</div>` : ''}
+    <div class="row" style="gap:8px;align-items:flex-start;margin-top:4px">
+      <table class="small" style="flex:1"><tr class="muted"><td>Attribute (surgeon labels)</td><td>Decision</td><td>p / threshold</td><td>Held-out test</td></tr>${rows}</table>
+      ${md.evidence_map_url ? `<figure style="margin:0;width:34%"><img src="${esc(md.evidence_map_url)}" alt="where the redness evidence came from" style="width:100%;border-radius:8px;border:1px solid var(--ink)"><figcaption class="muted">Evidence map: redness</figcaption></figure>` : ''}
+    </div><div class="muted">${esc(md.note)}</div></div>`;
+}
+
+function renderWoundClinic(w) {
+  const photos = (w.photos || []).filter(p => p.d1);
+  if (!photos.length) return '<div class="empty">No analysed dressing-change photo yet.</div>';
+  return photos.slice(0, 4).map(p => {
+    const d = p.d1, q = d.quality || {}, mm = d.measurements || {}, c = d.comparison || null, v = p.vision_review || {};
+    const row = (k, val) => val == null ? '' : `<tr><td class="muted">${k}</td><td>${esc(val)}</td></tr>`;
+    const comp = !c ? 'First photo: it is the reference.' : c.available ? `${esc(c.summary)} <span class="muted">(${c.registration.inliers} matching points, scale ${c.registration.scale})</span>`
+      : `Not compared: ${esc(c.reason)}`;
+    const vis = v.available ? `<div class="small" style="margin-top:6px"><b>Vision reading</b> <span class="badge" style="background:var(--readonly)">${esc(v.model)} · ${esc(v.mode)}</span>
+        <ul style="margin:4px 0;padding-left:18px">${(v.findings || []).map(f => `<li>${esc(f.finding)} <span class="muted">(${esc(f.aspect)}, ${esc(f.confidence)})</span></li>`).join('') || '<li class="muted">nothing specific described</li>'}</ul>
+        ${v.retake_advice ? `<div class="muted">Retake: ${esc(v.retake_advice)}</div>` : ''}
+        ${(v.removed_for_diagnosis_wording || []).length ? `<div class="muted">${v.removed_for_diagnosis_wording.length} sentence(s) removed for diagnosis wording</div>` : ''}
+        <div class="muted">${esc(v.uncertainty || '')}</div></div>`
+      : `<div class="small muted" style="margin-top:6px">Vision reading: ${esc(v.reason || 'pending…')}</div>`;
+    return `<div class="sec" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between"><b>${new Date(p.at).toLocaleString()}</b>
+        ${p.review_alert_id ? '<span class="badge" style="background:var(--review)">Review suggested → alert</span>' : '<span class="badge" style="background:var(--green)">No rule fired</span>'}</div>
+      <div class="row" style="gap:8px;margin-top:6px;align-items:flex-start">
+        <img src="${esc(d.overlay_url || p.url)}" alt="wound photo with the measured area outlined" style="width:58%;border-radius:10px;border:1.2px solid var(--ink)">
+        <table class="small" style="flex:1">${row('Photo quality', q.status + (q.problems?.length ? ' — ' + q.problems.join('; ') : ''))}
+          ${row('Redness vs own skin (Δa*)', mm.redness_mean_delta_a)}${row('Red share of area', mm.redness_area_pct != null ? mm.redness_area_pct + ' %' : null)}
+          ${row('Redness beyond edge (Δa*)', mm.redness_spread_ring_delta_a)}${row('Area (% of frame)', mm.wound_area_pct_of_frame)}
+          ${row('Staple-like bright marks', mm.closure_material?.staple_like_blobs)}${row('Dark / crust-coloured', mm.dark_crust_coloured_pct != null ? mm.dark_crust_coloured_pct + ' %' : null)}
+          ${row('Pale-yellow regions', mm.pale_yellow_pct != null ? mm.pale_yellow_pct + ' %' : null)}</table></div>
+      <div class="small" style="margin-top:6px"><b>Compared with the reference:</b> ${comp}</div>${renderWoundModel(p.model)}${vis}
+      <div class="small muted" style="margin-top:4px">${esc(d.method || '')}. Not measured from a photo: ${(d.not_measured || []).join(', ')}. Not a diagnosis.</div></div>`;
+  }).join('');
 }
 
 // chat
@@ -946,6 +994,7 @@ async function poll() {
     ]);
     renderPatient(today, twin);
     render('#p-wound', wound, renderWound);
+    render('#c-wound', wound, renderWoundClinic);
     renderFamily(famAlerts, tasks, famTwin);
     clinicContext = { ...today, vitals: twin.vitals };
     renderClinic(clinAlerts);
