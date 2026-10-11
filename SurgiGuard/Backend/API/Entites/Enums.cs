@@ -13,7 +13,12 @@ public enum AlertType
     Fall,
     Tachycardia,
     Bradycardia,
-    Hypoxia
+    Hypoxia,
+    // Ajouts pour le Systeme Multi-Agent (alertes IA qui ne viennent pas d'un seuil capteur)
+    Fever,
+    Symptom,
+    Wound,
+    Other
 }
 
 public enum AlertStatus
