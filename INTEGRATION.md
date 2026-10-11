@@ -107,3 +107,25 @@ Tests: backend **132 passed** (offline), D1 **128 passed, 1 skipped**. Live run 
 - Twin, Reports, Medications, Rehab screens and parts of Home (pain, score ring, sensor card) are still mock data.
 - No native document picker (sample document only on the phone; file picker works in the browser).
 - `npm test` (jest) fails on ESM config; `tsc` reports DOM-type errors in `src/web/shims`.
+
+## ESP32 + SurgiGuard API are the source of truth (branch `integration/esp32-story`)
+
+The AI backend now consumes the .NET API instead of ignoring it. Open **`/story`** for the whole story on one page.
+
+```
+ESP32 --MQTT--> SurgiGuard API (.NET + Mongo) --pull every 3 s (/api/agents/.../telemetry/since)--> AI Monitor
+AI alert --POST /api/alerts/trigger--> SurgiGuard API --> FCM / WhatsApp to the family (simulated until enabled)
+confirmed care plan --POST /api/agents/.../medications/sync--> API medications --> Android alarms + adherence
+doses ticked in the Android/RN app --GET .../medications/schedule--> medication agent (med_dose)
+```
+
+- API additions (additive, nothing existing changed except 4 new `AlertType` values): `Controllers/AgentsController.cs`
+  (`api/agents/*`, `X-Api-Key` = Agents) and `FEVER|SYMPTOM|WOUND|OTHER` alert types.
+- AI side: `backend/app/integrations/surgiguard_api.py` (sync, alert push, patient mapping), `routers/hub.py`, `web/story.html`.
+- Patient mapping: the API patient owning `ESP32_DEVICE_ID` (default `ESP32_001`) plays "sarah" (override `SURGIGUARD_PATIENT_ID`).
+- bpm/spo2 -> `hr`/`spo2` (window median, `signal_quality` = share of valid samples, 0 = sensor not worn = unknown);
+  activity -> `movement`; fall flag -> immediate urgent alert. **Room temperature (DHT11) is never body temperature.**
+  Patient limits (MinBpm/MaxBpm/MinSpo2) come from the API and raise an "attention" alert.
+- Env: `SURGIGUARD_API_URL` (default `http://localhost:8080`), `SURGIGUARD_AGENTS_KEY`, `SURGIGUARD_LINK=off` for standalone.
+- Dev helpers: `SurgiGuard/Backend/scripts/seed_story.py` (accounts), `simulate_esp32.py` (stands in for the board).
+- Not done: Python alert state (ack/resolve) is not mirrored back to the API's alert status (no update endpoint there).

@@ -45,6 +45,21 @@ def digest_job(repo):
         digest.generate(repo, DEMO_PATIENT_ID, cg.id)
 
 
+@_safe
+def esp32_sync_job(repo):
+    from .integrations import surgiguard_api
+    if surgiguard_api.enabled():
+        surgiguard_api.sync_telemetry(repo)
+
+
+@_safe
+def api_link_job(repo):
+    from .integrations import surgiguard_api
+    if surgiguard_api.enabled() and surgiguard_api.api_patient():
+        surgiguard_api.sync_plan_to_api(repo)
+        surgiguard_api.sync_doses_from_api(repo)
+
+
 def start() -> None:
     global _scheduler
     if _scheduler or not settings.scheduler_enabled:
@@ -52,6 +67,8 @@ def start() -> None:
     s = BackgroundScheduler(job_defaults={"coalesce": True, "max_instances": 1})
     s.add_job(sweep_job, "interval", seconds=settings.sweep_interval_s, id="sweep")
     s.add_job(medication_job, "interval", seconds=60, id="medication")
+    s.add_job(esp32_sync_job, "interval", seconds=settings.esp32_poll_s, id="esp32_sync")
+    s.add_job(api_link_job, "interval", seconds=20, id="api_link")
     s.add_job(checkin_job, "cron", hour="8,20", minute=0, id="checkin")
     s.add_job(digest_job, "cron", hour=20, minute=5, id="digest")
     s.start()

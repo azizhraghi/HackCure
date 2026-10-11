@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurgiGuard Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #edf2fa; --surface: #ffffff; --ink: #1b2a4a; --text: #1b2a4a; --muted: #64718a; --line: #d7dfec;
+    --api: #e3f6ec; --ai: #fff4d6; --bad-bg: #fde6e4; --app: #e6f0ff; --ok: #1f8a4c; --warn: #a65f00; --bad: #c64e48;
+    --primary: #3157d5; --hr: #c64e48; --spo2: #3157d5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1120; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2; --line: #2a3a5c;
+      --api: #12332a; --ai: #3a3013; --bad-bg: #3a1c22; --app: #182a4d; --ok: #6ad79a; --warn: #ffc070; --bad: #ff8a84;
+      --primary: #7d9bff; --hr: #ff8a84; --spo2: #7d9bff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1120; --surface: #16213a; --ink: #8fa3c9; --text: #e6ecfa; --muted: #9aa8c2; --line: #2a3a5c;
+    --api: #12332a; --ai: #3a3013; --bad-bg: #3a1c22; --app: #182a4d; --ok: #6ad79a; --warn: #ffc070; --bad: #ff8a84;
+    --primary: #7d9bff; --hr: #ff8a84; --spo2: #7d9bff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Plus Jakarta Sans", system-ui, sans-serif; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  header { background: var(--surface); border-bottom: 1.5px solid var(--ink); padding: 12px 16px; position: sticky; top: 0; z-index: 5; }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 2px 0 8px; color: var(--muted); font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+  .chip { border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; font-size: 12px; background: var(--surface); font-weight: 600; }
+  .chip.on { border-color: var(--ok); color: var(--ok); } .chip.off { border-color: var(--bad); color: var(--bad); } .chip.warn { border-color: var(--warn); color: var(--warn); }
+  .links a { border: 1.2px solid var(--ink); border-radius: 99px; padding: 3px 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 12px; background: var(--app); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+  .step { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 18px; padding: 14px 16px; }
+  .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .num { font-weight: 800; font-size: 13px; border: 1.2px solid var(--ink); border-radius: 99px; width: 26px; height: 26px; display: inline-grid; place-items: center; flex: none; }
+  h2 { margin: 0; font-size: 16px; }
+  .who { font-size: 11.5px; font-weight: 800; letter-spacing: .5px; border-radius: 99px; padding: 2px 9px; border: 1px solid var(--ink); }
+  .who.api { background: var(--api); } .who.ai { background: var(--ai); } .who.app { background: var(--app); }
+  .story { color: var(--muted); margin: 6px 0 10px; font-size: 13.5px; max-width: 80ch; }
+  button.b { border: 1.2px solid var(--ink); background: var(--surface); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; }
+  button.b.p { background: var(--primary); color: #fff; border-color: var(--primary); }
+  button.b.d { border-color: var(--bad); color: var(--bad); }
+  button.b:disabled { opacity: .5; cursor: wait; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); }
+  .card h3 { margin: 0 0 4px; font-size: 12px; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-size: 30px; font-weight: 800; line-height: 1.1; } .tile .u { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .tile.bad .v { color: var(--bad); }
+  .tag { font-size: 11px; font-weight: 800; border-radius: 6px; padding: 1px 6px; border: 1px solid var(--line); margin-left: 4px; vertical-align: middle; }
+  .tag.real { border-color: var(--ok); color: var(--ok); } .tag.sim { border-color: var(--warn); color: var(--warn); }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  .err { color: var(--bad); font-weight: 700; }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  td, th { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  .alert { border: 1.2px solid var(--line); border-left: 6px solid var(--warn); border-radius: 10px; padding: 8px 10px; margin: 6px 0; background: var(--bg); }
+  .alert.urgent { border-left-color: var(--bad); } .alert.resolved { border-left-color: var(--ok); opacity: .8; }
+  .steps { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+  .steps span { font-size: 11px; border: 1px solid var(--line); border-radius: 99px; padding: 0 8px; color: var(--muted); }
+  .steps span.done { border-color: var(--ok); color: var(--ok); font-weight: 700; }
+  textarea, input[type=text] { width: 100%; border: 1.2px solid var(--ink); border-radius: 10px; padding: 7px 9px; background: var(--surface); }
+  .chat { border: 1px solid var(--line); border-radius: 12px; background: var(--bg); padding: 8px; max-height: 280px; overflow: auto; display: grid; gap: 6px; }
+  .msg { padding: 6px 10px; border-radius: 12px; max-width: 85%; white-space: pre-wrap; }
+  .msg.u { background: var(--primary); color: #fff; justify-self: end; } .msg.a { background: var(--surface); border: 1px solid var(--line); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tabs button { border: 1.2px solid var(--ink); border-radius: 99px; padding: 3px 12px; background: var(--surface); font-weight: 700; cursor: pointer; }
+  .tabs button.on { background: var(--ink); color: var(--surface); }
+  svg { width: 100%; height: 120px; display: block; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; max-height: 220px; overflow: auto; margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SurgiGuard — l'histoire complète</h1>
+  <p>Du boîtier ESP32 à l'équipe soignante : <b>l'API SurgiGuard (.NET + MongoDB)</b> porte les données, les <b>agents IA</b> les analysent, la famille est prévenue par l'API. Patiente fictive, pas un dispositif médical.</p>
+  <div class="row" id="chips"></div>
+  <div class="row links" style="margin-top:6px">
+    <a href="/app/">App patient/famille (web)</a><a href="/agent-demo/">Tableau de bord clinique</a><a href="/prototype">Console D1·D2·D3</a>
+    <a href="/demo">Workflow D3</a><a href="/docs">API IA</a><a id="swagger" href="#" target="_blank">API SurgiGuard (Swagger)</a>
+  </div>
+</header>
+<main>
+
+<section class="step" id="s1">
+  <div class="head"><span class="num">1</span><h2>La patiente et son boîtier</h2><span class="who api">API SURGIGUARD</span></div>
+  <p class="story">Le compte, le code famille et le <b>device_id</b> du boîtier viennent de l'API. L'IA retrouve seule la patiente qui possède l'ESP32 (<code id="devid">ESP32_001</code>) : rien n'est saisi deux fois, et ses seuils (BPM min/max, SpO₂ min) sont ceux de l'API.</p>
+  <div class="grid" id="patientBox"></div>
+  <div class="row" style="margin-top:8px"><button class="b" onclick="syncNow(this)">Synchroniser maintenant</button><span class="muted" id="syncOut"></span></div>
+</section>
+
+<section class="step" id="s2">
+  <div class="head"><span class="num">2</span><h2>Le plan de soins devient les médicaments de l'app</h2><span class="who ai">IA D2</span><span class="who api">API</span></div>
+  <p class="story">Quand la patiente confirme son plan (documents → plan, voir la <a href="/prototype">console</a>), les médicaments sont poussés vers l'API : ce sont eux qui sonnent sur l'app Android (MoniteurAndroid) et dont l'observance est suivie. Le sens inverse existe aussi : une prise « prise » dans l'app Android remonte à l'agent médicaments.</p>
+  <div id="medPlan"></div>
+</section>
+
+<section class="step" id="s3">
+  <div class="head"><span class="num">3</span><h2>Constantes en direct <span class="muted">(ESP32, via l'API)</span></h2><span class="who api">API SURGIGUARD</span><span class="who ai">MONITEUR IA</span></div>
+  <p class="story">Fréquence cardiaque et SpO₂ du MAX30102, mouvement du MPU6050, ambiance du DHT11. <b>La température de la pièce n'est jamais prise pour une température corporelle</b> : la fièvre vient du check-in ou d'une simulation, étiquetée comme telle. Une mesure à 0 = capteur non porté : « inconnu », jamais « normal ».</p>
+  <div class="grid" id="tiles"></div>
+  <div class="card" style="margin-top:10px"><h3>3 dernières minutes — <span style="color:var(--hr)">BPM</span> · <span style="color:var(--spo2)">SpO₂</span></h3><svg id="chart" viewBox="0 0 600 120" preserveAspectRatio="none"></svg></div>
+  <details style="margin-top:8px"><summary>Ce que l'IA a retenu (une observation par fenêtre, avec qualité du signal)</summary><div id="aiObs"></div></details>
+</section>
+
+<section class="step" id="s4">
+  <div class="head"><span class="num">4</span><h2>Médicaments &amp; observance</h2><span class="who api">API SURGIGUARD</span><span class="who ai">AGENT MÉDICAMENTS</span></div>
+  <p class="story">Les prises du jour et leur statut viennent de l'API (celles cochées dans l'app Android). Une prise sans réponse reste « inconnue » côté IA, jamais « prise ».</p>
+  <div class="grid"><div class="card"><h3>Aujourd'hui (API)</h3><div id="sched"></div></div><div class="card"><h3>Observance 7 jours</h3><div id="adh"></div></div></div>
+</section>
+
+<section class="step" id="s5">
+  <div class="head"><span class="num">5</span><h2>Quelque chose change</h2><span class="who ai">MONITEUR + AGENTS</span></div>
+  <p class="story">Le boîtier ne mesure pas tout. Ces boutons ajoutent des mesures <b>simulées</b> (étiquette orange) pour déclencher le reste de l'histoire. Les règles d'urgence tournent sans IA ; l'enquête, elle, utilise l'IA. Les alertes partent aussi vers l'API → <b>famille notifiée</b> (étape 7).</p>
+  <div class="row">
+    <button class="b" onclick="sim('fever',this)">Fièvre 38,7 °C</button>
+    <button class="b d" onclick="sim('high_fever',this)">Fièvre 39,8 °C</button>
+    <button class="b d" onclick="sim('desaturation',this)">SpO₂ 88 %</button>
+    <button class="b" onclick="sim('tachycardia',this)">Tachycardie 112</button>
+    <button class="b d" onclick="sim('fall',this)">Chute</button>
+    <button class="b" onclick="sim('recover',this)">Retour à 36,9 °C</button>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div class="card"><h3>Check-in de la patiente</h3>
+      <label class="muted">Douleur <b id="pv">4</b>/10</label><input type="range" min="0" max="10" value="4" id="pain" oninput="pv.textContent=this.value" style="width:100%">
+      <label class="muted">Fatigue <b id="fv">5</b>/10</label><input type="range" min="0" max="10" value="5" id="fat" oninput="fv.textContent=this.value" style="width:100%">
+      <label class="muted">Mobilité <b id="mv">5</b>/10</label><input type="range" min="0" max="10" value="5" id="mob" oninput="mv.textContent=this.value" style="width:100%">
+      <input type="text" id="cmt" placeholder="Commentaire libre (ex. « I feel short of breath »)" style="margin:6px 0">
+      <button class="b p" onclick="checkin(this)">Envoyer le check-in</button>
+      <div id="ciOut" class="muted" style="margin-top:6px"></div>
+    </div>
+    <div class="card"><h3>Ce que le moniteur a décidé</h3><div id="simOut" class="muted">Aucune simulation lancée.</div></div>
+  </div>
+</section>
+
+<section class="step" id="s6">
+  <div class="head"><span class="num">6</span><h2>L'équipe soignante boucle la boucle</h2><span class="who ai">IA D3</span></div>
+  <p class="story">Alerte → prise en compte → patiente contactée → décision → <b>vérification avec des mesures prises après la décision</b> → clôture. Le bouton « vérifier » utilise les dernières mesures <b>réelles du boîtier</b> de bonne qualité (une simulation ne peut pas prouver qu'un suivi a eu lieu).</p>
+  <div id="alerts"></div>
+</section>
+
+<section class="step" id="s7">
+  <div class="head"><span class="num">7</span><h2>La famille est prévenue</h2><span class="who api">API SURGIGUARD</span></div>
+  <p class="story">Les alertes IA arrivent dans l'API (<code>POST /api/alerts/trigger</code>) : gravité 1 = push, 2 = push + WhatsApp au contact principal, 3 = push + WhatsApp à tous les proches opt-in. WhatsApp/FCM sont <b>simulés</b> tant qu'ils ne sont pas activés.</p>
+  <div id="family"></div>
+</section>
+
+<section class="step" id="s8">
+  <div class="head"><span class="num">8</span><h2>Récupération attendue &amp; jumeau</h2><span class="who ai">IA D1</span></div>
+  <p class="story">Le jumeau prévoit la FC / SpO₂ des heures à venir <b>à partir des mesures réelles de l'ESP32</b> (ou s'abstient, avec ses raisons). La récupération attendue demande un LLM en ligne.</p>
+  <div class="grid"><div class="card"><h3>Prévision du jumeau</h3><div id="twin" class="muted">…</div></div><div class="card"><h3>Aujourd'hui, normal pour elle</h3><div id="expected" class="muted">…</div></div></div>
+</section>
+
+<section class="step" id="s9">
+  <div class="head"><span class="num">9</span><h2>Les assistants</h2><span class="who ai">IA D2 + D3</span><span class="who app">CHATBOTS</span></div>
+  <p class="story">Trois assistants, une seule porte d'urgence : toute phrase d'alerte (« essoufflement », « chest pain ») est interceptée par les règles <b>avant</b> l'IA et crée une alerte.</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="chat" id="chat"></div>
+  <div class="row" style="margin-top:8px"><input type="text" id="q" placeholder="Votre question…" style="flex:1" onkeydown="if(event.key==='Enter')ask()"><button class="b p" onclick="ask()">Envoyer</button></div>
+  <div class="muted" id="chatMeta" style="margin-top:4px"></div>
+  <div class="card" style="margin-top:10px"><h3>Résumé du soir pour le proche (Ahmed)</h3><button class="b" onclick="loadDigest(this)">Générer</button><div id="digest" class="muted" style="margin-top:6px"></div></div>
+</section>
+
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const PID = "sarah", CLIN = "dr_ruiz";
+let status = null, live = null;
+
+async function j(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+                                body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const t = await r.text(); let d; try { d = JSON.parse(t); } catch { d = { detail: t }; }
+  if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : JSON.stringify(d.detail || d));
+  return d;
+}
+const busy = async (btn, fn) => { btn.disabled = true; try { return await fn(); } catch (e) { alert(e.message); } finally { btn.disabled = false; } };
+const ago = (s) => s == null ? "—" : s < 90 ? `il y a ${Math.round(s)} s` : `il y a ${Math.round(s / 60)} min`;
+
+/* ---------------- header + step 1 ---------------- */
+async function refreshStatus() {
+  try { status = await j("/hub/status"); } catch (e) { status = null; }
+  const s = status, c = [];
+  if (!s) { $("chips").innerHTML = '<span class="chip off">Backend IA injoignable</span>'; return; }
+  c.push(`<span class="chip ${s.reachable ? "on" : "off"}">API SurgiGuard ${s.reachable ? "connectée" : "injoignable"}</span>`);
+  c.push(`<span class="chip ${s.api_patient ? "on" : "warn"}">${s.api_patient ? "Patiente liée : " + esc(s.api_patient.name) : "Aucune patiente liée"}</span>`);
+  const d = s.device;
+  c.push(`<span class="chip ${d && d.online ? "on" : "warn"}">ESP32 ${d && d.online ? "en ligne" : "silencieux"} (${ago(d && d.last_reading_age_s)})</span>`);
+  c.push(`<span class="chip ${s.ai.llm_mode === "live" ? "on" : "warn"}">LLM : ${esc(s.ai.llm_mode)}</span>`);
+  c.push(`<span class="chip ${s.ai.open_alerts ? "off" : "on"}">${s.ai.open_alerts} alerte(s) ouverte(s)</span>`);
+  $("chips").innerHTML = c.join("");
+  $("swagger").href = s.api_url + "/swagger";
+  $("devid").textContent = s.esp32_device_id;
+  const p = s.api_patient;
+  $("patientBox").innerHTML = p ? `
+    <div class="card"><h3>Patiente (API)</h3><b>${esc(p.name)}</b><br><span class="muted">id ${esc(p.id)}</span><br>Boîtier <b>${esc(p.device_id)}</b></div>
+    <div class="card"><h3>Seuils personnalisés</h3>BPM ${p.thresholds.min_bpm}–${p.thresholds.max_bpm}<br>SpO₂ min ${p.thresholds.min_spo2} %<br><span class="muted">L'IA ajoute une alerte « attention » quand ils sont franchis.</span></div>
+    <div class="card"><h3>Famille liée</h3>${(p.family || []).map((f) => `${esc(f.full_name)} <span class="muted">(${esc(f.relationship)}${f.is_primary_contact ? ", contact principal" : ""}${f.whatsapp_opt_in ? ", WhatsApp" : ""})</span>`).join("<br>") || "<span class='muted'>Personne</span>"}</div>
+    <div class="card"><h3>Flux vers l'IA</h3>${s.telemetry.readings_in} mesures lues → ${s.telemetry.observations_out} observations<br><span class="muted">fenêtre ${s.telemetry.window_s} s · ${s.doses_imported} prise(s) importée(s)</span></div>`
+    : `<div class="card err">${s.reachable ? "Aucune patiente de l'API ne possède le boîtier " + esc(s.esp32_device_id) + ". Créez-la dans l'app (ou lancez Backend/scripts/seed_story.py)." : "L'API SurgiGuard ne répond pas : " + esc(s.last_error || "")}</div>`;
+}
+async function syncNow(b) { busy(b, async () => { const r = await j("/hub/sync-now", { method: "POST" }); $("syncOut").textContent = `médicaments → API : ${r.plan_to_api ? `${r.plan_to_api.created} créé(s), ${r.plan_to_api.updated} mis à jour` : "rien à faire"} · prises importées : ${r.doses_from_api}`; refreshAll(); }); }
+
+/* ---------------- live (steps 3, 4) ---------------- */
+function chart(points) {
+  const W = 600, H = 120, svg = $("chart");
+  const pts = points.filter((p) => p.bpm || p.spo2);
+  if (pts.length < 2) { svg.innerHTML = `<text x="300" y="64" text-anchor="middle" fill="currentColor" opacity=".6">en attente de mesures de l'ESP32…</text>`; return; }
+  const t0 = new Date(pts[0].timestamp).getTime(), t1 = new Date(pts[pts.length - 1].timestamp).getTime() || t0 + 1;
+  const x = (p) => ((new Date(p.timestamp).getTime() - t0) / Math.max(1, t1 - t0)) * (W - 8) + 4;
+  const line = (key, lo, hi, color) => {
+    const d = pts.filter((p) => p[key]).map((p, i) => `${i ? "L" : "M"}${x(p).toFixed(1)},${(H - 6 - ((p[key] - lo) / (hi - lo)) * (H - 12)).toFixed(1)}`).join("");
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  };
+  svg.innerHTML = line("bpm", 40, 140, "var(--hr)") + line("spo2", 85, 100, "var(--spo2)");
+}
+function tile(name, v, unit, tag, bad) {
+  return `<div class="card tile ${bad ? "bad" : ""}"><h3>${name}<span class="tag ${tag === "réel" ? "real" : "sim"}">${tag}</span></h3><span class="v">${v ?? "—"}</span> <span class="u">${v == null ? "" : unit}</span></div>`;
+}
+async function refreshLive() {
+  try { live = await j("/hub/live"); } catch (e) { return; }
+  const L = live.latest, th = status && status.api_patient ? status.api_patient.thresholds : {};
+  const fresh = live.latest_age_s != null && live.latest_age_s < 20;
+  const w = (v) => fresh && v ? v : null;
+  $("tiles").innerHTML = live.linked ? [
+    tile("Fréquence cardiaque", w(L && L.bpm), "bpm", "réel", L && L.bpm && (L.bpm > th.max_bpm || L.bpm < th.min_bpm)),
+    tile("SpO₂", w(L && L.spo2), "%", "réel", L && L.spo2 && L.spo2 < th.min_spo2),
+    tile("Mouvement", fresh && L ? L.motion_state : null, "", "réel", L && L.fall_detected),
+    tile("Pièce (DHT11)", L ? `${L.room_temp ?? "—"} °C · ${L.room_humidity ?? "—"} %` : null, "", "réel"),
+  ].join("") + `<div class="card"><h3>Dernière mesure</h3>${ago(live.latest_age_s)}<br><span class="muted">${fresh ? "capteur porté" : "boîtier silencieux ou capteur non porté (0 = inconnu)"}</span></div>` : '<div class="card muted">API non liée.</div>';
+  chart(live.points || []);
+  $("aiObs").innerHTML = `<table><tr><th>quand</th><th>type</th><th>valeur</th><th>qualité</th><th>origine</th></tr>${(live.ai_observations || []).slice(0, 14).map((o) => `<tr><td>${o.at.slice(11, 19)}</td><td>${o.type}</td><td>${esc(o.type === "movement" ? o.value.state + (o.value.fall ? " ⚠ chute" : "") : o.value.value)}</td><td>${o.quality}${o.value.signal_quality != null ? " (" + o.value.signal_quality + ")" : ""}</td><td><span class="tag ${o.simulated ? "sim" : "real"}">${o.simulated ? "simulé" : "réel"}</span></td></tr>`).join("")}</table>`;
+  const sch = live.schedule || [];
+  $("sched").innerHTML = sch.length ? `<table>${sch.map((d) => `<tr><td>${d.time}</td><td>${esc(d.name)} ${esc(d.dosage || "")}</td><td>${{ TAKEN: "✔ prise", SKIPPED: "⏭ ignorée", MISSED: "✖ manquée", PENDING: "à venir" }[d.status] || d.status}</td></tr>`).join("")}</table>` : '<span class="muted">Aucun médicament dans l\'API. Confirmez un plan (étape 2) puis « Synchroniser ».</span>';
+  const o = live.adherence && live.adherence.overall;
+  $("adh").innerHTML = o ? `<span class="v" style="font-size:28px;font-weight:800">${o.adherence_percent ?? "—"}${o.adherence_percent != null ? " %" : ""}</span><br><span class="muted">${o.taken} prise(s) · ${o.skipped} ignorée(s) · ${o.missed} manquée(s) · ${o.pending} à venir</span>` : '<span class="muted">—</span>';
+}
+
+/* ---------------- step 2: plan ---------------- */
+async function refreshPlan() {
+  try {
+    const r = await j(`/patients/${PID}/medications`);
+    $("medPlan").innerHTML = `<table><tr><th>Médicament</th><th>Dose</th><th>Heures</th><th>Statut du jour (agent IA)</th></tr>${r.plan.map((m) => `<tr><td>${esc(m.name)}</td><td>${esc(m.dose)}</td><td>${m.times.join(", ")}</td><td>${r.today.filter((t) => t.med_id === m.id).map((t) => t.scheduled_for.slice(11, 16) + " " + t.status).join(" · ")}</td></tr>`).join("")}</table>`;
+  } catch (e) { $("medPlan").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------------- step 5 ---------------- */
+async function sim(name, b) { busy(b, async () => {
+  const r = await j("/hub/simulate", { method: "POST", body: { scenario: name } });
+  const m = (r.monitor || []).map((x) => `${x.rule ? x.rule.level + (x.rule.rule ? " · " + x.rule.rule : "") : ""}${x.alert_id ? " → alerte " + x.alert_id.slice(-6) : ""}${x.investigation_id ? " → enquête lancée" : ""}${x.signals && x.signals.length ? " · signaux : " + x.signals.map((s) => s.text).join("; ") : ""}`).join("<br>");
+  $("simOut").innerHTML = `<b>${name}</b> <span class="tag sim">simulé</span><br>${m || (r.alert_id ? "chute → alerte urgente " + r.alert_id.slice(-6) : "enregistré")}`;
+  refreshAll();
+}); }
+async function checkin(b) { busy(b, async () => {
+  const r = await j("/checkin", { method: "POST", body: { patient_id: PID, pain: +$("pain").value, fatigue: +$("fat").value, mobility: +$("mob").value, comment: $("cmt").value || null } });
+  $("ciOut").innerHTML = r.status === "urgent" ? '<span class="err">Signe d\'alarme : alerte urgente créée sans passer par l\'IA.</span>' : `Reçu (${esc(r.status || "ok")}). ${r.clarification ? "Question de l'IA : <b>" + esc(r.clarification.question || r.clarification.text || "") + "</b>" : ""}`;
+  refreshAll();
+}); }
+
+/* ---------------- step 6: alerts ---------------- */
+const FLOW = ["created", "acknowledged", "patient_contacted", "action_taken", "verified", "resolved"];
+async function refreshAlerts() {
+  const list = await j(`/alerts?role=clinician&patient_id=${PID}`);
+  $("alerts").innerHTML = list.length ? list.slice(0, 8).map((a) => {
+    const idx = Math.max(0, FLOW.indexOf(a.state === "assigned" ? "created" : a.state));
+    const nxt = { created: ["ack", "Prendre en compte"], assigned: ["ack", "Prendre en compte"], acknowledged: ["contacted", "Patiente contactée"],
+                  patient_contacted: ["action", "Enregistrer la décision"], action_taken: ["verify", "Vérifier avec les mesures du boîtier"], verified: ["resolve", "Clôturer"] }[a.state];
+    return `<div class="alert ${a.level} ${a.state === "resolved" ? "resolved" : ""}"><b>${esc(a.title)}</b> <span class="tag ${a.level === "urgent" ? "sim" : ""}">${a.level}</span> <span class="muted">${esc(a.rule || a.source)} · ${a.created_at.slice(11, 19)}${a.escalated ? " · escaladée" : ""}</span><br>${esc(a.reason)}
+      <div class="steps">${FLOW.map((s, i) => `<span class="${i <= idx && a.state !== "created" && a.state !== "assigned" || (i === 0) ? "done" : ""}">${s.replace("_", " ")}</span>`).join("")}</div>
+      ${nxt ? `<button class="b p" onclick="advance('${a.id}','${nxt[0]}',this)">${nxt[1]}</button>` : ""}</div>`;
+  }).join("") : '<span class="muted">Aucune alerte. Lancez une simulation à l\'étape 5 ou une série « desat » avec Backend/scripts/simulate_esp32.py.</span>';
+}
+async function advance(id, step, b) { busy(b, async () => {
+  const note = step === "action" ? (prompt("Décision / instruction donnée à la patiente :", "Surveillance rapprochée, repos, recontrôle SpO₂ dans 15 min.") || "") : "Depuis la page Story";
+  if (step === "ack" || step === "contacted" || step === "action") await j(`/alerts/${id}/${step}`, { method: "POST", body: { actor: CLIN, note } });
+  else if (step === "verify") {
+    const a = await j(`/alerts/${id}`);
+    const at = (a.history.slice().reverse().find((h) => h.event === "action_taken") || {}).at;
+    const obs = await j(`/patients/${PID}/observations?limit=60`);
+    const ev = obs.filter((o) => o.source === "device" && !o.simulated && o.quality === "good" && ["hr", "spo2"].includes(o.type) && at && o.measured_at > at && o.received_at > at);
+    if (!ev.length) throw new Error("Aucune mesure réelle de bonne qualité reçue après la décision. Attendez la prochaine fenêtre du boîtier (" + (status ? status.telemetry.window_s : 15) + " s) avec le capteur porté.");
+    const v = await j(`/alerts/${id}/verify`, { method: "POST", body: { actor: CLIN, outcome: "resolved", summary: "Mesures du boîtier après la décision : " + ev.slice(0, 4).map((o) => `${o.type} ${o.value.value}`).join(", "), observation_ids: ev.slice(0, 4).map((o) => o.id) } });
+    window.__lastVerification = v.id;
+  } else if (step === "resolve") {
+    const a = await j(`/alerts/${id}`);
+    const vid = (a.history.slice().reverse().find((h) => h.event === "verified") || {}).verification_id;
+    await j(`/alerts/${id}/resolve`, { method: "POST", body: { actor: CLIN, reason: "Suivi vérifié par mesures", verification_id: vid } });
+  }
+  refreshAll();
+}); }
+
+/* ---------------- step 7 ---------------- */
+async function refreshFamily() {
+  const r = await j("/hub/family-alerts");
+  $("family").innerHTML = r.alerts.length ? r.alerts.slice(0, 6).map((a) => `<div class="alert ${a.severity === 3 ? "urgent" : ""}"><b>${esc(a.type)}</b> <span class="tag">gravité ${a.severity}</span> <span class="muted">${esc(a.source || "")} · ${a.created_at.slice(11, 19)} · ${a.status}</span><br>${esc(a.message)}
+    <table>${a.notifications.map((n) => `<tr><td>${esc(n.recipient_name)}</td><td>${n.channel}</td><td>${n.success ? "✔" : "✖"}${n.simulated ? ' <span class="tag sim">simulé</span>' : ""}</td><td class="muted">${esc(n.target)}</td></tr>`).join("") || "<tr><td class='muted'>Aucun proche notifié</td></tr>"}</table></div>`).join("") : '<span class="muted">Aucune alerte reçue par l\'API pour l\'instant.</span>';
+}
+
+/* ---------------- step 8 ---------------- */
+async function refreshD1() {
+  try {
+    const t = await j(`/patients/${PID}/twin-forecast`);
+    $("twin").innerHTML = t.status !== "ok" ? esc(t.reason || t.status) : Object.entries(t.forecasts).map(([k, fs]) => { const f = fs[0]; return f ? `<b>${k.toUpperCase()}</b> dans ${f.horizon_hours} h : ${f.status === "available" ? `${f.point} (${f.interval.lower}–${f.interval.upper})` : "<i>abstention</i> — " + esc((f.reasons || f.abstain_reasons || []).join(", ") || f.status)}` : ""; }).join("<br>") + '<br><span class="muted">Estimation complémentaire, jamais un « sûr jusqu\'à ».</span>';
+  } catch (e) { $("twin").textContent = e.message; }
+  try {
+    const e = await j(`/patients/${PID}/expected-recovery?start=false`);
+    $("expected").innerHTML = e.status === "ready" || e.card ? `<pre>${esc(JSON.stringify(e.card || e, null, 1).slice(0, 700))}</pre>` : esc(e.reason || e.status || "indisponible");
+  } catch (er) { $("expected").textContent = er.message; }
+}
+
+/* ---------------- step 9: chats ---------------- */
+const BOTS = {
+  patient: { label: "Assistant de récupération", run: async (h) => { const r = await j("/chat", { method: "POST", body: { messages: h, lang: "fr", patient_id: PID } }); return [r.reply, r.escalate ? "⚠ à escalader" : ""]; } },
+  plan: { label: "Questions sur mon plan (RAG + sources)", run: async (h) => { const r = await j("/v1/chat", { method: "POST", body: { messages: h, actor_role: "patient", lang: "fr", patient_id: PID } }); return [r.reply, (r.citations || []).length ? "sources : " + r.citations.join(", ") : (r.escalate ? "⚠ à escalader" : "")]; } },
+  family: { label: "Assistant du proche (Ahmed)", run: async (h) => { const r = await j("/v1/chat", { method: "POST", body: { messages: h, actor_role: "caregiver", granted_categories: ["vitals", "medications", "alerts", "appointments"], lang: "fr", patient_id: PID } }); return [r.reply, (r.citations || []).length ? "sources : " + r.citations.join(", ") : ""]; } },
+};
+let bot = "patient"; const hist = { patient: [], plan: [], family: [] };
+function drawTabs() { $("tabs").innerHTML = Object.entries(BOTS).map(([k, b]) => `<button class="${k === bot ? "on" : ""}" onclick="bot='${k}';drawTabs();drawChat()">${b.label}</button>`).join(""); }
+function drawChat() { $("chat").innerHTML = hist[bot].map((m) => `<div class="msg ${m.role === "user" ? "u" : "a"}">${esc(m.content)}</div>`).join("") || '<span class="muted">Posez une question. Essayez aussi : « J\'ai du mal à respirer ».</span>'; $("chat").scrollTop = 1e9; }
+async function ask() {
+  const q = $("q").value.trim(); if (!q) return; $("q").value = "";
+  hist[bot].push({ role: "user", content: q }); drawChat();
+  try { const [reply, meta] = await BOTS[bot].run(hist[bot].slice(-10)); hist[bot].push({ role: "assistant", content: reply }); $("chatMeta").textContent = meta; }
+  catch (e) { hist[bot].push({ role: "assistant", content: "Erreur : " + e.message }); }
+  drawChat(); refreshAlerts();
+}
+async function loadDigest(b) { busy(b, async () => { const r = await j("/caregiver/ahmed/digest?refresh=true"); $("digest").textContent = (r.digest.text || r.digest.summary || JSON.stringify(r.digest)).slice(0, 900); }); }
+
+/* ---------------- loop ---------------- */
+async function refreshAll() { await refreshStatus(); await Promise.allSettled([refreshLive(), refreshPlan(), refreshAlerts(), refreshFamily()]); }
+drawTabs(); drawChat(); refreshAll(); refreshD1();
+setInterval(refreshLive, 2000); setInterval(refreshStatus, 5000);
+setInterval(() => { refreshAlerts(); refreshFamily(); }, 6000); setInterval(refreshD1, 30000); setInterval(refreshPlan, 20000);
+</script>
+</body>
+</html>
